@@ -13,6 +13,7 @@ import (
 
 "github.com/thalib/moon/internal/config"
 "github.com/thalib/moon/internal/database"
+"github.com/thalib/moon/internal/handlers"
 "github.com/thalib/moon/internal/registry"
 )
 
@@ -49,15 +50,18 @@ return srv
 
 // setupRoutes configures all HTTP routes
 func (s *Server) setupRoutes() {
+// Create collections handler
+collectionsHandler := handlers.NewCollectionsHandler(s.db, s.registry)
+
 // Health check endpoint
 s.mux.HandleFunc("GET /health", s.loggingMiddleware(s.healthHandler))
 
 // Schema management endpoints (collections)
-s.mux.HandleFunc("GET /api/v1/collections:list", s.loggingMiddleware(s.collectionsListHandler))
-s.mux.HandleFunc("GET /api/v1/collections:get", s.loggingMiddleware(s.collectionsGetHandler))
-s.mux.HandleFunc("POST /api/v1/collections:create", s.loggingMiddleware(s.collectionsCreateHandler))
-s.mux.HandleFunc("POST /api/v1/collections:update", s.loggingMiddleware(s.collectionsUpdateHandler))
-s.mux.HandleFunc("POST /api/v1/collections:destroy", s.loggingMiddleware(s.collectionsDestroyHandler))
+s.mux.HandleFunc("GET /api/v1/collections:list", s.loggingMiddleware(collectionsHandler.List))
+s.mux.HandleFunc("GET /api/v1/collections:get", s.loggingMiddleware(collectionsHandler.Get))
+s.mux.HandleFunc("POST /api/v1/collections:create", s.loggingMiddleware(collectionsHandler.Create))
+s.mux.HandleFunc("POST /api/v1/collections:update", s.loggingMiddleware(collectionsHandler.Update))
+s.mux.HandleFunc("POST /api/v1/collections:destroy", s.loggingMiddleware(collectionsHandler.Destroy))
 
 // Catch-all for 404
 s.mux.HandleFunc("/", s.loggingMiddleware(s.notFoundHandler))
@@ -166,27 +170,6 @@ s.writeJSON(w, http.StatusOK, response)
 // Not found handler
 func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 s.writeError(w, http.StatusNotFound, "Endpoint not found")
-}
-
-// Placeholder handlers (will be implemented in PRD 006)
-func (s *Server) collectionsListHandler(w http.ResponseWriter, r *http.Request) {
-s.writeJSON(w, http.StatusOK, map[string]any{"message": "collections:list - not implemented yet"})
-}
-
-func (s *Server) collectionsGetHandler(w http.ResponseWriter, r *http.Request) {
-s.writeJSON(w, http.StatusOK, map[string]any{"message": "collections:get - not implemented yet"})
-}
-
-func (s *Server) collectionsCreateHandler(w http.ResponseWriter, r *http.Request) {
-s.writeJSON(w, http.StatusOK, map[string]any{"message": "collections:create - not implemented yet"})
-}
-
-func (s *Server) collectionsUpdateHandler(w http.ResponseWriter, r *http.Request) {
-s.writeJSON(w, http.StatusOK, map[string]any{"message": "collections:update - not implemented yet"})
-}
-
-func (s *Server) collectionsDestroyHandler(w http.ResponseWriter, r *http.Request) {
-s.writeJSON(w, http.StatusOK, map[string]any{"message": "collections:destroy - not implemented yet"})
 }
 
 // writeJSON writes a JSON response

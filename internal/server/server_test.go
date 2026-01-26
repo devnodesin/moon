@@ -123,28 +123,6 @@ t.Error("Expected error message in response")
 }
 }
 
-func TestCollectionsListHandler_Placeholder(t *testing.T) {
-srv := setupTestServer(t)
-
-req := httptest.NewRequest(http.MethodGet, "/api/v1/collections:list", nil)
-w := httptest.NewRecorder()
-
-srv.collectionsListHandler(w, req)
-
-if w.Code != http.StatusOK {
-t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-}
-
-var response map[string]any
-if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-t.Fatalf("Failed to decode response: %v", err)
-}
-
-if response["message"] == nil {
-t.Error("Expected message in response")
-}
-}
-
 func TestLoggingMiddleware(t *testing.T) {
 srv := setupTestServer(t)
 
@@ -258,36 +236,6 @@ expectedStatus int
 name:           "Health check",
 method:         http.MethodGet,
 path:           "/health",
-expectedStatus: http.StatusOK,
-},
-{
-name:           "Collections list",
-method:         http.MethodGet,
-path:           "/api/v1/collections:list",
-expectedStatus: http.StatusOK,
-},
-{
-name:           "Collections get",
-method:         http.MethodGet,
-path:           "/api/v1/collections:get",
-expectedStatus: http.StatusOK,
-},
-{
-name:           "Collections create",
-method:         http.MethodPost,
-path:           "/api/v1/collections:create",
-expectedStatus: http.StatusOK,
-},
-{
-name:           "Collections update",
-method:         http.MethodPost,
-path:           "/api/v1/collections:update",
-expectedStatus: http.StatusOK,
-},
-{
-name:           "Collections destroy",
-method:         http.MethodPost,
-path:           "/api/v1/collections:destroy",
 expectedStatus: http.StatusOK,
 },
 }
