@@ -1,0 +1,33 @@
+[Unit]
+Description=Moon - Dynamic Headless Engine
+Documentation=https://github.com/thalib/moon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/usr/local/bin
+
+# Environment variables
+Environment="MOON_JWT_SECRET=change-this-secret-in-production"
+Environment="MOON_CONFIG=/etc/moon.conf"
+
+# Execute the Moon binary
+ExecStart=/usr/local/bin/moon
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=moon
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
