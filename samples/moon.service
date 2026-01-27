@@ -34,6 +34,9 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/moon
 PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
 
 [Install]
 WantedBy=multi-user.target

@@ -91,7 +91,7 @@ check_binary() {
         echo "  go build -o moon ./cmd/moon"
         echo ""
         echo "Or use Docker to build (run from project root directory):"
-        echo '  docker run --rm -v "$(pwd):/app" -w /app golang:latest sh -c "go build -buildvcs=false -o moon ./cmd/moon"'
+        echo '  docker run --rm --user $(id -u):$(id -g) -v "$(pwd):/app" -w /app golang:latest sh -c "go build -buildvcs=false -o moon ./cmd/moon"'
         echo ""
         exit 1
     fi
@@ -233,6 +233,15 @@ start_service() {
             print_success "moon service started successfully"
             return 0
         fi
+        
+        # Check if service is in failed state
+        if systemctl is-failed --quiet moon.service; then
+            print_error "moon service failed to start"
+            print_warning "Check the status with: systemctl status moon.service"
+            print_warning "Check logs with: journalctl -u moon.service -n 50"
+            exit 1
+        fi
+        
         sleep 1
         attempt=$((attempt + 1))
     done
