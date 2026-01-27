@@ -2,9 +2,11 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -33,6 +35,9 @@ type LoggerConfig struct {
 	// Output is the writer for logs (default: os.Stdout)
 	Output io.Writer
 
+	// FilePath is the path to the log file (if specified, Output is ignored)
+	FilePath string
+
 	// ServiceName is the name of the service
 	ServiceName string
 
@@ -55,8 +60,30 @@ type Logger struct {
 
 // NewLogger creates a new structured logger
 func NewLogger(config LoggerConfig) *Logger {
-	if config.Output == nil {
-		config.Output = os.Stdout
+	var output io.Writer
+
+	// If FilePath is specified, open/create log file
+	if config.FilePath != "" {
+		// Ensure log directory exists
+		dir := filepath.Dir(config.FilePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			// If we can't create directory, fall back to stdout
+			fmt.Fprintf(os.Stderr, "Failed to create log directory %s: %v\n", dir, err)
+			output = os.Stdout
+		} else {
+			file, err := os.OpenFile(config.FilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+			if err != nil {
+				// If we can't open file, fall back to stdout
+				fmt.Fprintf(os.Stderr, "Failed to open log file %s: %v\n", config.FilePath, err)
+				output = os.Stdout
+			} else {
+				output = file
+			}
+		}
+	} else if config.Output != nil {
+		output = config.Output
+	} else {
+		output = os.Stdout
 	}
 
 	if config.Level == "" {
@@ -86,14 +113,14 @@ func NewLogger(config LoggerConfig) *Logger {
 
 	// Configure output format
 	if config.Format == "console" {
-		output := zerolog.ConsoleWriter{
-			Out:        config.Output,
+		consoleOutput := zerolog.ConsoleWriter{
+			Out:        output,
 			TimeFormat: time.RFC3339,
 		}
-		logger = zerolog.New(output).Level(zeroLevel).With().Timestamp().Logger()
+		logger = zerolog.New(consoleOutput).Level(zeroLevel).With().Timestamp().Logger()
 	} else {
 		// Default to JSON format
-		logger = zerolog.New(config.Output).Level(zeroLevel).With().Timestamp().Logger()
+		logger = zerolog.New(output).Level(zeroLevel).With().Timestamp().Logger()
 	}
 
 	// Add service context

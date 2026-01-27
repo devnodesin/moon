@@ -19,12 +19,13 @@ git clone https://github.com/thalib/moon.git
 cd moon
 
 # Set up configuration
-cp samples/.env.example .env
-# Edit .env and set MOON_JWT_SECRET to a secure value
+cp samples/config.example.yaml config.yaml
+# Edit config.yaml and set jwt.secret to a secure value
+# Generate with: openssl rand -base64 32
 
 # Build and run
 go build -o moon ./cmd/moon
-./moon
+./moon --config config.yaml
 ```
 
 ## Standard Build (Go)
@@ -113,126 +114,187 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 
 WORKDIR /app
 COPY --from=builder /app/moon .
+COPY samples/moon.conf /etc/moon.conf
 
-EXPOSE 8080
-CMD ["./moon"]
+EXPOSE 6006
+CMD ["./moon", "--config", "/etc/moon.conf"]
 ```
 
 Build and run:
 
 ```bash
 docker build -t moon:latest .
-docker run -p 8080:8080 -e MOON_JWT_SECRET=your-secret moon:latest
+docker run -p 6006:6006 -v /etc/moon.conf:/etc/moon.conf moon:latest
 ```
 
 ## Configuration
 
-Moon uses a flexible configuration system that supports both file-based and environment variable configuration.
+Moon uses **YAML-only configuration** (no environment variables). All configuration must be set in a YAML file.
 
-### Configuration Priority
+### Configuration File Location
 
-1. Environment variables (highest priority)
-2. Configuration file (`config.yaml`)
-3. Default values (lowest priority)
+- **Default:** `/etc/moon.conf`
+- **Custom:** Specify with `--config` flag: `./moon --config /path/to/config.yaml`
 
-### Setup Configuration
+### Minimal Configuration
 
-#### Option 1: Using Environment Variables (Recommended for Production)
+Create `/etc/moon.conf` with minimal settings:
 
-```bash
-# Copy the example .env file
-cp samples/.env.example .env
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 6006
 
-# Edit .env and set required variables
-nano .env  # or use your preferred editor
+database:
+  connection: "sqlite"
+  database: "/opt/moon/sqlite.db"
+
+logging:
+  path: "/var/log/moon"
+
+jwt:
+  secret: "your-super-secret-key"  # REQUIRED - generate with: openssl rand -base64 32
+  expiry: 3600
+
+apikey:
+  enabled: false
+  header: "X-API-KEY"
 ```
 
-**Required Environment Variables:**
+### Configuration Examples
 
-- `MOON_JWT_SECRET`: JWT secret key for authentication (REQUIRED)
+#### Development Configuration
 
-**Optional Environment Variables:**
+For local development, use `config.yaml`:
 
-- `MOON_SERVER_HOST`: Server host address (default: `0.0.0.0`)
-- `MOON_SERVER_PORT`: Server port (default: `8080`)
-- `MOON_DATABASE_CONNECTION_STRING`: Database connection string (default: `sqlite://moon.db`)
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 6006
 
-#### Option 2: Using Configuration File
+database:
+  connection: "sqlite"
+  database: "moon.db"  # Local file
 
-```bash
-# Copy the example config file
-cp samples/config.example.yaml config.yaml
+logging:
+  path: "./logs"
 
-# Edit config.yaml
-nano config.yaml
+jwt:
+  secret: "dev-secret-key-change-in-production"
+  expiry: 3600
+
+apikey:
+  enabled: false
+  header: "X-API-KEY"
 ```
 
-**Important:** If using `config.yaml`, you still need to set `MOON_JWT_SECRET` via environment variable in production for security.
+#### Production Configuration
+
+For production, use `/etc/moon.conf`:
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 6006
+
+database:
+  connection: "sqlite"
+  database: "/opt/moon/sqlite.db"
+
+logging:
+  path: "/var/log/moon"
+
+jwt:
+  secret: "GENERATE_WITH_openssl_rand_base64_32"
+  expiry: 3600
+
+apikey:
+  enabled: true
+  header: "X-API-KEY"
+```
 
 ### Database Configuration
 
-Moon supports three database backends:
+Moon supports three database backends. Configure in the `database` section:
 
 #### SQLite (Default)
 
-```bash
-# Environment variable
-MOON_DATABASE_CONNECTION_STRING=sqlite://moon.db
-
-# Or in config.yaml
+```yaml
 database:
-  connection_string: "sqlite://moon.db"
+  connection: "sqlite"
+  database: "/opt/moon/sqlite.db"
 ```
 
-SQLite is used by default if no database is configured. It's perfect for:
+SQLite is used by default if no database is configured. Perfect for:
 - Development and testing
-- Single-server deployments
+- Single-server deployments  
 - Embedded applications
 
 #### PostgreSQL
 
-```bash
-# Environment variable
-MOON_DATABASE_CONNECTION_STRING=postgres://user:password@localhost:5432/moon
-
-# Or in config.yaml
+```yaml
 database:
-  connection_string: "postgres://user:password@localhost:5432/moon"
+  connection: "postgres"
+  database: "moon_db"
+  user: "moon_user"
+  password: "secure_password"
+  host: "localhost"
 ```
 
 #### MySQL
 
-```bash
-# Environment variable
-MOON_DATABASE_CONNECTION_STRING=mysql://user:password@localhost:3306/moon
-
-# Or in config.yaml
+```yaml
 database:
-  connection_string: "mysql://user:password@localhost:3306/moon"
+  connection: "mysql"
+  database: "moon_db"
+  user: "moon_user"
+  password: "secure_password"
+  host: "localhost"
 ```
+
+### Sample Configuration Files
+
+See `samples/` directory for example configurations:
+
+- `samples/moon.conf` - Minimal quick-start configuration
+- `samples/moon-full.conf` - Comprehensive configuration with all options documented
+- `samples/config.example.yaml` - Development configuration template
 
 ## Running Moon
 
-### Standard Run
+### Console Mode (Foreground)
+
+Run in the foreground with logs to stdout/stderr:
 
 ```bash
+# With default config (/etc/moon.conf)
 ./moon
+
+# With custom config
+./moon --config /path/to/config.yaml
 ```
 
-### Run with Custom Configuration File
+### Daemon Mode (Background)
+
+Run as a background daemon with file-based logging:
 
 ```bash
-MOON_CONFIG=/path/to/config.yaml ./moon
+# With default config
+./moon --daemon
+
+# With custom config
+./moon --daemon --config /path/to/config.yaml
+
+# Shorthand
+./moon -d --config /path/to/config.yaml
 ```
 
-### Run in Background
-
-```bash
-# Using nohup
-nohup ./moon > moon.log 2>&1 &
-
-# Or using systemd (see Deployment section below)
-```
+Daemon mode features:
+- Detaches from terminal and runs in background
+- Logs written to `/var/log/moon/main.log` (or path specified in config)
+- PID file written to `/var/run/moon.pid`
+- Process continues after terminal closes
+- Graceful shutdown via SIGTERM/SIGINT
 
 ### Development Mode
 
@@ -302,8 +364,11 @@ docker run --rm -v "$(pwd):/app" -w /app golang:1.24 \
 After installation, verify Moon is working:
 
 ```bash
+# Console mode
+./moon --config config.yaml &
+
 # Check health endpoint
-curl http://localhost:8080/health
+curl http://localhost:6006/health
 
 # Expected response: {"status":"healthy"}
 ```
@@ -311,8 +376,8 @@ curl http://localhost:8080/health
 ### Run API Demo
 
 ```bash
-# Start Moon in one terminal
-./moon
+# Start Moon in one terminal (console mode)
+./moon --config config.yaml
 
 # Run demo in another terminal
 ./samples/api-demo.sh
@@ -322,29 +387,88 @@ curl http://localhost:8080/health
 
 ### systemd Service (Linux)
 
-Create a systemd service file:
+A systemd service file is provided at `samples/moon.service`.
+
+#### Installation Steps
 
 ```bash
-sudo nano /etc/systemd/system/moon.service
+# 1. Create moon user and directories
+sudo useradd -r -s /bin/false moon
+sudo mkdir -p /opt/moon /var/log/moon /var/run
+sudo chown moon:moon /opt/moon /var/log/moon
+
+# 2. Copy binary
+sudo cp moon /usr/local/bin/moon
+sudo chmod +x /usr/local/bin/moon
+
+# 3. Setup configuration
+sudo cp samples/moon.conf /etc/moon.conf
+sudo nano /etc/moon.conf  # Edit and set jwt.secret
+
+# 4. Install systemd service
+sudo cp samples/moon.service /etc/systemd/system/
+sudo systemctl daemon-reload
+
+# 5. Start service
+sudo systemctl start moon
+
+# 6. Enable on boot
+sudo systemctl enable moon
+
+# 7. Check status
+sudo systemctl status moon
+
+# View logs
+sudo journalctl -u moon -f
 ```
 
-```ini
-[Unit]
-Description=Moon Dynamic Headless Engine
-After=network.target
+#### Service Management
 
-[Service]
-Type=simple
-User=moon
-WorkingDirectory=/opt/moon
-Environment="MOON_JWT_SECRET=your-production-secret"
-Environment="MOON_DATABASE_CONNECTION_STRING=sqlite:///opt/moon/data/moon.db"
-ExecStart=/opt/moon/moon
-Restart=on-failure
-RestartSec=5s
+```bash
+# Start service
+sudo systemctl start moon
 
-[Install]
-WantedBy=multi-user.target
+# Stop service
+sudo systemctl stop moon
+
+# Restart service
+sudo systemctl restart moon
+
+# Check status
+sudo systemctl status moon
+
+# View logs
+sudo journalctl -u moon -f
+
+# View recent logs
+sudo journalctl -u moon -n 100
+```
+
+### Manual Daemon
+
+For systems without systemd, run manually in daemon mode:
+
+```bash
+# Create required directories
+sudo mkdir -p /opt/moon /var/log/moon /var/run
+sudo chown $(whoami):$(whoami) /opt/moon /var/log/moon /var/run
+
+# Copy binary
+sudo cp moon /usr/local/bin/moon
+sudo chmod +x /usr/local/bin/moon
+
+# Setup configuration
+sudo cp samples/moon.conf /etc/moon.conf
+nano /etc/moon.conf  # Edit and set jwt.secret
+
+# Start in daemon mode
+moon --daemon --config /etc/moon.conf
+
+# Check PID
+cat /var/run/moon.pid
+
+# Stop daemon
+kill $(cat /var/run/moon.pid)
 ```
 
 Enable and start:
@@ -367,16 +491,16 @@ services:
   moon:
     build: .
     ports:
-      - "8080:8080"
-    environment:
-      - MOON_JWT_SECRET=${MOON_JWT_SECRET}
-      - MOON_DATABASE_CONNECTION_STRING=sqlite://data/moon.db
+      - "6006:6006"
     volumes:
-      - moon-data:/app/data
+      - moon-data:/opt/moon
+      - moon-logs:/var/log/moon
+      - ./moon.conf:/etc/moon.conf:ro
     restart: unless-stopped
 
 volumes:
   moon-data:
+  moon-logs:
 ```
 
 Run:
@@ -408,15 +532,15 @@ xcode-select --install
 
 **Problem:** `Failed to load configuration: JWT secret is required`
 
-**Solution:** Set `MOON_JWT_SECRET` environment variable:
-```bash
-export MOON_JWT_SECRET=your-secret-key
-./moon
+**Solution:** Set `jwt.secret` in your configuration file:
+```yaml
+jwt:
+  secret: "your-secure-secret-key"
 ```
 
 **Problem:** `Failed to connect to database`
 
-**Solution:** Check your database connection string format and ensure the database server is running.
+**Solution:** Check your database configuration in the YAML file and ensure the database server is running.
 
 **Problem:** Permission denied when accessing SQLite database
 
@@ -426,31 +550,40 @@ chmod 755 /path/to/database/directory
 chmod 644 /path/to/database/moon.db
 ```
 
+**Problem:** Permission denied writing PID file in daemon mode
+
+**Solution:** Ensure the moon user has write permissions to `/var/run`:
+```bash
+sudo chown moon:moon /var/run
+# Or run as root (not recommended)
+```
+
 ### Port Already in Use
 
 **Problem:** `bind: address already in use`
 
-**Solution:** Change the port or stop the conflicting service:
-```bash
-# Change port
-export MOON_SERVER_PORT=9090
-./moon
+**Solution:** Change the port in your configuration file:
+```yaml
+server:
+  port: 9090
+```
 
-# Or find and stop the conflicting process
-lsof -i :8080
+Or find and stop the conflicting process:
+```bash
+lsof -i :6006
 kill <PID>
 ```
 
 ## Next Steps
 
 - Read the [Usage Guide](USAGE.md) for API documentation and examples
-- Check out [sample scripts](../samples/README.md) for common workflows
-- Review [SPEC.md](../SPEC.md) for architecture and design details
-- See the [README](../README.md) for project overview
+- Check out [sample configurations](samples/) for configuration examples
+- Review [SPEC.md](SPEC.md) for architecture and design details
+- See the [README](README.md) for project overview
 
 ## Additional Resources
 
-- **Configuration Examples:** See `samples/config.example.yaml` and `samples/.env.example`
+- **Configuration Examples:** See `samples/moon.conf` and `samples/moon-full.conf`
 - **API Demo Script:** Run `samples/api-demo.sh` for a comprehensive API walkthrough
 - **Test Scripts:** Use `samples/test-runner.sh` for various testing scenarios
 - **Project Repository:** [https://github.com/thalib/moon](https://github.com/thalib/moon)

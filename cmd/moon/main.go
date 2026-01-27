@@ -2,35 +2,88 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
-	"time"
+	"path/filepath"
 
 	"github.com/thalib/moon/internal/config"
+	"github.com/thalib/moon/internal/daemon"
 	"github.com/thalib/moon/internal/database"
+	"github.com/thalib/moon/internal/logging"
 	"github.com/thalib/moon/internal/registry"
 	"github.com/thalib/moon/internal/server"
 )
 
 func main() {
+	// Parse command-line flags
+	configPath := flag.String("config", "", "path to configuration file (default: /etc/moon.conf)")
+	daemonMode := flag.Bool("daemon", false, "run in daemon mode (background)")
+	daemonShort := flag.Bool("d", false, "run in daemon mode (background) - shorthand")
+	flag.Parse()
+
+	// Check if daemon mode is enabled (either flag)
+	isDaemon := *daemonMode || *daemonShort
+
 	fmt.Println("Moon - Dynamic Headless Engine")
 
 	// Load configuration
-	cfg, err := config.Load("")
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
 
+	// Handle daemon mode
+	if isDaemon {
+		fmt.Println("Starting in daemon mode...")
+
+		// Daemonize the process
+		daemonCfg := daemon.DefaultConfig()
+		if err := daemon.Daemonize(daemonCfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to daemonize: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Write PID file (after daemonization, in child process)
+		if err := daemon.WritePIDFile(daemonCfg.PIDFile); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write PID file: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Setup cleanup on exit
+		defer daemon.RemovePIDFile(daemonCfg.PIDFile)
+
+		// Initialize file-based logging for daemon mode
+		logFile := filepath.Join(cfg.Logging.Path, "main.log")
+		logging.Init(logging.LoggerConfig{
+			Level:       logging.LevelInfo,
+			Format:      "json",
+			FilePath:    logFile,
+			ServiceName: "moon",
+		})
+
+		logging.Info("Moon daemon started")
+		logging.Infof("PID file: %s", daemonCfg.PIDFile)
+		logging.Infof("Log file: %s", logFile)
+	} else {
+		// Console mode - log to stdout
+		logging.Init(logging.LoggerConfig{
+			Level:       logging.LevelInfo,
+			Format:      "console",
+			ServiceName: "moon",
+		})
+	}
+
 	fmt.Printf("Server will start on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
-	fmt.Printf("Database: %s\n", cfg.Database.ConnectionString)
+	fmt.Printf("Database: %s (%s)\n", cfg.Database.Connection, cfg.Database.Database)
+	if isDaemon {
+		fmt.Printf("Log file: %s/main.log\n", cfg.Logging.Path)
+	}
 
 	// Initialize database driver
 	dbConfig := database.Config{
-		ConnectionString: cfg.Database.ConnectionString,
-		MaxOpenConns:     cfg.Database.MaxOpenConns,
-		MaxIdleConns:     cfg.Database.MaxIdleConns,
-		ConnMaxLifetime:  time.Duration(cfg.Database.ConnMaxLifetime) * time.Second,
+		ConnectionString: buildConnectionString(cfg.Database),
 	}
 
 	driver, err := database.NewDriver(dbConfig)
@@ -56,9 +109,36 @@ func main() {
 
 	fmt.Println("Starting HTTP server...")
 	if err := srv.Run(); err != nil {
+		if isDaemon {
+			logging.Errorf("Server error: %v", err)
+		}
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 		os.Exit(1)
 	}
 
+	if isDaemon {
+		logging.Info("Server stopped gracefully")
+	}
 	fmt.Println("Server stopped gracefully")
+}
+
+// buildConnectionString creates a database connection string from DatabaseConfig
+func buildConnectionString(db config.DatabaseConfig) string {
+	switch db.Connection {
+	case "sqlite":
+		return fmt.Sprintf("sqlite://%s", db.Database)
+	case "postgres":
+		if db.User != "" && db.Password != "" {
+			return fmt.Sprintf("postgres://%s:%s@%s/%s", db.User, db.Password, db.Host, db.Database)
+		}
+		return fmt.Sprintf("postgres://%s/%s", db.Host, db.Database)
+	case "mysql":
+		if db.User != "" && db.Password != "" {
+			return fmt.Sprintf("mysql://%s:%s@%s/%s", db.User, db.Password, db.Host, db.Database)
+		}
+		return fmt.Sprintf("mysql://%s/%s", db.Host, db.Database)
+	default:
+		// Default to SQLite
+		return fmt.Sprintf("sqlite://%s", db.Database)
+	}
 }
