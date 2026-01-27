@@ -12,11 +12,79 @@ This document outlines the design for a high-performance, API-first backend buil
 
 ## Configuration Architecture
 
-The system uses a Single Source of Truth configuration loader (e.g., Viper):
+The system uses YAML-only configuration with centralized defaults:
 
-- **Static Config (`config.yaml` or `config.toml`):** Stores store names, currency, and business logic.
-- **Secrets (`.env`):** Sensitive credentials injected at runtime.
-- **Immutable State:** On startup, the configuration is parsed into a global, read-only `AppConfig` struct to prevent accidental runtime mutations and ensure thread safety.
+- **YAML Configuration Only:** All configuration is stored in YAML format at `/etc/moon.conf` (default) or custom path via `--config` flag
+- **No Environment Variables:** Configuration values must be set in the YAML file - no environment variable overrides
+- **Centralized Defaults:** All default values are defined in the `config.Defaults` struct to eliminate hardcoded literals
+- **Immutable State:** On startup, the configuration is parsed into a global, read-only `AppConfig` struct to prevent accidental runtime mutations and ensure thread safety
+
+### Configuration Structure
+
+```yaml
+server:
+  host: "0.0.0.0"      # Default: 0.0.0.0
+  port: 6006           # Default: 6006
+
+database:
+  connection: "sqlite" # Default: sqlite (options: sqlite, postgres, mysql)
+  database: "/opt/moon/sqlite.db"  # Default: /opt/moon/sqlite.db
+  user: ""             # Default: "" (empty for SQLite)
+  password: ""         # Default: "" (empty for SQLite)
+  host: "0.0.0.0"      # Default: 0.0.0.0
+
+logging:
+  path: "/var/log/moon" # Default: /var/log/moon
+
+jwt:
+  secret: ""           # REQUIRED - must be set in config file
+  expiry: 3600         # Default: 3600 seconds (1 hour)
+
+apikey:
+  enabled: false       # Default: false
+  header: "X-API-KEY"  # Default: X-API-KEY
+```
+
+### Running Modes
+
+#### Console Mode (Default)
+```bash
+moon --config /etc/moon.conf
+```
+- Runs in foreground attached to terminal
+- Logs output to stdout/stderr
+- Process terminates when terminal closes or Ctrl+C is pressed
+
+#### Daemon Mode
+```bash
+moon --daemon --config /etc/moon.conf
+# or shorthand
+moon -d --config /etc/moon.conf
+```
+- Runs as background daemon process
+- Logs written to `/var/log/moon/main.log` (or path specified in config)
+- PID file written to `/var/run/moon.pid`
+- Process continues after terminal closes
+- Supports graceful shutdown via SIGTERM/SIGINT
+
+### Systemd Integration
+
+A systemd service file is provided at `samples/moon.service` for production deployment:
+
+```bash
+# Install service
+sudo cp samples/moon.service /etc/systemd/system/
+sudo systemctl daemon-reload
+
+# Start service
+sudo systemctl start moon
+
+# Enable on boot
+sudo systemctl enable moon
+
+# Check status
+sudo systemctl status moon
+```
 
 ## 2. API Endpoint Specification
 

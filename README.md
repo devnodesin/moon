@@ -23,25 +23,31 @@ git clone https://github.com/thalib/moon.git
 cd moon
 
 # Set up configuration
-cp samples/.env.example .env
-# Edit .env and set MOON_JWT_SECRET
+cp samples/moon.conf /etc/moon.conf
+# Edit /etc/moon.conf and set JWT secret
 
-# Build and run
+# Build
 go build -o moon ./cmd/moon
-./moon
+
+# Run in console mode (foreground)
+./moon --config /etc/moon.conf
+
+# Or run in daemon mode (background)
+./moon --daemon --config /etc/moon.conf
+# or shorthand: ./moon -d --config /etc/moon.conf
 
 # Test the API
-curl http://localhost:8080/health
+curl http://localhost:6006/health
 ```
 
-**See the full [Installation Guide](docs/INSTALL.md) for detailed setup instructions.**
+**See the full [Installation Guide](INSTALL.md) for detailed setup instructions.**
 
 ## 📖 Documentation
 
-- **[Installation Guide](docs/INSTALL.md)** - Build, install, and deployment instructions
-- **[Usage Guide](docs/USAGE.md)** - Complete API reference and examples
+- **[Installation Guide](INSTALL.md)** - Build, install, and deployment instructions
+- **[Usage Guide](USAGE.md)** - Complete API reference and examples
 - **[Architecture Spec](SPEC.md)** - System design and technical specifications
-- **[Sample Scripts](samples/README.md)** - Ready-to-use configuration and demo scripts
+- **[Sample Configurations](samples/)** - Ready-to-use configuration files and scripts
 - **[License](LICENSE)** - MIT License
 
 ## 🎯 Use Cases
@@ -60,7 +66,7 @@ Create a collection and manage data with simple API calls:
 
 ```bash
 # Create a products collection
-curl -X POST http://localhost:8080/api/v1/collections:create \
+curl -X POST http://localhost:6006/api/v1/collections:create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "products",
@@ -72,7 +78,7 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
   }'
 
 # Insert a product
-curl -X POST http://localhost:8080/api/v1/products:create \
+curl -X POST http://localhost:6006/api/v1/products:create \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -83,10 +89,10 @@ curl -X POST http://localhost:8080/api/v1/products:create \
   }'
 
 # List all products
-curl http://localhost:8080/api/v1/products:list
+curl http://localhost:6006/api/v1/products:list
 
 # Update a product
-curl -X POST http://localhost:8080/api/v1/products:update \
+curl -X POST http://localhost:6006/api/v1/products:update \
   -H "Content-Type: application/json" \
   -d '{
     "id": 1,
@@ -94,7 +100,7 @@ curl -X POST http://localhost:8080/api/v1/products:update \
   }'
 ```
 
-**For more examples, see the [Usage Guide](docs/USAGE.md) or run the [API demo script](samples/api-demo.sh).**
+**For more examples, see the [Usage Guide](USAGE.md) or run the [API demo script](samples/api-demo.sh).**
 
 ## 🏗️ Architecture
 
@@ -143,29 +149,77 @@ Moon uses the AIP-136 custom action pattern for predictable, AI-friendly APIs:
 
 ## ⚙️ Configuration
 
-Moon supports flexible configuration via environment variables or YAML files:
+Moon uses YAML-only configuration (no environment variables):
 
-### Minimum Required Configuration
+### Minimum Required Configuration (`/etc/moon.conf`)
 
-```bash
-# Required: Set JWT secret for authentication
-export MOON_JWT_SECRET=your-super-secret-key
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 6006
+
+database:
+  connection: "sqlite"
+  database: "/opt/moon/sqlite.db"
+
+logging:
+  path: "/var/log/moon"
+
+jwt:
+  secret: "your-super-secret-key"  # REQUIRED - generate with: openssl rand -base64 32
+  expiry: 3600
+
+apikey:
+  enabled: false
+  header: "X-API-KEY"
 ```
 
 ### Database Options
 
-```bash
+```yaml
 # SQLite (default)
-MOON_DATABASE_CONNECTION_STRING=sqlite://moon.db
+database:
+  connection: "sqlite"
+  database: "/opt/moon/sqlite.db"
 
 # PostgreSQL
-MOON_DATABASE_CONNECTION_STRING=postgres://user:pass@localhost:5432/dbname
+database:
+  connection: "postgres"
+  database: "moon_db"
+  user: "moon_user"
+  password: "secure_password"
+  host: "localhost"
 
 # MySQL
-MOON_DATABASE_CONNECTION_STRING=mysql://user:pass@localhost:3306/dbname
+database:
+  connection: "mysql"
+  database: "moon_db"
+  user: "moon_user"
+  password: "secure_password"
+  host: "localhost"
 ```
 
-**See [Installation Guide](docs/INSTALL.md) for complete configuration options and [samples/](samples/) for example configurations.**
+### Running Modes
+
+**Console Mode (Default)** - Foreground with stdout logging:
+```bash
+./moon --config /etc/moon.conf
+```
+
+**Daemon Mode** - Background with file logging:
+```bash
+./moon --daemon --config /etc/moon.conf
+# or shorthand
+./moon -d --config /etc/moon.conf
+```
+
+**Systemd Service** - Production deployment:
+```bash
+sudo systemctl start moon
+sudo systemctl enable moon
+```
+
+**See [Installation Guide](INSTALL.md) for complete configuration options and [samples/](samples/) for example configurations.**
 
 ## 🧪 Testing
 
@@ -191,11 +245,11 @@ go test ./... -coverprofile=coverage.txt
 docker run --rm -v "$(pwd):/app" -w /app golang:1.24 \
   sh -c "go build -buildvcs=false -o moon ./cmd/moon"
 
-# Run with Docker
-docker run -p 8080:8080 -e MOON_JWT_SECRET=secret moon:latest
+# Run with Docker (mount config file)
+docker run -p 6006:6006 -v /etc/moon.conf:/etc/moon.conf moon:latest
 ```
 
-**See [Installation Guide](docs/INSTALL.md#docker-build) for Docker deployment options.**
+**See [Installation Guide](INSTALL.md#docker-build) for Docker deployment options.**
 
 ## 🤝 Contributing
 
@@ -226,7 +280,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation:** [docs/](docs/)
+- **Documentation:** [INSTALL.md](INSTALL.md), [USAGE.md](USAGE.md), [SPEC.md](SPEC.md)
 - **Issues:** [GitHub Issues](https://github.com/thalib/moon/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/thalib/moon/discussions)
 

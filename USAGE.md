@@ -42,15 +42,17 @@ This pattern makes the API predictable and easy to use.
 ### 1. Start the Server
 
 ```bash
-# Ensure configuration is set up (see INSTALL.md)
-export MOON_JWT_SECRET=your-secret-key
-./moon
+# Console mode (foreground)
+./moon --config /etc/moon.conf
+
+# Or daemon mode (background)
+./moon --daemon --config /etc/moon.conf
 ```
 
 ### 2. Check Health
 
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:6006/health
 ```
 
 Expected response:
@@ -61,7 +63,7 @@ Expected response:
 ### 3. Create Your First Collection
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/collections:create \
+curl -X POST http://localhost:6006/api/v1/collections:create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "users",
@@ -76,7 +78,7 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
 ### 4. Insert Data
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/users:create \
+curl -X POST http://localhost:6006/api/v1/users:create \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -90,7 +92,7 @@ curl -X POST http://localhost:8080/api/v1/users:create \
 ### 5. Query Data
 
 ```bash
-curl http://localhost:8080/api/v1/users:list
+curl http://localhost:6006/api/v1/users:list
 ```
 
 ## API Endpoints
