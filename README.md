@@ -65,8 +65,8 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
   -d '{
     "name": "products",
     "columns": [
-      {"name": "name", "type": "text", "required": true},
-      {"name": "price", "type": "real", "required": true},
+      {"name": "name", "type": "string", "required": true},
+      {"name": "price", "type": "float", "required": true},
       {"name": "stock", "type": "integer", "required": true}
     ]
   }'

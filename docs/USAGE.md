@@ -66,8 +66,8 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
   -d '{
     "name": "users",
     "columns": [
-      {"name": "email", "type": "text", "required": true},
-      {"name": "name", "type": "text", "required": true},
+      {"name": "email", "type": "string", "required": true},
+      {"name": "name", "type": "string", "required": true},
       {"name": "age", "type": "integer", "required": false}
     ]
   }'
@@ -158,18 +158,21 @@ Creates a new collection (table) in the database.
 {
   "name": "products",
   "columns": [
-    {"name": "name", "type": "text", "required": true},
-    {"name": "price", "type": "real", "required": true},
+    {"name": "name", "type": "string", "required": true},
+    {"name": "price", "type": "float", "required": true},
     {"name": "description", "type": "text", "required": false}
   ]
 }
 ```
 
 **Column Types:**
-- `text`: String values
+- `string`: Short string values
+- `text`: Long text values
 - `integer`: Whole numbers
-- `real`: Floating-point numbers
-- `blob`: Binary data
+- `float`: Floating-point numbers
+- `boolean`: True/false values
+- `datetime`: Date and time values
+- `json`: JSON data
 
 **Response:**
 ```json
@@ -394,10 +397,10 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
   -d '{
     "name": "posts",
     "columns": [
-      {"name": "title", "type": "text", "required": true},
+      {"name": "title", "type": "string", "required": true},
       {"name": "content", "type": "text", "required": true},
-      {"name": "author", "type": "text", "required": true},
-      {"name": "published", "type": "integer", "required": false}
+      {"name": "author", "type": "string", "required": true},
+      {"name": "published", "type": "boolean", "required": false}
     ]
   }'
 
@@ -409,7 +412,7 @@ curl -X POST http://localhost:8080/api/v1/posts:create \
       "title": "Getting Started with Moon",
       "content": "Moon is a powerful headless CMS...",
       "author": "Jane Doe",
-      "published": 1
+      "published": true
     }
   }'
 
@@ -420,7 +423,7 @@ curl -X POST http://localhost:8080/api/v1/posts:create \
       "title": "Advanced Moon Features",
       "content": "Learn about dynamic schemas...",
       "author": "John Smith",
-      "published": 0
+      "published": false
     }
   }'
 
@@ -436,7 +439,7 @@ curl -X POST http://localhost:8080/api/v1/posts:update \
   -d '{
     "id": 2,
     "data": {
-      "published": 1
+      "published": true
     }
   }'
 
@@ -707,7 +710,7 @@ export MOON_JWT_SECRET=your-secret-key
 **Problem:** `Invalid column type` or `Required field missing`
 
 **Solutions:**
-1. Check column types: `text`, `integer`, `real`, `blob`
+1. Check column types: `string`, `text`, `integer`, `float`, `boolean`, `datetime`, `json`
 2. Ensure required fields are provided
 3. Get collection schema: `GET /api/v1/collections:get?name={collection}`
 

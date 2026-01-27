@@ -65,9 +65,9 @@ api_call "POST" "/collections:create" \
     '{
         "name": "products",
         "columns": [
-            {"name": "name", "type": "text", "required": true},
+            {"name": "name", "type": "string", "required": true},
             {"name": "description", "type": "text", "required": false},
-            {"name": "price", "type": "real", "required": true},
+            {"name": "price", "type": "float", "required": true},
             {"name": "stock", "type": "integer", "required": true}
         ]
     }' \
