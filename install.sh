@@ -119,7 +119,11 @@ prompt_overwrite() {
     if [ -f "$file" ]; then
         print_warning "File $file already exists"
         while true; do
-            read -p "Do you want to overwrite it? [y/N]: " response
+            read -t 30 -p "Do you want to overwrite it? [y/N]: " response || {
+                echo ""
+                print_warning "Timeout: defaulting to 'No'"
+                return 1
+            }
             case $response in
                 [Yy]* )
                     return 0  # Yes, overwrite
