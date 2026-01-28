@@ -62,4 +62,4 @@ SQLite is the default database. For most development and testing, no connection 
 - Handle errors and edge cases. No TODOs, dead code, or partial fixes.
 - Aim for 90% test coverage
 - Unless explicitly asked to create new documentation you should never create new documentation files
-- Always keep the existing documentation `INSTALL.MD`, `README.md`, `USAGE.md` in sync with code changes
+- Always keep the existing documentation, scripts and samples: `INSTALL.MD`, `README.md`, `USAGE.md`, `install.sh` and `samples/*` in sync with code changes
