@@ -338,8 +338,8 @@ func TestColumnToSchema(t *testing.T) {
 	gen := NewGenerator(reg, GeneratorConfig{})
 
 	testCases := []struct {
-		column       registry.Column
-		expectedType string
+		column         registry.Column
+		expectedType   string
 		expectedFormat string
 	}{
 		{

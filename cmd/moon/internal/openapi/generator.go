@@ -15,20 +15,20 @@ import (
 
 // OpenAPI represents an OpenAPI 3.0 specification
 type OpenAPI struct {
-	OpenAPI    string                 `json:"openapi"`
-	Info       Info                   `json:"info"`
-	Servers    []Server               `json:"servers,omitempty"`
-	Paths      map[string]PathItem    `json:"paths"`
-	Components Components             `json:"components,omitempty"`
-	Security   []SecurityRequirement  `json:"security,omitempty"`
-	Tags       []Tag                  `json:"tags,omitempty"`
+	OpenAPI    string                `json:"openapi"`
+	Info       Info                  `json:"info"`
+	Servers    []Server              `json:"servers,omitempty"`
+	Paths      map[string]PathItem   `json:"paths"`
+	Components Components            `json:"components,omitempty"`
+	Security   []SecurityRequirement `json:"security,omitempty"`
+	Tags       []Tag                 `json:"tags,omitempty"`
 }
 
 // Info represents the info section of the OpenAPI spec
 type Info struct {
-	Title       string  `json:"title"`
-	Description string  `json:"description,omitempty"`
-	Version     string  `json:"version"`
+	Title       string   `json:"title"`
+	Description string   `json:"description,omitempty"`
+	Version     string   `json:"version"`
 	Contact     *Contact `json:"contact,omitempty"`
 	License     *License `json:"license,omitempty"`
 }
@@ -64,14 +64,14 @@ type PathItem struct {
 
 // Operation represents an operation in the OpenAPI spec
 type Operation struct {
-	Tags        []string               `json:"tags,omitempty"`
-	Summary     string                 `json:"summary,omitempty"`
-	Description string                 `json:"description,omitempty"`
-	OperationID string                 `json:"operationId,omitempty"`
-	Parameters  []Parameter            `json:"parameters,omitempty"`
-	RequestBody *RequestBody           `json:"requestBody,omitempty"`
-	Responses   map[string]Response    `json:"responses"`
-	Security    []SecurityRequirement  `json:"security,omitempty"`
+	Tags        []string              `json:"tags,omitempty"`
+	Summary     string                `json:"summary,omitempty"`
+	Description string                `json:"description,omitempty"`
+	OperationID string                `json:"operationId,omitempty"`
+	Parameters  []Parameter           `json:"parameters,omitempty"`
+	RequestBody *RequestBody          `json:"requestBody,omitempty"`
+	Responses   map[string]Response   `json:"responses"`
+	Security    []SecurityRequirement `json:"security,omitempty"`
 }
 
 // Parameter represents a parameter in the OpenAPI spec
@@ -86,16 +86,16 @@ type Parameter struct {
 
 // RequestBody represents a request body in the OpenAPI spec
 type RequestBody struct {
-	Description string             `json:"description,omitempty"`
-	Required    bool               `json:"required,omitempty"`
+	Description string               `json:"description,omitempty"`
+	Required    bool                 `json:"required,omitempty"`
 	Content     map[string]MediaType `json:"content"`
 }
 
 // Response represents a response in the OpenAPI spec
 type Response struct {
-	Description string             `json:"description"`
+	Description string               `json:"description"`
 	Content     map[string]MediaType `json:"content,omitempty"`
-	Headers     map[string]Header  `json:"headers,omitempty"`
+	Headers     map[string]Header    `json:"headers,omitempty"`
 }
 
 // MediaType represents a media type in the OpenAPI spec
@@ -128,7 +128,7 @@ type Header struct {
 
 // Components represents the components section of the OpenAPI spec
 type Components struct {
-	Schemas         map[string]*Schema         `json:"schemas,omitempty"`
+	Schemas         map[string]*Schema        `json:"schemas,omitempty"`
 	SecuritySchemes map[string]SecurityScheme `json:"securitySchemes,omitempty"`
 }
 

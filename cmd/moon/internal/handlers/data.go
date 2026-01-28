@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
@@ -89,17 +90,17 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 	}
 
 	// Parse query parameters
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
+	limitStr := r.URL.Query().Get(constants.QueryParamLimit)
+	offsetStr := r.URL.Query().Get(constants.QueryParamOffset)
 
-	limit := 100 // Default limit
+	limit := constants.DefaultPaginationLimit
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
 		}
 	}
 
-	offset := 0
+	offset := constants.DefaultPaginationOffset
 	if offsetStr != "" {
 		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
 			offset = o
@@ -151,7 +152,7 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 	}
 
 	// Get ID from query parameter
-	idStr := r.URL.Query().Get("id")
+	idStr := r.URL.Query().Get(constants.QueryParamID)
 	if idStr == "" {
 		writeError(w, http.StatusBadRequest, "id parameter is required")
 		return

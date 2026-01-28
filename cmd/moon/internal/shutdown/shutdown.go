@@ -15,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // ShutdownFunc is a function that will be called during shutdown
@@ -41,7 +43,7 @@ type Config struct {
 // DefaultConfig returns the default shutdown configuration
 func DefaultConfig() Config {
 	return Config{
-		Timeout: 30 * time.Second,
+		Timeout: constants.ShutdownTimeout,
 		Signals: []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT},
 		Logger:  os.Stdout,
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
@@ -24,11 +25,11 @@ const (
 
 // ValidationError represents a single validation error
 type ValidationError struct {
-	Field       string `json:"field"`
-	Message     string `json:"message"`
+	Field        string `json:"field"`
+	Message      string `json:"message"`
 	ExpectedType string `json:"expected_type,omitempty"`
 	ActualValue  any    `json:"actual_value,omitempty"`
-	Code        string `json:"code"`
+	Code         string `json:"code"`
 }
 
 func (e ValidationError) Error() string {
@@ -71,8 +72,8 @@ type Validator interface {
 
 // SchemaValidator implements the Validator interface
 type SchemaValidator struct {
-	registry  *registry.SchemaRegistry
-	mode      ValidationMode
+	registry    *registry.SchemaRegistry
+	mode        ValidationMode
 	customRules map[string]CustomRule
 }
 
@@ -288,13 +289,10 @@ func (v *SchemaValidator) validateType(fieldName string, value any, expectedType
 // Note: MaxLength is a default value for VARCHAR; production use should
 // derive this from schema column definition or configuration
 func (v *SchemaValidator) validateStringConstraints(fieldName string, value string) *ValidationError {
-	// Default max length for VARCHAR(255) - can be overridden via custom rules
-	const defaultMaxLength = 255
-
-	if len(value) > defaultMaxLength {
+	if len(value) > constants.DefaultVarcharMaxLength {
 		return &ValidationError{
 			Field:       fieldName,
-			Message:     fmt.Sprintf("field '%s' exceeds maximum length of %d characters", fieldName, defaultMaxLength),
+			Message:     fmt.Sprintf("field '%s' exceeds maximum length of %d characters", fieldName, constants.DefaultVarcharMaxLength),
 			ActualValue: len(value),
 			Code:        "STRING_TOO_LONG",
 		}

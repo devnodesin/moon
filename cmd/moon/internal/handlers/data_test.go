@@ -15,17 +15,17 @@ import (
 
 // mockDriver is a mock implementation of database.Driver for testing
 type mockDataDriver struct {
-	dialect       database.DialectType
-	execFunc      func(ctx context.Context, query string, args ...any) (sql.Result, error)
-	queryFunc     func(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	queryRowFunc  func(ctx context.Context, query string, args ...any) *sql.Row
-	pingFunc      func(ctx context.Context) error
+	dialect      database.DialectType
+	execFunc     func(ctx context.Context, query string, args ...any) (sql.Result, error)
+	queryFunc    func(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	queryRowFunc func(ctx context.Context, query string, args ...any) *sql.Row
+	pingFunc     func(ctx context.Context) error
 }
 
-func (m *mockDataDriver) Connect(ctx context.Context) error         { return nil }
-func (m *mockDataDriver) Close() error                               { return nil }
-func (m *mockDataDriver) Dialect() database.DialectType              { return m.dialect }
-func (m *mockDataDriver) DB() *sql.DB                                { return nil }
+func (m *mockDataDriver) Connect(ctx context.Context) error            { return nil }
+func (m *mockDataDriver) Close() error                                 { return nil }
+func (m *mockDataDriver) Dialect() database.DialectType                { return m.dialect }
+func (m *mockDataDriver) DB() *sql.DB                                  { return nil }
 func (m *mockDataDriver) BeginTx(ctx context.Context) (*sql.Tx, error) { return nil, nil }
 func (m *mockDataDriver) Ping(ctx context.Context) error {
 	if m.pingFunc != nil {
@@ -344,7 +344,7 @@ func TestValidateFields_UnknownField(t *testing.T) {
 	}
 
 	data := map[string]any{
-		"name":         "Test",
+		"name":          "Test",
 		"unknown_field": "value",
 	}
 

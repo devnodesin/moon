@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // ContextKey type for context keys
@@ -20,7 +21,7 @@ type ContextKey string
 
 const (
 	// UserClaimsKey is the key for user claims in request context
-	UserClaimsKey ContextKey = "user_claims"
+	UserClaimsKey ContextKey = constants.ContextKeyUserClaims
 )
 
 // UserClaims represents the claims extracted from JWT token
@@ -32,12 +33,12 @@ type UserClaims struct {
 
 // JWTConfig holds JWT middleware configuration
 type JWTConfig struct {
-	Secret            string
-	Expiration        time.Duration
-	ProtectedPaths    []string
-	UnprotectedPaths  []string
-	RequiredRoles     map[string][]string // path -> required roles
-	ProtectByDefault  bool
+	Secret           string
+	Expiration       time.Duration
+	ProtectedPaths   []string
+	UnprotectedPaths []string
+	RequiredRoles    map[string][]string // path -> required roles
+	ProtectByDefault bool
 }
 
 // JWTMiddleware provides JWT authentication middleware
@@ -137,14 +138,14 @@ func (m *JWTMiddleware) pathMatches(path, pattern string) bool {
 
 // extractToken extracts the JWT token from the Authorization header
 func (m *JWTMiddleware) extractToken(r *http.Request) (string, error) {
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(constants.HeaderAuthorization)
 	if authHeader == "" {
 		return "", fmt.Errorf("authorization header is missing")
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		return "", fmt.Errorf("authorization header must be in 'Bearer <token>' format")
+	if len(parts) != 2 || strings.ToLower(parts[0]) != strings.ToLower(constants.AuthSchemeBearer) {
+		return "", fmt.Errorf("authorization header must be in '%s <token>' format", constants.AuthSchemeBearer)
 	}
 
 	token := strings.TrimSpace(parts[1])
@@ -203,7 +204,7 @@ func (m *JWTMiddleware) logAuthFailure(r *http.Request, reason string, err error
 
 // writeAuthError writes an authentication error response
 func (m *JWTMiddleware) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
 		"error": message,
@@ -220,7 +221,7 @@ func GenerateToken(secret string, userID string, roles []string, expiration time
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiration)),
 			IssuedAt:  jwt.NewNumericDate(now),
-			NotBefore: jwt.NewNumericDate(now.Add(-30 * time.Second)), // Allow 30s clock skew
+			NotBefore: jwt.NewNumericDate(now.Add(-constants.JWTClockSkew)), // Allow clock skew tolerance
 		},
 	}
 

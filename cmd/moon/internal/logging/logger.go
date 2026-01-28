@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // simpleWriter is a custom writer that formats logs as: [LEVEL](TIMESTAMP): {MESSAGE}
@@ -84,9 +85,9 @@ type LoggerConfig struct {
 
 // Logger wraps zerolog for structured logging
 type Logger struct {
-	logger             zerolog.Logger
-	config             LoggerConfig
-	sensitiveFields    map[string]bool
+	logger          zerolog.Logger
+	config          LoggerConfig
+	sensitiveFields map[string]bool
 }
 
 // NewLogger creates a new structured logger
@@ -97,12 +98,12 @@ func NewLogger(config LoggerConfig) *Logger {
 	if config.FilePath != "" {
 		// Ensure log directory exists
 		dir := filepath.Dir(config.FilePath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, constants.DirPermissions); err != nil {
 			// If we can't create directory, fall back to stdout
 			fmt.Fprintf(os.Stderr, "Failed to create log directory %s: %v\n", dir, err)
 			output = os.Stdout
 		} else {
-			file, err := os.OpenFile(config.FilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+			file, err := os.OpenFile(config.FilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, constants.FilePermissions)
 			if err != nil {
 				// If we can't open file, fall back to stdout
 				fmt.Fprintf(os.Stderr, "Failed to open log file %s: %v\n", config.FilePath, err)
@@ -122,7 +123,7 @@ func NewLogger(config LoggerConfig) *Logger {
 	}
 
 	if config.SlowQueryThreshold == 0 {
-		config.SlowQueryThreshold = 500 * time.Millisecond
+		config.SlowQueryThreshold = constants.SlowQueryThreshold
 	}
 
 	// Set zerolog level
@@ -167,8 +168,7 @@ func NewLogger(config LoggerConfig) *Logger {
 	}
 
 	// Add default sensitive fields (lowercase for case-insensitive matching)
-	defaultSensitive := []string{"password", "token", "secret", "api_key", "apikey", "authorization"}
-	for _, field := range defaultSensitive {
+	for _, field := range constants.SensitiveFields {
 		sensitiveFields[field] = true
 	}
 
@@ -182,10 +182,10 @@ func NewLogger(config LoggerConfig) *Logger {
 // WithContext returns a logger with context fields
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	newLogger := *l
-	
+
 	// Add request ID if present
 	if requestID := GetRequestID(ctx); requestID != "" {
-		newLogger.logger = l.logger.With().Str("request_id", requestID).Logger()
+		newLogger.logger = l.logger.With().Str(constants.ContextKeyRequestID, requestID).Logger()
 	}
 
 	return &newLogger
@@ -212,7 +212,7 @@ func (l *Logger) WithFields(fields map[string]any) *Logger {
 // maskSensitive masks sensitive field values (case-insensitive)
 func (l *Logger) maskSensitive(key string, value any) any {
 	if l.sensitiveFields[strings.ToLower(key)] {
-		return "***REDACTED***"
+		return constants.RedactedPlaceholder
 	}
 	return value
 }
@@ -276,7 +276,7 @@ func (l *Logger) LogSlowQuery(query string, duration time.Duration, args ...any)
 // Context key for request ID
 type contextKey string
 
-const requestIDKey contextKey = "request_id"
+const requestIDKey contextKey = constants.ContextKeyRequestID
 
 // SetRequestID sets the request ID in the context
 func SetRequestID(ctx context.Context, requestID string) context.Context {
@@ -336,13 +336,13 @@ func (rl *RequestLogger) Middleware(next http.HandlerFunc) http.HandlerFunc {
 		start := time.Now()
 
 		// Generate or get request ID
-		requestID := r.Header.Get("X-Request-ID")
+		requestID := r.Header.Get(constants.HeaderRequestID)
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 
 		// Add request ID to response header
-		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set(constants.HeaderRequestID, requestID)
 
 		// Add request ID to context
 		ctx := SetRequestID(r.Context(), requestID)
@@ -370,7 +370,7 @@ func (rl *RequestLogger) Middleware(next http.HandlerFunc) http.HandlerFunc {
 				for key, values := range r.Header {
 					// Mask sensitive headers
 					if rl.config.Logger.sensitiveFields[key] {
-						headers[key] = "***REDACTED***"
+						headers[key] = constants.RedactedPlaceholder
 					} else if len(values) > 0 {
 						headers[key] = values[0]
 					}

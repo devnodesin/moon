@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // FileCheck represents a required file or directory
@@ -59,7 +61,7 @@ func ValidateAndCreate(checks []FileCheck) ([]CheckResult, error) {
 			// Path doesn't exist, try to create it
 			if check.IsDir {
 				// Create directory
-				if err := os.MkdirAll(check.Path, 0755); err != nil {
+				if err := os.MkdirAll(check.Path, constants.DirPermissions); err != nil {
 					result.Error = fmt.Errorf("failed to create directory %s: %w", check.Path, err)
 					if check.FailFatal {
 						fatalErrors = append(fatalErrors, result.Error)
@@ -70,14 +72,14 @@ func ValidateAndCreate(checks []FileCheck) ([]CheckResult, error) {
 			} else {
 				// For files, create parent directory and touch the file
 				dir := filepath.Dir(check.Path)
-				if err := os.MkdirAll(dir, 0755); err != nil {
+				if err := os.MkdirAll(dir, constants.DirPermissions); err != nil {
 					result.Error = fmt.Errorf("failed to create parent directory for %s: %w", check.Path, err)
 					if check.FailFatal {
 						fatalErrors = append(fatalErrors, result.Error)
 					}
 				} else {
 					// Create empty file (touch) - O_EXCL ensures we don't overwrite
-					f, err := os.OpenFile(check.Path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+					f, err := os.OpenFile(check.Path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, constants.FilePermissions)
 					if err != nil {
 						result.Error = fmt.Errorf("failed to create file %s: %w", check.Path, err)
 						if check.FailFatal {
@@ -114,12 +116,12 @@ func ValidateAndCreate(checks []FileCheck) ([]CheckResult, error) {
 func CreateOrTruncateFile(path string) error {
 	// Ensure parent directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, constants.DirPermissions); err != nil {
 		return fmt.Errorf("failed to create parent directory for %s: %w", path, err)
 	}
 
 	// Truncate the file (create if doesn't exist)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, constants.FilePermissions)
 	if err != nil {
 		return fmt.Errorf("failed to create or truncate file %s: %w", path, err)
 	}

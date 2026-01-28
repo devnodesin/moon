@@ -8,8 +8,8 @@ import (
 
 func TestDetectDialect_Postgres(t *testing.T) {
 	tests := []struct {
-		name           string
-		connStr        string
+		name            string
+		connStr         string
 		expectedDialect DialectType
 	}{
 		{
@@ -44,8 +44,8 @@ func TestDetectDialect_Postgres(t *testing.T) {
 
 func TestDetectDialect_MySQL(t *testing.T) {
 	tests := []struct {
-		name           string
-		connStr        string
+		name            string
+		connStr         string
 		expectedDialect DialectType
 	}{
 		{
@@ -80,8 +80,8 @@ func TestDetectDialect_MySQL(t *testing.T) {
 
 func TestDetectDialect_SQLite(t *testing.T) {
 	tests := []struct {
-		name           string
-		connStr        string
+		name            string
+		connStr         string
 		expectedDialect DialectType
 	}{
 		{

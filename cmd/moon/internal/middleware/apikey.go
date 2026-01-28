@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 const (
 	// APIKeyContextKey is the key for API key info in request context
-	APIKeyContextKey ContextKey = "api_key_info"
+	APIKeyContextKey ContextKey = constants.ContextKeyAPIKeyInfo
 )
 
 // Permission represents allowed actions on resources
@@ -92,7 +94,7 @@ type APIKeyMiddleware struct {
 // NewAPIKeyMiddleware creates a new API key middleware instance
 func NewAPIKeyMiddleware(config APIKeyConfig) *APIKeyMiddleware {
 	if config.HeaderName == "" {
-		config.HeaderName = "X-API-Key"
+		config.HeaderName = constants.HeaderAPIKey
 	}
 	if config.QueryParamName == "" {
 		config.QueryParamName = "api_key"
@@ -302,13 +304,14 @@ func GetAPIKeyInfo(ctx context.Context) (*APIKeyInfo, bool) {
 }
 
 // ValidateAPIKeyFormat validates that an API key has a proper format
-// Keys should be at least 40 characters (recommended: 64) for sufficient entropy
+// Keys should be at least MinAPIKeyLength characters (recommended: 64) for sufficient entropy
 func ValidateAPIKeyFormat(key string) bool {
-	// API keys should be at least 40 characters for strong security
+	// API keys should be at least MinAPIKeyLength characters for strong security
 	// (provides ~240 bits of entropy with base62 encoding)
-	if len(key) < 40 {
+	if len(key) < constants.MinAPIKeyLength {
 		return false
 	}
+
 	for _, c := range key {
 		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
 			return false

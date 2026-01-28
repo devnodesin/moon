@@ -314,4 +314,3 @@ func TestDefaults(t *testing.T) {
 		t.Errorf("Expected default config path /etc/moon.conf, got %s", Defaults.ConfigPath)
 	}
 }
-

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/handlers"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
@@ -42,9 +43,9 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 		server: &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 			Handler:      mux,
-			ReadTimeout:  15 * time.Second,
-			WriteTimeout: 15 * time.Second,
-			IdleTimeout:  60 * time.Second,
+			ReadTimeout:  constants.HTTPReadTimeout,
+			WriteTimeout: constants.HTTPWriteTimeout,
+			IdleTimeout:  constants.HTTPIdleTimeout,
 		},
 	}
 
@@ -143,7 +144,7 @@ func (s *Server) Run() error {
 		log.Printf("Received signal: %v", sig)
 
 		// Give outstanding requests a deadline for completion
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), constants.ShutdownTimeout)
 		defer cancel()
 
 		// Shutdown the server
