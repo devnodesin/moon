@@ -120,6 +120,38 @@ These endpoints manage the records within a specific collection.
 | `POST /{name}:update`  | `POST` | Update an existing record.                         |
 | `POST /{name}:destroy` | `POST` | Delete a record from the table.                    |
 
+#### Advanced Query Parameters for `/{name}:list`
+
+The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection:
+
+**Filtering:**
+- Syntax: `?column[operator]=value`
+- Operators: `eq` (equal), `ne` (not equal), `gt` (greater than), `lt` (less than), `gte` (greater/equal), `lte` (less/equal), `like` (pattern match), `in` (in list)
+- Example: `?price[gt]=100&category[eq]=electronics`
+- Multiple filters are combined with AND logic
+
+**Sorting:**
+- Syntax: `?sort=field` (ascending) or `?sort=-field` (descending)
+- Multiple fields: `?sort=-created_at,name` (comma-separated)
+- Example: `?sort=-price,name`
+
+**Full-Text Search:**
+- Syntax: `?q=searchterm`
+- Searches across all text/string columns with OR logic
+- Example: `?q=laptop`
+- Can be combined with filters and sorting
+
+**Field Selection:**
+- Syntax: `?fields=field1,field2`
+- Returns only requested fields (ulid always included)
+- Example: `?fields=name,price`
+- Reduces payload size for large tables
+
+**Combined Example:**
+```
+GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10
+```
+
 ## 3. Architecture: The Dynamic Data Flow
 
 The server acts as a "Smart Bridge" between the user and the database.

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/query"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
 )
@@ -108,32 +110,89 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		}
 	}
 
-	// Build SELECT query with ULID-based pagination
-	var query string
-	var args []any
-
-	if after == "" {
-		// No cursor, start from beginning
-		query = fmt.Sprintf("SELECT * FROM %s ORDER BY ulid ASC LIMIT ?", collectionName)
-		args = []any{limit + 1} // Fetch one extra to determine if there's more data
-	} else {
-		// With cursor, fetch records after the cursor
-		query = fmt.Sprintf("SELECT * FROM %s WHERE ulid > ? ORDER BY ulid ASC LIMIT ?", collectionName)
-		args = []any{after, limit + 1}
+	// Parse filters from query parameters
+	filters, err := parseFilters(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid filter: %v", err))
+		return
 	}
 
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		if after == "" {
-			query = fmt.Sprintf("SELECT * FROM %s ORDER BY ulid ASC LIMIT $1", collectionName)
-		} else {
-			query = fmt.Sprintf("SELECT * FROM %s WHERE ulid > $1 ORDER BY ulid ASC LIMIT $2", collectionName)
+	// Build conditions from filters
+	conditions, err := buildConditions(filters, collection)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Add cursor condition if provided
+	if after != "" {
+		conditions = append(conditions, query.Condition{
+			Column:   "ulid",
+			Operator: query.OpGreaterThan,
+			Value:    after,
+		})
+	}
+
+	// Parse search query
+	searchQuery := r.URL.Query().Get("q")
+	var searchSQL string
+	var searchArgs []any
+	if searchQuery != "" {
+		// Validate search term
+		if len(searchQuery) < 1 {
+			writeError(w, http.StatusBadRequest, "search term must be at least 1 character")
+			return
 		}
+
+		// Build search conditions (OR across all text columns)
+		searchSQL, searchArgs = buildSearchConditions(searchQuery, collection, h.db.Dialect())
+	}
+
+	// Create query builder
+	builder := query.NewBuilder(h.db.Dialect())
+
+	// Parse sort parameters
+	sorts, err := parseSort(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid sort parameter: %v", err))
+		return
+	}
+
+	// Build ORDER BY clause
+	orderBy, err := buildOrderBy(sorts, collection, builder)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Parse field selection
+	fields, err := parseFields(r, collection)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Build SELECT query
+	var sql string
+	var args []any
+	if searchSQL != "" {
+		// Manual query construction with search (OR) and filters (AND)
+		sql, args = buildSearchQueryWithFields(collectionName, fields, conditions, searchSQL, searchArgs, orderBy, limit+1, h.db.Dialect())
+	} else {
+		// Use query builder for non-search queries
+		sql, args = builder.Select(
+			collectionName,
+			fields,
+			conditions,
+			orderBy,
+			limit+1, // Fetch one extra to determine if there's more data
+			0,
+		)
 	}
 
 	// Execute query
 	ctx := r.Context()
-	rows, err := h.db.Query(ctx, query, args...)
+	rows, err := h.db.Query(ctx, sql, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
 		return
@@ -152,7 +211,7 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 	if len(data) > limit {
 		// More data available, use the ULID of the last item as cursor
 		lastItem := data[len(data)-1]
-		if ulidVal, ok := lastItem["ulid"].(string); ok {
+		if ulidVal, ok := lastItem["id"].(string); ok {
 			nextCursor = &ulidVal
 		}
 		// Remove the extra item we fetched
@@ -475,6 +534,441 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// filterParam represents a parsed filter from query string
+type filterParam struct {
+	column   string
+	operator string
+	value    string
+}
+
+// parseFilters parses filter query parameters from URL
+// Expected format: ?column[operator]=value
+// Example: ?price[gt]=100&name[like]=moon
+func parseFilters(r *http.Request) ([]filterParam, error) {
+	var filters []filterParam
+	filterRegex := regexp.MustCompile(`^(.+)\[(eq|ne|gt|lt|gte|lte|like|in)\]$`)
+
+	for key, values := range r.URL.Query() {
+		// Skip standard query params
+		if key == constants.QueryParamLimit || key == "after" || key == "sort" || key == "q" || key == "fields" {
+			continue
+		}
+
+		matches := filterRegex.FindStringSubmatch(key)
+		if matches == nil {
+			// Skip if not a filter parameter
+			continue
+		}
+
+		column := matches[1]
+		operator := matches[2]
+
+		if len(values) > 0 {
+			filters = append(filters, filterParam{
+				column:   column,
+				operator: operator,
+				value:    values[0],
+			})
+		}
+	}
+
+	return filters, nil
+}
+
+// mapOperatorToSQL maps short operator names to SQL operators
+func mapOperatorToSQL(op string) string {
+	switch op {
+	case "eq":
+		return query.OpEqual
+	case "ne":
+		return query.OpNotEqual
+	case "gt":
+		return query.OpGreaterThan
+	case "lt":
+		return query.OpLessThan
+	case "gte":
+		return query.OpGreaterThanOrEqual
+	case "lte":
+		return query.OpLessThanOrEqual
+	case "like":
+		return query.OpLike
+	case "in":
+		return query.OpIn
+	default:
+		return query.OpEqual
+	}
+}
+
+// buildConditions converts filter params to query conditions
+func buildConditions(filters []filterParam, collection *registry.Collection) ([]query.Condition, error) {
+	var conditions []query.Condition
+
+	// Create a map of valid column names
+	validColumns := make(map[string]registry.Column)
+	for _, col := range collection.Columns {
+		validColumns[col.Name] = col
+	}
+	// Also allow filtering by ulid
+	validColumns["ulid"] = registry.Column{Name: "ulid", Type: registry.TypeString}
+
+	for _, filter := range filters {
+		// Validate column exists in schema
+		col, exists := validColumns[filter.column]
+		if !exists {
+			return nil, fmt.Errorf("invalid filter column: %s", filter.column)
+		}
+
+		sqlOp := mapOperatorToSQL(filter.operator)
+
+		// Handle IN operator - split comma-separated values
+		if sqlOp == query.OpIn {
+			parts := strings.Split(filter.value, ",")
+			values := make([]any, len(parts))
+			for i, part := range parts {
+				values[i] = strings.TrimSpace(part)
+			}
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    values,
+			})
+		} else if sqlOp == query.OpLike {
+			// For LIKE, wrap value with wildcards
+			value := "%" + filter.value + "%"
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    value,
+			})
+		} else {
+			// Convert value based on column type
+			value, err := convertValue(filter.value, col.Type)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for column %s: %v", filter.column, err)
+			}
+
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    value,
+			})
+		}
+	}
+
+	return conditions, nil
+}
+
+// convertValue converts a string value to the appropriate type
+func convertValue(value string, colType registry.ColumnType) (any, error) {
+	switch colType {
+	case registry.TypeInteger:
+		return strconv.ParseInt(value, 10, 64)
+	case registry.TypeFloat:
+		return strconv.ParseFloat(value, 64)
+	case registry.TypeBoolean:
+		return strconv.ParseBool(value)
+	case registry.TypeString, registry.TypeText, registry.TypeDatetime, registry.TypeJSON:
+		return value, nil
+	default:
+		return value, nil
+	}
+}
+
+// sortField represents a parsed sort field with direction
+type sortField struct {
+	column    string
+	direction string // "ASC" or "DESC"
+}
+
+// parseSort parses the sort query parameter
+// Supports: ?sort=field (ASC), ?sort=-field (DESC), ?sort=field1,-field2 (multiple)
+func parseSort(r *http.Request) ([]sortField, error) {
+	sortParam := r.URL.Query().Get("sort")
+	if sortParam == "" {
+		return nil, nil
+	}
+
+	var fields []sortField
+	parts := strings.Split(sortParam, ",")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		var field sortField
+		if strings.HasPrefix(part, "-") {
+			// Descending
+			field.column = part[1:]
+			field.direction = "DESC"
+		} else if strings.HasPrefix(part, "+") {
+			// Explicit ascending
+			field.column = part[1:]
+			field.direction = "ASC"
+		} else {
+			// Default ascending
+			field.column = part
+			field.direction = "ASC"
+		}
+
+		fields = append(fields, field)
+	}
+
+	return fields, nil
+}
+
+// parseFields parses the fields query parameter
+// Returns nil to select all fields, or a list of requested fields (always includes ulid)
+func parseFields(r *http.Request, collection *registry.Collection) ([]string, error) {
+	fieldsParam := r.URL.Query().Get("fields")
+	if fieldsParam == "" {
+		// No fields parameter, return nil to select all
+		return nil, nil
+	}
+
+	// Parse comma-separated field names
+	requestedFields := strings.Split(fieldsParam, ",")
+	
+	// Create a map of valid column names
+	validColumns := make(map[string]bool)
+	for _, col := range collection.Columns {
+		validColumns[col.Name] = true
+	}
+	validColumns["ulid"] = true
+	validColumns["id"] = true // Allow "id" as alias for ulid
+
+	// Validate and collect fields
+	fieldsMap := make(map[string]bool)
+	for _, field := range requestedFields {
+		field = strings.TrimSpace(field)
+		if field == "" {
+			continue
+		}
+
+		// Map "id" to "ulid" internally
+		if field == "id" {
+			field = "ulid"
+		}
+
+		if !validColumns[field] {
+			return nil, fmt.Errorf("invalid field: %s", field)
+		}
+
+		fieldsMap[field] = true
+	}
+
+	// Always include ulid for pagination consistency
+	fieldsMap["ulid"] = true
+
+	// Convert map to slice
+	fields := make([]string, 0, len(fieldsMap))
+	for field := range fieldsMap {
+		fields = append(fields, field)
+	}
+
+	return fields, nil
+}
+
+// buildOrderBy constructs ORDER BY clause from sort fields
+func buildOrderBy(sorts []sortField, collection *registry.Collection, builder query.Builder) (string, error) {
+	if len(sorts) == 0 {
+		// Default sorting by ulid
+		return "ulid ASC", nil
+	}
+
+	// Create a map of valid column names
+	validColumns := make(map[string]bool)
+	for _, col := range collection.Columns {
+		validColumns[col.Name] = true
+	}
+	// Also allow sorting by ulid
+	validColumns["ulid"] = true
+
+	var orderParts []string
+	for _, sort := range sorts {
+		// Validate column exists
+		if !validColumns[sort.column] {
+			return "", fmt.Errorf("invalid sort column: %s", sort.column)
+		}
+
+		// Escape identifier based on dialect
+		escapedCol := sort.column
+		switch builder.Dialect() {
+		case database.DialectPostgres:
+			escapedCol = fmt.Sprintf(`"%s"`, sort.column)
+		case database.DialectMySQL:
+			escapedCol = fmt.Sprintf("`%s`", sort.column)
+		}
+
+		orderParts = append(orderParts, fmt.Sprintf("%s %s", escapedCol, sort.direction))
+	}
+
+	return strings.Join(orderParts, ", "), nil
+}
+
+// buildSearchConditions builds search conditions for full-text search
+// Returns SQL fragment and args for OR-connected LIKE conditions
+func buildSearchConditions(searchTerm string, collection *registry.Collection, dialect database.DialectType) (string, []any) {
+	// Escape LIKE wildcards in search term
+	escapedTerm := strings.ReplaceAll(searchTerm, `\`, `\\`)
+	escapedTerm = strings.ReplaceAll(escapedTerm, `%`, `\%`)
+	escapedTerm = strings.ReplaceAll(escapedTerm, `_`, `\_`)
+	
+	// Wrap with wildcards for partial matching
+	searchValue := "%" + escapedTerm + "%"
+
+	// Find all text/string columns
+	var textColumns []string
+	for _, col := range collection.Columns {
+		if col.Type == registry.TypeString || col.Type == registry.TypeText {
+			textColumns = append(textColumns, col.Name)
+		}
+	}
+
+	if len(textColumns) == 0 {
+		return "", nil
+	}
+
+	// Build OR conditions for each text column
+	var conditions []string
+	var args []any
+	placeholderNum := 1
+
+	for _, col := range textColumns {
+		escapedCol := col
+		switch dialect {
+		case database.DialectPostgres:
+			escapedCol = fmt.Sprintf(`"%s"`, col)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE $%d", escapedCol, placeholderNum))
+		case database.DialectMySQL:
+			escapedCol = fmt.Sprintf("`%s`", col)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", escapedCol))
+		case database.DialectSQLite:
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", col))
+		}
+		args = append(args, searchValue)
+		placeholderNum++
+	}
+
+	searchSQL := "(" + strings.Join(conditions, " OR ") + ")"
+	return searchSQL, args
+}
+
+// buildSearchQueryWithFields builds complete SELECT query with field selection, search (OR) and filters (AND)
+func buildSearchQueryWithFields(tableName string, fields []string, filters []query.Condition, searchSQL string, searchArgs []any, orderBy string, limit int, dialect database.DialectType) (string, []any) {
+	var sb strings.Builder
+	args := []any{}
+
+	// SELECT clause
+	sb.WriteString("SELECT ")
+	if len(fields) == 0 {
+		sb.WriteString("*")
+	} else {
+		for i, field := range fields {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			// Escape field name
+			switch dialect {
+			case database.DialectPostgres:
+				sb.WriteString(fmt.Sprintf(`"%s"`, field))
+			case database.DialectMySQL:
+				sb.WriteString(fmt.Sprintf("`%s`", field))
+			default:
+				sb.WriteString(field)
+			}
+		}
+	}
+	sb.WriteString(" FROM ")
+	
+	// Escape table name
+	switch dialect {
+	case database.DialectPostgres:
+		sb.WriteString(fmt.Sprintf(`"%s"`, tableName))
+	case database.DialectMySQL:
+		sb.WriteString(fmt.Sprintf("`%s`", tableName))
+	default:
+		sb.WriteString(tableName)
+	}
+
+	// WHERE clause
+	sb.WriteString(" WHERE ")
+	
+	// Add search conditions first
+	sb.WriteString(searchSQL)
+	args = append(args, searchArgs...)
+	
+	// Add filter conditions with AND
+	placeholderNum := len(searchArgs) + 1
+	for _, cond := range filters {
+		sb.WriteString(" AND ")
+		
+		// Escape column name
+		escapedCol := cond.Column
+		switch dialect {
+		case database.DialectPostgres:
+			escapedCol = fmt.Sprintf(`"%s"`, cond.Column)
+		case database.DialectMySQL:
+			escapedCol = fmt.Sprintf("`%s`", cond.Column)
+		}
+		
+		sb.WriteString(escapedCol)
+		sb.WriteString(" ")
+		sb.WriteString(cond.Operator)
+		sb.WriteString(" ")
+		
+		// Handle special operators
+		if cond.Operator == query.OpIn {
+			values, ok := cond.Value.([]any)
+			if !ok {
+				values = []any{cond.Value}
+			}
+			sb.WriteString("(")
+			for j, v := range values {
+				if j > 0 {
+					sb.WriteString(", ")
+				}
+				if dialect == database.DialectPostgres {
+					sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+				} else {
+					sb.WriteString("?")
+				}
+				args = append(args, v)
+				placeholderNum++
+			}
+			sb.WriteString(")")
+		} else {
+			if dialect == database.DialectPostgres {
+				sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+			} else {
+				sb.WriteString("?")
+			}
+			args = append(args, cond.Value)
+			placeholderNum++
+		}
+	}
+
+	// ORDER BY clause
+	if orderBy != "" {
+		sb.WriteString(" ORDER BY ")
+		sb.WriteString(orderBy)
+	}
+
+	// LIMIT clause
+	if limit > 0 {
+		sb.WriteString(" LIMIT ")
+		if dialect == database.DialectPostgres {
+			sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+		} else {
+			sb.WriteString("?")
+		}
+		args = append(args, limit)
+	}
+
+	return sb.String(), args
 }
 
 // parseRows parses SQL rows into a slice of maps

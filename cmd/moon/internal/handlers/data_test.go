@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/query"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
@@ -675,4 +676,687 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 			t.Errorf("expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 		}
 	})
+}
+
+// PRD 021: Advanced Filtering Tests
+
+func TestParseFilters(t *testing.T) {
+	tests := []struct {
+		name          string
+		url           string
+		expectedCount int
+		expectedOps   map[string]string
+	}{
+		{
+			name:          "No filters",
+			url:           "/products:list",
+			expectedCount: 0,
+			expectedOps:   map[string]string{},
+		},
+		{
+			name:          "Single eq filter",
+			url:           "/products:list?status[eq]=active",
+			expectedCount: 1,
+			expectedOps:   map[string]string{"status": "eq"},
+		},
+		{
+			name:          "Multiple filters",
+			url:           "/products:list?price[gt]=100&category[eq]=electronics",
+			expectedCount: 2,
+			expectedOps:   map[string]string{"price": "gt", "category": "eq"},
+		},
+		{
+			name:          "All operator types",
+			url:           "/products:list?a[eq]=1&b[ne]=2&c[gt]=3&d[lt]=4&e[gte]=5&f[lte]=6&g[like]=test&h[in]=1,2,3",
+			expectedCount: 8,
+			expectedOps:   map[string]string{"a": "eq", "b": "ne", "c": "gt", "d": "lt", "e": "gte", "f": "lte", "g": "like", "h": "in"},
+		},
+		{
+			name:          "Filter with standard params",
+			url:           "/products:list?limit=10&price[gt]=100&after=abc",
+			expectedCount: 1,
+			expectedOps:   map[string]string{"price": "gt"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			filters, err := parseFilters(req)
+			if err != nil {
+				t.Fatalf("parseFilters() error = %v", err)
+			}
+
+			if len(filters) != tt.expectedCount {
+				t.Errorf("expected %d filters, got %d", tt.expectedCount, len(filters))
+			}
+
+			for _, filter := range filters {
+				if expectedOp, exists := tt.expectedOps[filter.column]; exists {
+					if filter.operator != expectedOp {
+						t.Errorf("column %s: expected operator %s, got %s", filter.column, expectedOp, filter.operator)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestMapOperatorToSQL(t *testing.T) {
+	tests := []struct {
+		shortOp string
+		sqlOp   string
+	}{
+		{"eq", "="},
+		{"ne", "!="},
+		{"gt", ">"},
+		{"lt", "<"},
+		{"gte", ">="},
+		{"lte", "<="},
+		{"like", "LIKE"},
+		{"in", "IN"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.shortOp, func(t *testing.T) {
+			result := mapOperatorToSQL(tt.shortOp)
+			if result != tt.sqlOp {
+				t.Errorf("mapOperatorToSQL(%s) = %s, want %s", tt.shortOp, result, tt.sqlOp)
+			}
+		})
+	}
+}
+
+func TestBuildConditions(t *testing.T) {
+	// Create test collection
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "price", Type: registry.TypeFloat},
+			{Name: "stock", Type: registry.TypeInteger},
+			{Name: "active", Type: registry.TypeBoolean},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		filters     []filterParam
+		wantErr     bool
+		errContains string
+		checkFunc   func(*testing.T, []any)
+	}{
+		{
+			name: "Valid string filter",
+			filters: []filterParam{
+				{column: "name", operator: "eq", value: "Product A"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid integer filter",
+			filters: []filterParam{
+				{column: "stock", operator: "gt", value: "100"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid float filter",
+			filters: []filterParam{
+				{column: "price", operator: "lte", value: "99.99"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid boolean filter",
+			filters: []filterParam{
+				{column: "active", operator: "eq", value: "true"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid column",
+			filters: []filterParam{
+				{column: "nonexistent", operator: "eq", value: "test"},
+			},
+			wantErr:     true,
+			errContains: "invalid filter column",
+		},
+		{
+			name: "Invalid integer value",
+			filters: []filterParam{
+				{column: "stock", operator: "gt", value: "not_a_number"},
+			},
+			wantErr:     true,
+			errContains: "invalid value",
+		},
+		{
+			name: "LIKE operator",
+			filters: []filterParam{
+				{column: "name", operator: "like", value: "moon"},
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, conditions []any) {
+				// LIKE should wrap value with %
+				// This will be checked in integration tests
+			},
+		},
+		{
+			name: "IN operator",
+			filters: []filterParam{
+				{column: "name", operator: "in", value: "a,b,c"},
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, conditions []any) {
+				// IN should parse comma-separated values
+				// This will be checked in integration tests
+			},
+		},
+		{
+			name: "Multiple filters",
+			filters: []filterParam{
+				{column: "price", operator: "gt", value: "50"},
+				{column: "stock", operator: "lt", value: "1000"},
+				{column: "name", operator: "like", value: "product"},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conditions, err := buildConditions(tt.filters, collection)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(conditions) != len(tt.filters) {
+				t.Errorf("expected %d conditions, got %d", len(tt.filters), len(conditions))
+			}
+
+			if tt.checkFunc != nil {
+				vals := make([]any, len(conditions))
+				for i, c := range conditions {
+					vals[i] = c.Value
+				}
+				tt.checkFunc(t, vals)
+			}
+		})
+	}
+}
+
+func TestConvertValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		colType  registry.ColumnType
+		expected any
+		wantErr  bool
+	}{
+		{
+			name:     "String type",
+			value:    "test",
+			colType:  registry.TypeString,
+			expected: "test",
+			wantErr:  false,
+		},
+		{
+			name:     "Integer type - valid",
+			value:    "123",
+			colType:  registry.TypeInteger,
+			expected: int64(123),
+			wantErr:  false,
+		},
+		{
+			name:    "Integer type - invalid",
+			value:   "not_int",
+			colType: registry.TypeInteger,
+			wantErr: true,
+		},
+		{
+			name:     "Float type - valid",
+			value:    "123.45",
+			colType:  registry.TypeFloat,
+			expected: float64(123.45),
+			wantErr:  false,
+		},
+		{
+			name:    "Float type - invalid",
+			value:   "not_float",
+			colType: registry.TypeFloat,
+			wantErr: true,
+		},
+		{
+			name:     "Boolean type - true",
+			value:    "true",
+			colType:  registry.TypeBoolean,
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name:     "Boolean type - false",
+			value:    "false",
+			colType:  registry.TypeBoolean,
+			expected: false,
+			wantErr:  false,
+		},
+		{
+			name:    "Boolean type - invalid",
+			value:   "not_bool",
+			colType: registry.TypeBoolean,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := convertValue(tt.value, tt.colType)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+// Helper function
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+// PRD 022: Sorting Support Tests
+
+func TestParseSort(t *testing.T) {
+	tests := []struct {
+		name          string
+		url           string
+		expectedCount int
+		expectedSorts []sortField
+	}{
+		{
+			name:          "No sort parameter",
+			url:           "/products:list",
+			expectedCount: 0,
+			expectedSorts: []sortField{},
+		},
+		{
+			name:          "Single field ascending",
+			url:           "/products:list?sort=price",
+			expectedCount: 1,
+			expectedSorts: []sortField{{column: "price", direction: "ASC"}},
+		},
+		{
+			name:          "Single field descending",
+			url:           "/products:list?sort=-price",
+			expectedCount: 1,
+			expectedSorts: []sortField{{column: "price", direction: "DESC"}},
+		},
+		{
+			name:          "Single field explicit ascending",
+			url:           "/products:list?sort=+price",
+			expectedCount: 1,
+			expectedSorts: []sortField{{column: "price", direction: "ASC"}},
+		},
+		{
+			name:          "Multiple fields",
+			url:           "/products:list?sort=-created_at,name",
+			expectedCount: 2,
+			expectedSorts: []sortField{
+				{column: "created_at", direction: "DESC"},
+				{column: "name", direction: "ASC"},
+			},
+		},
+		{
+			name:          "Multiple fields mixed directions",
+			url:           "/products:list?sort=category,-price,+name",
+			expectedCount: 3,
+			expectedSorts: []sortField{
+				{column: "category", direction: "ASC"},
+				{column: "price", direction: "DESC"},
+				{column: "name", direction: "ASC"},
+			},
+		},
+		{
+			name:          "Sort with spaces",
+			url:           "/products:list?sort=-price,name",
+			expectedCount: 2,
+			expectedSorts: []sortField{
+				{column: "price", direction: "DESC"},
+				{column: "name", direction: "ASC"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			sorts, err := parseSort(req)
+			if err != nil {
+				t.Fatalf("parseSort() error = %v", err)
+			}
+
+			if len(sorts) != tt.expectedCount {
+				t.Errorf("expected %d sort fields, got %d", tt.expectedCount, len(sorts))
+			}
+
+			for i, expected := range tt.expectedSorts {
+				if i >= len(sorts) {
+					t.Errorf("missing sort field at index %d", i)
+					continue
+				}
+				if sorts[i].column != expected.column {
+					t.Errorf("sort[%d].column: expected %s, got %s", i, expected.column, sorts[i].column)
+				}
+				if sorts[i].direction != expected.direction {
+					t.Errorf("sort[%d].direction: expected %s, got %s", i, expected.direction, sorts[i].direction)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildOrderBy(t *testing.T) {
+	// Create test collection
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "price", Type: registry.TypeFloat},
+			{Name: "created_at", Type: registry.TypeDatetime},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		sorts       []sortField
+		dialect     database.DialectType
+		expected    string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:     "No sorts - default",
+			sorts:    []sortField{},
+			dialect:  database.DialectSQLite,
+			expected: "ulid ASC",
+			wantErr:  false,
+		},
+		{
+			name: "Single field ascending - SQLite",
+			sorts: []sortField{
+				{column: "price", direction: "ASC"},
+			},
+			dialect:  database.DialectSQLite,
+			expected: "price ASC",
+			wantErr:  false,
+		},
+		{
+			name: "Single field descending - SQLite",
+			sorts: []sortField{
+				{column: "price", direction: "DESC"},
+			},
+			dialect:  database.DialectSQLite,
+			expected: "price DESC",
+			wantErr:  false,
+		},
+		{
+			name: "Single field - Postgres",
+			sorts: []sortField{
+				{column: "price", direction: "ASC"},
+			},
+			dialect:  database.DialectPostgres,
+			expected: `"price" ASC`,
+			wantErr:  false,
+		},
+		{
+			name: "Single field - MySQL",
+			sorts: []sortField{
+				{column: "price", direction: "DESC"},
+			},
+			dialect:  database.DialectMySQL,
+			expected: "`price` DESC",
+			wantErr:  false,
+		},
+		{
+			name: "Multiple fields",
+			sorts: []sortField{
+				{column: "created_at", direction: "DESC"},
+				{column: "name", direction: "ASC"},
+			},
+			dialect:  database.DialectSQLite,
+			expected: "created_at DESC, name ASC",
+			wantErr:  false,
+		},
+		{
+			name: "Sort by ulid",
+			sorts: []sortField{
+				{column: "ulid", direction: "DESC"},
+			},
+			dialect:  database.DialectSQLite,
+			expected: "ulid DESC",
+			wantErr:  false,
+		},
+		{
+			name: "Invalid column",
+			sorts: []sortField{
+				{column: "nonexistent", direction: "ASC"},
+			},
+			dialect:     database.DialectSQLite,
+			wantErr:     true,
+			errContains: "invalid sort column",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := query.NewBuilder(tt.dialect)
+			orderBy, err := buildOrderBy(tt.sorts, collection, builder)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if orderBy != tt.expected {
+				t.Errorf("expected ORDER BY %q, got %q", tt.expected, orderBy)
+			}
+		})
+	}
+}
+
+
+// PRD 023: Full-Text Search Tests
+
+func TestBuildSearchConditions_Basic(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "description", Type: registry.TypeText},
+		},
+	}
+
+	sql, args := buildSearchConditions("laptop", collection, database.DialectSQLite)
+
+	if sql == "" {
+		t.Error("expected non-empty SQL")
+	}
+
+	if len(args) != 2 {
+		t.Errorf("expected 2 args, got %d", len(args))
+	}
+
+	for _, arg := range args {
+		str := arg.(string)
+		if str != "%laptop%" {
+			t.Errorf("expected %%laptop%%, got %s", str)
+		}
+	}
+
+	if !contains(sql, " OR ") {
+		t.Error("expected OR operator")
+	}
+}
+
+func TestBuildSearchConditions_NoTextColumns(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "numbers",
+		Columns: []registry.Column{
+			{Name: "price", Type: registry.TypeFloat},
+		},
+	}
+
+	sql, _ := buildSearchConditions("test", collection, database.DialectSQLite)
+
+	if sql != "" {
+		t.Errorf("expected empty SQL for non-text columns, got %s", sql)
+	}
+}
+
+
+// PRD 024: Field Selection Tests
+
+func TestParseFields(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "price", Type: registry.TypeFloat},
+			{Name: "stock", Type: registry.TypeInteger},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		url         string
+		wantErr     bool
+		errContains string
+		checkFields func(*testing.T, []string)
+	}{
+		{
+			name:    "No fields parameter - select all",
+			url:     "/products:list",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if fields != nil {
+					t.Error("expected nil fields for select all")
+				}
+			},
+		},
+		{
+			name:    "Single field",
+			url:     "/products:list?fields=name",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 2 { // name + ulid
+					t.Errorf("expected 2 fields (name + ulid), got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Multiple fields",
+			url:     "/products:list?fields=name,price",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 3 { // name, price + ulid
+					t.Errorf("expected 3 fields, got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Field with spaces",
+			url:     "/products:list?fields=name,price,stock",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 4 { // name, price, stock + ulid
+					t.Errorf("expected 4 fields, got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Always includes ulid",
+			url:     "/products:list?fields=name",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				hasUlid := false
+				for _, f := range fields {
+					if f == "ulid" {
+						hasUlid = true
+						break
+					}
+				}
+				if !hasUlid {
+					t.Error("ulid should always be included")
+				}
+			},
+		},
+		{
+			name:        "Invalid field",
+			url:         "/products:list?fields=nonexistent",
+			wantErr:     true,
+			errContains: "invalid field",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			fields, err := parseFields(req, collection)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if tt.checkFields != nil {
+				tt.checkFields(t, fields)
+			}
+		})
+	}
 }
