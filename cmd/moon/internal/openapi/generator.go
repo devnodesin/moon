@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // OpenAPI represents an OpenAPI 3.0 specification

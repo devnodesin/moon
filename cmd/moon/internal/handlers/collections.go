@@ -7,8 +7,8 @@ import (
 "regexp"
 "strings"
 
-"github.com/thalib/moon/internal/database"
-"github.com/thalib/moon/internal/registry"
+"github.com/thalib/moon/cmd/moon/internal/database"
+"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 var (

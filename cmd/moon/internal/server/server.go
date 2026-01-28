@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/thalib/moon/internal/config"
-	"github.com/thalib/moon/internal/database"
-	"github.com/thalib/moon/internal/handlers"
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/config"
+	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/handlers"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // Server represents the HTTP server

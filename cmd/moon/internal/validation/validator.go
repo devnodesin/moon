@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // ValidationMode determines how the validator handles unknown fields
