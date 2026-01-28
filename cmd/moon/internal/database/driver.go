@@ -1,3 +1,6 @@
+// Package database provides database abstraction and connection management.
+// It supports multiple database dialects (PostgreSQL, MySQL, SQLite) with
+// automatic dialect detection from connection strings.
 package database
 
 import (

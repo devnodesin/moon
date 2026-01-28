@@ -1,3 +1,6 @@
+// Package errors provides centralized error handling and HTTP error responses.
+// It defines standard error codes, error types, and middleware for consistent
+// error handling across the application.
 package errors
 
 import (

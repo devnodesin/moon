@@ -1,3 +1,6 @@
+// Package handlers provides HTTP handlers for schema and data management.
+// It implements the AIP-136 custom actions pattern with colon separators
+// for RESTful API endpoints as specified in SPEC.md.
 package handlers
 
 import (

@@ -1,3 +1,6 @@
+// Package validation provides input validation for API requests.
+// It validates collection names, column definitions, and data payloads
+// against schema definitions stored in the registry.
 package validation
 
 import (

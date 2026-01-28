@@ -1,3 +1,6 @@
+// Package daemon provides process daemonization functionality for running
+// the Moon server as a background daemon process on Unix-like systems.
+// It handles PID file management and process forking.
 package daemon
 
 import (

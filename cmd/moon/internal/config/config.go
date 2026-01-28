@@ -1,3 +1,6 @@
+// Package config provides configuration management for the Moon application.
+// It uses YAML-only configuration with centralized defaults and no environment
+// variable overrides, following the principles defined in SPEC.md.
 package config
 
 import (
