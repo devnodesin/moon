@@ -1,40 +1,11 @@
 [Unit]
 Description=Moon - Dynamic Headless Engine
-Documentation=https://github.com/thalib/moon
 After=network.target
 
 [Service]
 Type=simple
-User=moon
-Group=moon
-WorkingDirectory=/opt/moon
-
-# Path to the moon binary (systemd manages the process, no daemon flag needed)
-ExecStart=/usr/local/bin/moon --config /etc/moon.conf
-
-# Restart policy
-Restart=on-failure
-RestartSec=5s
-
-# Security settings
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/log/moon /opt/moon /var/run
-PrivateDevices=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-
-# Resource limits
-LimitNOFILE=65536
-LimitNPROC=4096
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=moon
+ExecStart=/usr/local/bin/moon
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
