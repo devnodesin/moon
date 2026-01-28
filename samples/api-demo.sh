@@ -3,7 +3,7 @@
 # Requires: curl, jq (optional for JSON formatting)
 
 # Configuration
-BASE_URL="${MOON_URL:-http://localhost:8080}"
+BASE_URL="${MOON_URL:-http://localhost:6006}"
 API_VERSION="v1"
 API_BASE="$BASE_URL/api/$API_VERSION"
 
