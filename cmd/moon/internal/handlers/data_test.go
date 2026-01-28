@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/thalib/moon/internal/database"
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // mockDriver is a mock implementation of database.Driver for testing

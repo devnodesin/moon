@@ -7,13 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/thalib/moon/internal/config"
-	"github.com/thalib/moon/internal/daemon"
-	"github.com/thalib/moon/internal/database"
-	"github.com/thalib/moon/internal/logging"
-	"github.com/thalib/moon/internal/preflight"
-	"github.com/thalib/moon/internal/registry"
-	"github.com/thalib/moon/internal/server"
+	"github.com/thalib/moon/cmd/moon/internal/config"
+	"github.com/thalib/moon/cmd/moon/internal/daemon"
+	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/logging"
+	"github.com/thalib/moon/cmd/moon/internal/preflight"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/server"
 )
 
 func main() {

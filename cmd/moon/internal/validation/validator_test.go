@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 func setupTestRegistry() *registry.SchemaRegistry {

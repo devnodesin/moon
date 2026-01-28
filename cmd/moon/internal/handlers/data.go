@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/thalib/moon/internal/database"
-	"github.com/thalib/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // DataHandler handles CRUD operations on collection data

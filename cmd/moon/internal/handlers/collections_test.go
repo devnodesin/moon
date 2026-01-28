@@ -9,8 +9,8 @@ import (
 "testing"
 "time"
 
-"github.com/thalib/moon/internal/database"
-"github.com/thalib/moon/internal/registry"
+"github.com/thalib/moon/cmd/moon/internal/database"
+"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 func setupTestHandler(t *testing.T) (*CollectionsHandler, database.Driver) {

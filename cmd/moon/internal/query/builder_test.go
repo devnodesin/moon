@@ -4,8 +4,8 @@ import (
 "strings"
 "testing"
 
-"github.com/thalib/moon/internal/database"
-"github.com/thalib/moon/internal/registry"
+"github.com/thalib/moon/cmd/moon/internal/database"
+"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 func TestNewBuilder(t *testing.T) {
