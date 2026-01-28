@@ -165,17 +165,24 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		return
 	}
 
+	// Parse field selection
+	fields, err := parseFields(r, collection)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	// Build SELECT query
 	var sql string
 	var args []any
 	if searchSQL != "" {
 		// Manual query construction with search (OR) and filters (AND)
-		sql, args = buildSearchQuery(collectionName, conditions, searchSQL, searchArgs, orderBy, limit+1, h.db.Dialect())
+		sql, args = buildSearchQueryWithFields(collectionName, fields, conditions, searchSQL, searchArgs, orderBy, limit+1, h.db.Dialect())
 	} else {
 		// Use query builder for non-search queries
 		sql, args = builder.Select(
 			collectionName,
-			nil, // Select all columns
+			fields,
 			conditions,
 			orderBy,
 			limit+1, // Fetch one extra to determine if there's more data
@@ -713,6 +720,58 @@ func parseSort(r *http.Request) ([]sortField, error) {
 	return fields, nil
 }
 
+// parseFields parses the fields query parameter
+// Returns nil to select all fields, or a list of requested fields (always includes ulid)
+func parseFields(r *http.Request, collection *registry.Collection) ([]string, error) {
+	fieldsParam := r.URL.Query().Get("fields")
+	if fieldsParam == "" {
+		// No fields parameter, return nil to select all
+		return nil, nil
+	}
+
+	// Parse comma-separated field names
+	requestedFields := strings.Split(fieldsParam, ",")
+	
+	// Create a map of valid column names
+	validColumns := make(map[string]bool)
+	for _, col := range collection.Columns {
+		validColumns[col.Name] = true
+	}
+	validColumns["ulid"] = true
+	validColumns["id"] = true // Allow "id" as alias for ulid
+
+	// Validate and collect fields
+	fieldsMap := make(map[string]bool)
+	for _, field := range requestedFields {
+		field = strings.TrimSpace(field)
+		if field == "" {
+			continue
+		}
+
+		// Map "id" to "ulid" internally
+		if field == "id" {
+			field = "ulid"
+		}
+
+		if !validColumns[field] {
+			return nil, fmt.Errorf("invalid field: %s", field)
+		}
+
+		fieldsMap[field] = true
+	}
+
+	// Always include ulid for pagination consistency
+	fieldsMap["ulid"] = true
+
+	// Convert map to slice
+	fields := make([]string, 0, len(fieldsMap))
+	for field := range fieldsMap {
+		fields = append(fields, field)
+	}
+
+	return fields, nil
+}
+
 // buildOrderBy constructs ORDER BY clause from sort fields
 func buildOrderBy(sorts []sortField, collection *registry.Collection, builder query.Builder) (string, error) {
 	if len(sorts) == 0 {
@@ -798,13 +857,32 @@ func buildSearchConditions(searchTerm string, collection *registry.Collection, d
 	return searchSQL, args
 }
 
-// buildSearchQuery builds complete SELECT query with search (OR) and filters (AND)
-func buildSearchQuery(tableName string, filters []query.Condition, searchSQL string, searchArgs []any, orderBy string, limit int, dialect database.DialectType) (string, []any) {
+// buildSearchQueryWithFields builds complete SELECT query with field selection, search (OR) and filters (AND)
+func buildSearchQueryWithFields(tableName string, fields []string, filters []query.Condition, searchSQL string, searchArgs []any, orderBy string, limit int, dialect database.DialectType) (string, []any) {
 	var sb strings.Builder
 	args := []any{}
 
 	// SELECT clause
-	sb.WriteString("SELECT * FROM ")
+	sb.WriteString("SELECT ")
+	if len(fields) == 0 {
+		sb.WriteString("*")
+	} else {
+		for i, field := range fields {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			// Escape field name
+			switch dialect {
+			case database.DialectPostgres:
+				sb.WriteString(fmt.Sprintf(`"%s"`, field))
+			case database.DialectMySQL:
+				sb.WriteString(fmt.Sprintf("`%s`", field))
+			default:
+				sb.WriteString(field)
+			}
+		}
+	}
+	sb.WriteString(" FROM ")
 	
 	// Escape table name
 	switch dialect {

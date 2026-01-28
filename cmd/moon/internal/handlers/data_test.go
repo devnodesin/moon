@@ -1250,3 +1250,113 @@ func TestBuildSearchConditions_NoTextColumns(t *testing.T) {
 		t.Errorf("expected empty SQL for non-text columns, got %s", sql)
 	}
 }
+
+
+// PRD 024: Field Selection Tests
+
+func TestParseFields(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "price", Type: registry.TypeFloat},
+			{Name: "stock", Type: registry.TypeInteger},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		url         string
+		wantErr     bool
+		errContains string
+		checkFields func(*testing.T, []string)
+	}{
+		{
+			name:    "No fields parameter - select all",
+			url:     "/products:list",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if fields != nil {
+					t.Error("expected nil fields for select all")
+				}
+			},
+		},
+		{
+			name:    "Single field",
+			url:     "/products:list?fields=name",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 2 { // name + ulid
+					t.Errorf("expected 2 fields (name + ulid), got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Multiple fields",
+			url:     "/products:list?fields=name,price",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 3 { // name, price + ulid
+					t.Errorf("expected 3 fields, got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Field with spaces",
+			url:     "/products:list?fields=name,price,stock",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				if len(fields) != 4 { // name, price, stock + ulid
+					t.Errorf("expected 4 fields, got %d", len(fields))
+				}
+			},
+		},
+		{
+			name:    "Always includes ulid",
+			url:     "/products:list?fields=name",
+			wantErr: false,
+			checkFields: func(t *testing.T, fields []string) {
+				hasUlid := false
+				for _, f := range fields {
+					if f == "ulid" {
+						hasUlid = true
+						break
+					}
+				}
+				if !hasUlid {
+					t.Error("ulid should always be included")
+				}
+			},
+		},
+		{
+			name:        "Invalid field",
+			url:         "/products:list?fields=nonexistent",
+			wantErr:     true,
+			errContains: "invalid field",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			fields, err := parseFields(req, collection)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if tt.checkFields != nil {
+				tt.checkFields(t, fields)
+			}
+		})
+	}
+}
