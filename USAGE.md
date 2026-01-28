@@ -261,14 +261,19 @@ Perform CRUD operations on collection data.
 GET /api/v1/{collectionName}:list
 ```
 
-Retrieves all records from a collection.
+Retrieves all records from a collection with support for advanced filtering, sorting, searching, and field selection.
 
 **Query Parameters:**
 
-- `limit` (optional): Number of records to return (default: no limit)
+- `limit` (optional): Number of records to return (default: 30)
 - `after` (optional): Cursor for pagination - ULID of the last record from the previous page
+- `fields` (optional): Comma-separated list of fields to return (e.g., `fields=name,price`)
+- `sort` (optional): Sort order - field name or `-field` for descending (e.g., `sort=-created_at,name`)
+- `q` (optional): Search term to search across all text columns (e.g., `q=laptop`)
+- `column[operator]` (optional): Filter by column with operator (e.g., `price[gt]=100`)
+  - Operators: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
 
-**Example:**
+**Examples:**
 
 ```bash
 # List all products
@@ -277,6 +282,21 @@ curl http://localhost:8080/api/v1/products:list
 # List with cursor-based pagination
 curl http://localhost:8080/api/v1/products:list?limit=10
 curl http://localhost:8080/api/v1/products:list?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FAV
+
+# Filter by price greater than 100
+curl "http://localhost:8080/api/v1/products:list?price[gt]=100"
+
+# Filter and sort
+curl "http://localhost:8080/api/v1/products:list?price[gt]=100&sort=-price"
+
+# Search for laptops
+curl "http://localhost:8080/api/v1/products:list?q=laptop"
+
+# Select specific fields
+curl "http://localhost:8080/api/v1/products:list?fields=name,price"
+
+# Combined query
+curl "http://localhost:8080/api/v1/products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10"
 ```
 
 **Response:**
