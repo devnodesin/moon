@@ -18,14 +18,26 @@ For the impatient, here's the fastest way to get started:
 git clone https://github.com/thalib/moon.git
 cd moon
 
+# Build Moon
+go build -o moon ./cmd/moon
+
+# Run the API demo (no configuration needed!)
+./samples/api-demo.sh
+```
+
+The demo script will automatically start a server and demonstrate all API features.
+
+For a manual setup with custom configuration:
+
+```bash
 # Set up configuration
-cp samples/config.example.yaml config.yaml
-# Edit config.yaml and set jwt.secret to a secure value
+cp samples/moon.conf /etc/moon.conf
+# Edit /etc/moon.conf and set jwt.secret to a secure value
 # Generate with: openssl rand -base64 32
 
 # Build and run
 go build -o moon ./cmd/moon
-./moon --config config.yaml
+./moon --config /etc/moon.conf
 ```
 
 ## Standard Build (Go)
@@ -377,12 +389,23 @@ curl http://localhost:6006/health
 
 ### Run API Demo
 
+The quickest way to verify Moon is working:
+
+```bash
+# The demo script will auto-start a server if needed
+./samples/api-demo.sh
+```
+
+For manual verification with a running server:
+
 ```bash
 # Start Moon in one terminal (console mode)
 ./moon --config config.yaml
 
-# Run demo in another terminal
-./samples/api-demo.sh
+# Check health endpoint in another terminal
+curl http://localhost:6006/health
+
+# Expected response: {"status":"healthy","database":"sqlite","collections":0}
 ```
 
 ## Deployment

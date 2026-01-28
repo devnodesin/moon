@@ -35,12 +35,21 @@ A comprehensive demonstration script that shows all major Moon API operations:
 **Usage:**
 
 ```bash
-# Start the Moon server first
-./moon &
+# Standalone mode (auto-starts server)
+# Script will create a temporary server and clean up automatically
+./samples/api-demo.sh
 
-# Run the demo
+# With existing server
+# Start Moon server first, then run the demo
+./moon --config config.yaml &
 ./samples/api-demo.sh
 ```
+
+**Features:**
+- **Auto-start mode**: If no server is running, the script automatically creates a temporary configuration and starts a Moon server for the demo
+- **Temporary environment**: Uses `/tmp` for database and logs - no special permissions needed
+- **Auto-cleanup**: Automatically stops the server and removes temporary files when complete
+- **Existing server support**: Detects if a server is already running and uses it instead
 
 The script will walk through:
 1. Health check
@@ -71,22 +80,27 @@ A convenient test runner with multiple modes:
 
 ## Quick Start
 
-1. Copy configuration files:
-   ```bash
-   cp samples/.env.example .env
-   # Edit .env and set MOON_JWT_SECRET
-   ```
-
-2. Build and run Moon:
+1. Build Moon:
    ```bash
    go build -o moon ./cmd/moon
-   ./moon
    ```
 
-3. Try the API demo:
+2. Try the API demo (standalone mode - no config needed):
    ```bash
    ./samples/api-demo.sh
    ```
+
+The demo script will automatically:
+- Create a temporary configuration
+- Start a Moon server
+- Run through all API operations
+- Clean up when complete
+
+For production use, copy configuration files:
+```bash
+cp samples/moon.conf /etc/moon.conf
+# Edit /etc/moon.conf and set jwt.secret
+```
 
 For detailed documentation, see:
 - [Installation Guide](../docs/INSTALL.md)
