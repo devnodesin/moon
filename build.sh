@@ -8,16 +8,16 @@ set -e  # Exit on error
 
 # Check for root privileges
 check_root() {
-    print_info "Checking for root privileges..."
+    echo "Checking for root privileges..."
     if [ "$EUID" -ne 0 ]; then
-        print_error "This script must be run as root."
+        echo "This script must be run as root."
         echo ""
         echo "Please run this script with sudo:"
         echo "  sudo ./install.sh"
         echo ""
         exit 1
     fi
-    print_success "Running with root privileges"
+    echo "Running with root privileges"
 }
 
 check_root
