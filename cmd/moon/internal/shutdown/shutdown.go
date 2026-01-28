@@ -69,7 +69,7 @@ type namedShutdownFunc struct {
 // NewHandler creates a new shutdown handler
 func NewHandler(config Config) *Handler {
 	if config.Timeout == 0 {
-		config.Timeout = 30 * time.Second
+		config.Timeout = constants.ShutdownTimeout
 	}
 	if config.Signals == nil {
 		config.Signals = []os.Signal{os.Interrupt, syscall.SIGTERM}

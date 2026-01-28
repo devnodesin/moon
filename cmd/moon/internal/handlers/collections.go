@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
@@ -471,7 +472,7 @@ func mapColumnTypeToSQLite(colType registry.ColumnType) string {
 
 // Helper functions for JSON responses
 func writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }

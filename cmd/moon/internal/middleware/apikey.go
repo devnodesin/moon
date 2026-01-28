@@ -289,7 +289,7 @@ func (m *APIKeyMiddleware) logAPIKeyUsage(r *http.Request, keyInfo *APIKeyInfo) 
 
 // writeAuthError writes an authentication error response
 func (m *APIKeyMiddleware) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
 		"error": message,

@@ -184,7 +184,7 @@ func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 
 // writeJSON writes a JSON response
 func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {

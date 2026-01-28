@@ -96,7 +96,7 @@ type Service struct {
 // NewService creates a new health check service
 func NewService(config Config, db DatabaseChecker, registry RegistryChecker) *Service {
 	if config.Timeout == 0 {
-		config.Timeout = 5 * time.Second
+		config.Timeout = constants.HealthCheckTimeout
 	}
 	if config.Checkers == nil {
 		config.Checkers = make(map[string]Checker)
@@ -238,7 +238,7 @@ func (s *Service) checkRegistry() CheckResult {
 
 // writeJSON writes a JSON response
 func (s *Service) writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }

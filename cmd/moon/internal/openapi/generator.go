@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
@@ -236,7 +237,7 @@ func (g *Generator) addSecuritySchemes(spec *OpenAPI) {
 	spec.Components.SecuritySchemes["apiKeyAuth"] = SecurityScheme{
 		Type:        "apiKey",
 		In:          "header",
-		Name:        "X-API-Key",
+		Name:        constants.HeaderAPIKey,
 		Description: "API Key authentication",
 	}
 }
@@ -1020,7 +1021,7 @@ func (g *Generator) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spec := g.Generate()
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		data, err := spec.ToJSON()
