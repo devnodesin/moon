@@ -1,3 +1,6 @@
+// Package registry provides in-memory schema caching for dynamic database
+// management. It maintains a thread-safe registry of collection schemas using
+// sync.Map for zero-latency validation before database operations.
 package registry
 
 import (
@@ -73,7 +76,11 @@ func (r *SchemaRegistry) Get(name string) (*Collection, bool) {
 		return nil, false
 	}
 
-	collection := value.(*Collection)
+	collection, ok := value.(*Collection)
+	if !ok {
+		// This should never happen, but handle it safely
+		return nil, false
+	}
 
 	// Return a copy to prevent external modifications
 	copy := &Collection{

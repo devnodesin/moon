@@ -1,3 +1,6 @@
+// Package query provides SQL query building functionality with dialect-aware
+// query generation. It supports PostgreSQL, MySQL, and SQLite dialects with
+// proper identifier escaping and parameterized queries.
 package query
 
 import (

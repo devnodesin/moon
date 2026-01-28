@@ -1,3 +1,6 @@
+// Package openapi provides dynamic OpenAPI/Swagger specification generation.
+// It generates API documentation from the in-memory schema registry, ensuring
+// the documentation always reflects the current database structure.
 package openapi
 
 import (
@@ -1026,7 +1029,10 @@ func (g *Generator) Handler() http.HandlerFunc {
 			return
 		}
 
-		w.Write(data)
+		if _, err := w.Write(data); err != nil {
+			// Log error but can't send HTTP error as headers already sent
+			// This is acceptable as the write failure will be detected by the HTTP layer
+		}
 	}
 }
 

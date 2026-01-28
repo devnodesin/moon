@@ -1,3 +1,6 @@
+// Package database provides database abstraction and connection management.
+// It supports multiple database dialects (PostgreSQL, MySQL, SQLite) with
+// automatic dialect detection from connection strings.
 package database
 
 import (
@@ -186,7 +189,7 @@ func detectDialect(connectionString string) (DialectType, string, error) {
 	}
 
 	// Check for file-based connection strings (SQLite)
-	if strings.HasSuffix(lower, ".db") || strings.HasSuffix(lower, ".sqlite") || strings.HasSuffix(lower, ".sqlite3") {
+	if lower == ":memory:" || strings.HasSuffix(lower, ".db") || strings.HasSuffix(lower, ".sqlite") || strings.HasSuffix(lower, ".sqlite3") {
 		return DialectSQLite, connectionString, nil
 	}
 
