@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/query"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
 )
@@ -108,32 +110,45 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		}
 	}
 
-	// Build SELECT query with ULID-based pagination
-	var query string
-	var args []any
-
-	if after == "" {
-		// No cursor, start from beginning
-		query = fmt.Sprintf("SELECT * FROM %s ORDER BY ulid ASC LIMIT ?", collectionName)
-		args = []any{limit + 1} // Fetch one extra to determine if there's more data
-	} else {
-		// With cursor, fetch records after the cursor
-		query = fmt.Sprintf("SELECT * FROM %s WHERE ulid > ? ORDER BY ulid ASC LIMIT ?", collectionName)
-		args = []any{after, limit + 1}
+	// Parse filters from query parameters
+	filters, err := parseFilters(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid filter: %v", err))
+		return
 	}
 
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		if after == "" {
-			query = fmt.Sprintf("SELECT * FROM %s ORDER BY ulid ASC LIMIT $1", collectionName)
-		} else {
-			query = fmt.Sprintf("SELECT * FROM %s WHERE ulid > $1 ORDER BY ulid ASC LIMIT $2", collectionName)
-		}
+	// Build conditions from filters
+	conditions, err := buildConditions(filters, collection)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
+
+	// Add cursor condition if provided
+	if after != "" {
+		conditions = append(conditions, query.Condition{
+			Column:   "ulid",
+			Operator: query.OpGreaterThan,
+			Value:    after,
+		})
+	}
+
+	// Create query builder
+	builder := query.NewBuilder(h.db.Dialect())
+
+	// Build SELECT query with filters and pagination
+	sql, args := builder.Select(
+		collectionName,
+		nil, // Select all columns
+		conditions,
+		"ulid ASC", // Default order by ULID
+		limit+1,    // Fetch one extra to determine if there's more data
+		0,
+	)
 
 	// Execute query
 	ctx := r.Context()
-	rows, err := h.db.Query(ctx, query, args...)
+	rows, err := h.db.Query(ctx, sql, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
 		return
@@ -152,7 +167,7 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 	if len(data) > limit {
 		// More data available, use the ULID of the last item as cursor
 		lastItem := data[len(data)-1]
-		if ulidVal, ok := lastItem["ulid"].(string); ok {
+		if ulidVal, ok := lastItem["id"].(string); ok {
 			nextCursor = &ulidVal
 		}
 		// Remove the extra item we fetched
@@ -475,6 +490,146 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// filterParam represents a parsed filter from query string
+type filterParam struct {
+	column   string
+	operator string
+	value    string
+}
+
+// parseFilters parses filter query parameters from URL
+// Expected format: ?column[operator]=value
+// Example: ?price[gt]=100&name[like]=moon
+func parseFilters(r *http.Request) ([]filterParam, error) {
+	var filters []filterParam
+	filterRegex := regexp.MustCompile(`^(.+)\[(eq|ne|gt|lt|gte|lte|like|in)\]$`)
+
+	for key, values := range r.URL.Query() {
+		// Skip standard query params
+		if key == constants.QueryParamLimit || key == "after" || key == "sort" || key == "q" || key == "fields" {
+			continue
+		}
+
+		matches := filterRegex.FindStringSubmatch(key)
+		if matches == nil {
+			// Skip if not a filter parameter
+			continue
+		}
+
+		column := matches[1]
+		operator := matches[2]
+
+		if len(values) > 0 {
+			filters = append(filters, filterParam{
+				column:   column,
+				operator: operator,
+				value:    values[0],
+			})
+		}
+	}
+
+	return filters, nil
+}
+
+// mapOperatorToSQL maps short operator names to SQL operators
+func mapOperatorToSQL(op string) string {
+	switch op {
+	case "eq":
+		return query.OpEqual
+	case "ne":
+		return query.OpNotEqual
+	case "gt":
+		return query.OpGreaterThan
+	case "lt":
+		return query.OpLessThan
+	case "gte":
+		return query.OpGreaterThanOrEqual
+	case "lte":
+		return query.OpLessThanOrEqual
+	case "like":
+		return query.OpLike
+	case "in":
+		return query.OpIn
+	default:
+		return query.OpEqual
+	}
+}
+
+// buildConditions converts filter params to query conditions
+func buildConditions(filters []filterParam, collection *registry.Collection) ([]query.Condition, error) {
+	var conditions []query.Condition
+
+	// Create a map of valid column names
+	validColumns := make(map[string]registry.Column)
+	for _, col := range collection.Columns {
+		validColumns[col.Name] = col
+	}
+	// Also allow filtering by ulid
+	validColumns["ulid"] = registry.Column{Name: "ulid", Type: registry.TypeString}
+
+	for _, filter := range filters {
+		// Validate column exists in schema
+		col, exists := validColumns[filter.column]
+		if !exists {
+			return nil, fmt.Errorf("invalid filter column: %s", filter.column)
+		}
+
+		sqlOp := mapOperatorToSQL(filter.operator)
+
+		// Handle IN operator - split comma-separated values
+		if sqlOp == query.OpIn {
+			parts := strings.Split(filter.value, ",")
+			values := make([]any, len(parts))
+			for i, part := range parts {
+				values[i] = strings.TrimSpace(part)
+			}
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    values,
+			})
+		} else if sqlOp == query.OpLike {
+			// For LIKE, wrap value with wildcards
+			value := "%" + filter.value + "%"
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    value,
+			})
+		} else {
+			// Convert value based on column type
+			value, err := convertValue(filter.value, col.Type)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for column %s: %v", filter.column, err)
+			}
+
+			conditions = append(conditions, query.Condition{
+				Column:   filter.column,
+				Operator: sqlOp,
+				Value:    value,
+			})
+		}
+	}
+
+	return conditions, nil
+}
+
+// convertValue converts a string value to the appropriate type
+func convertValue(value string, colType registry.ColumnType) (any, error) {
+	switch colType {
+	case registry.TypeInteger:
+		return strconv.ParseInt(value, 10, 64)
+	case registry.TypeFloat:
+		return strconv.ParseFloat(value, 64)
+	case registry.TypeBoolean:
+		return strconv.ParseBool(value)
+	case registry.TypeString, registry.TypeText, registry.TypeDatetime, registry.TypeJSON:
+		return value, nil
+	default:
+		return value, nil
+	}
 }
 
 // parseRows parses SQL rows into a slice of maps

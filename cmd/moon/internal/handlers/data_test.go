@@ -676,3 +676,319 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 		}
 	})
 }
+
+// PRD 021: Advanced Filtering Tests
+
+func TestParseFilters(t *testing.T) {
+	tests := []struct {
+		name          string
+		url           string
+		expectedCount int
+		expectedOps   map[string]string
+	}{
+		{
+			name:          "No filters",
+			url:           "/products:list",
+			expectedCount: 0,
+			expectedOps:   map[string]string{},
+		},
+		{
+			name:          "Single eq filter",
+			url:           "/products:list?status[eq]=active",
+			expectedCount: 1,
+			expectedOps:   map[string]string{"status": "eq"},
+		},
+		{
+			name:          "Multiple filters",
+			url:           "/products:list?price[gt]=100&category[eq]=electronics",
+			expectedCount: 2,
+			expectedOps:   map[string]string{"price": "gt", "category": "eq"},
+		},
+		{
+			name:          "All operator types",
+			url:           "/products:list?a[eq]=1&b[ne]=2&c[gt]=3&d[lt]=4&e[gte]=5&f[lte]=6&g[like]=test&h[in]=1,2,3",
+			expectedCount: 8,
+			expectedOps:   map[string]string{"a": "eq", "b": "ne", "c": "gt", "d": "lt", "e": "gte", "f": "lte", "g": "like", "h": "in"},
+		},
+		{
+			name:          "Filter with standard params",
+			url:           "/products:list?limit=10&price[gt]=100&after=abc",
+			expectedCount: 1,
+			expectedOps:   map[string]string{"price": "gt"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			filters, err := parseFilters(req)
+			if err != nil {
+				t.Fatalf("parseFilters() error = %v", err)
+			}
+
+			if len(filters) != tt.expectedCount {
+				t.Errorf("expected %d filters, got %d", tt.expectedCount, len(filters))
+			}
+
+			for _, filter := range filters {
+				if expectedOp, exists := tt.expectedOps[filter.column]; exists {
+					if filter.operator != expectedOp {
+						t.Errorf("column %s: expected operator %s, got %s", filter.column, expectedOp, filter.operator)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestMapOperatorToSQL(t *testing.T) {
+	tests := []struct {
+		shortOp string
+		sqlOp   string
+	}{
+		{"eq", "="},
+		{"ne", "!="},
+		{"gt", ">"},
+		{"lt", "<"},
+		{"gte", ">="},
+		{"lte", "<="},
+		{"like", "LIKE"},
+		{"in", "IN"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.shortOp, func(t *testing.T) {
+			result := mapOperatorToSQL(tt.shortOp)
+			if result != tt.sqlOp {
+				t.Errorf("mapOperatorToSQL(%s) = %s, want %s", tt.shortOp, result, tt.sqlOp)
+			}
+		})
+	}
+}
+
+func TestBuildConditions(t *testing.T) {
+	// Create test collection
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "price", Type: registry.TypeFloat},
+			{Name: "stock", Type: registry.TypeInteger},
+			{Name: "active", Type: registry.TypeBoolean},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		filters     []filterParam
+		wantErr     bool
+		errContains string
+		checkFunc   func(*testing.T, []any)
+	}{
+		{
+			name: "Valid string filter",
+			filters: []filterParam{
+				{column: "name", operator: "eq", value: "Product A"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid integer filter",
+			filters: []filterParam{
+				{column: "stock", operator: "gt", value: "100"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid float filter",
+			filters: []filterParam{
+				{column: "price", operator: "lte", value: "99.99"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid boolean filter",
+			filters: []filterParam{
+				{column: "active", operator: "eq", value: "true"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid column",
+			filters: []filterParam{
+				{column: "nonexistent", operator: "eq", value: "test"},
+			},
+			wantErr:     true,
+			errContains: "invalid filter column",
+		},
+		{
+			name: "Invalid integer value",
+			filters: []filterParam{
+				{column: "stock", operator: "gt", value: "not_a_number"},
+			},
+			wantErr:     true,
+			errContains: "invalid value",
+		},
+		{
+			name: "LIKE operator",
+			filters: []filterParam{
+				{column: "name", operator: "like", value: "moon"},
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, conditions []any) {
+				// LIKE should wrap value with %
+				// This will be checked in integration tests
+			},
+		},
+		{
+			name: "IN operator",
+			filters: []filterParam{
+				{column: "name", operator: "in", value: "a,b,c"},
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, conditions []any) {
+				// IN should parse comma-separated values
+				// This will be checked in integration tests
+			},
+		},
+		{
+			name: "Multiple filters",
+			filters: []filterParam{
+				{column: "price", operator: "gt", value: "50"},
+				{column: "stock", operator: "lt", value: "1000"},
+				{column: "name", operator: "like", value: "product"},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conditions, err := buildConditions(tt.filters, collection)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(conditions) != len(tt.filters) {
+				t.Errorf("expected %d conditions, got %d", len(tt.filters), len(conditions))
+			}
+
+			if tt.checkFunc != nil {
+				vals := make([]any, len(conditions))
+				for i, c := range conditions {
+					vals[i] = c.Value
+				}
+				tt.checkFunc(t, vals)
+			}
+		})
+	}
+}
+
+func TestConvertValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		colType  registry.ColumnType
+		expected any
+		wantErr  bool
+	}{
+		{
+			name:     "String type",
+			value:    "test",
+			colType:  registry.TypeString,
+			expected: "test",
+			wantErr:  false,
+		},
+		{
+			name:     "Integer type - valid",
+			value:    "123",
+			colType:  registry.TypeInteger,
+			expected: int64(123),
+			wantErr:  false,
+		},
+		{
+			name:    "Integer type - invalid",
+			value:   "not_int",
+			colType: registry.TypeInteger,
+			wantErr: true,
+		},
+		{
+			name:     "Float type - valid",
+			value:    "123.45",
+			colType:  registry.TypeFloat,
+			expected: float64(123.45),
+			wantErr:  false,
+		},
+		{
+			name:    "Float type - invalid",
+			value:   "not_float",
+			colType: registry.TypeFloat,
+			wantErr: true,
+		},
+		{
+			name:     "Boolean type - true",
+			value:    "true",
+			colType:  registry.TypeBoolean,
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name:     "Boolean type - false",
+			value:    "false",
+			colType:  registry.TypeBoolean,
+			expected: false,
+			wantErr:  false,
+		},
+		{
+			name:    "Boolean type - invalid",
+			value:   "not_bool",
+			colType: registry.TypeBoolean,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := convertValue(tt.value, tt.colType)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+// Helper function
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
