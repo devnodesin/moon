@@ -1201,3 +1201,52 @@ func TestBuildOrderBy(t *testing.T) {
 		})
 	}
 }
+
+
+// PRD 023: Full-Text Search Tests
+
+func TestBuildSearchConditions_Basic(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString},
+			{Name: "description", Type: registry.TypeText},
+		},
+	}
+
+	sql, args := buildSearchConditions("laptop", collection, database.DialectSQLite)
+
+	if sql == "" {
+		t.Error("expected non-empty SQL")
+	}
+
+	if len(args) != 2 {
+		t.Errorf("expected 2 args, got %d", len(args))
+	}
+
+	for _, arg := range args {
+		str := arg.(string)
+		if str != "%laptop%" {
+			t.Errorf("expected %%laptop%%, got %s", str)
+		}
+	}
+
+	if !contains(sql, " OR ") {
+		t.Error("expected OR operator")
+	}
+}
+
+func TestBuildSearchConditions_NoTextColumns(t *testing.T) {
+	collection := &registry.Collection{
+		Name: "numbers",
+		Columns: []registry.Column{
+			{Name: "price", Type: registry.TypeFloat},
+		},
+	}
+
+	sql, _ := buildSearchConditions("test", collection, database.DialectSQLite)
+
+	if sql != "" {
+		t.Errorf("expected empty SQL for non-text columns, got %s", sql)
+	}
+}

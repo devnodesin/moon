@@ -133,6 +133,21 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		})
 	}
 
+	// Parse search query
+	searchQuery := r.URL.Query().Get("q")
+	var searchSQL string
+	var searchArgs []any
+	if searchQuery != "" {
+		// Validate search term
+		if len(searchQuery) < 1 {
+			writeError(w, http.StatusBadRequest, "search term must be at least 1 character")
+			return
+		}
+
+		// Build search conditions (OR across all text columns)
+		searchSQL, searchArgs = buildSearchConditions(searchQuery, collection, h.db.Dialect())
+	}
+
 	// Create query builder
 	builder := query.NewBuilder(h.db.Dialect())
 
@@ -150,15 +165,23 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		return
 	}
 
-	// Build SELECT query with filters, sorting, and pagination
-	sql, args := builder.Select(
-		collectionName,
-		nil, // Select all columns
-		conditions,
-		orderBy,
-		limit+1, // Fetch one extra to determine if there's more data
-		0,
-	)
+	// Build SELECT query
+	var sql string
+	var args []any
+	if searchSQL != "" {
+		// Manual query construction with search (OR) and filters (AND)
+		sql, args = buildSearchQuery(collectionName, conditions, searchSQL, searchArgs, orderBy, limit+1, h.db.Dialect())
+	} else {
+		// Use query builder for non-search queries
+		sql, args = builder.Select(
+			collectionName,
+			nil, // Select all columns
+			conditions,
+			orderBy,
+			limit+1, // Fetch one extra to determine if there's more data
+			0,
+		)
+	}
 
 	// Execute query
 	ctx := r.Context()
@@ -725,6 +748,149 @@ func buildOrderBy(sorts []sortField, collection *registry.Collection, builder qu
 	}
 
 	return strings.Join(orderParts, ", "), nil
+}
+
+// buildSearchConditions builds search conditions for full-text search
+// Returns SQL fragment and args for OR-connected LIKE conditions
+func buildSearchConditions(searchTerm string, collection *registry.Collection, dialect database.DialectType) (string, []any) {
+	// Escape LIKE wildcards in search term
+	escapedTerm := strings.ReplaceAll(searchTerm, `\`, `\\`)
+	escapedTerm = strings.ReplaceAll(escapedTerm, `%`, `\%`)
+	escapedTerm = strings.ReplaceAll(escapedTerm, `_`, `\_`)
+	
+	// Wrap with wildcards for partial matching
+	searchValue := "%" + escapedTerm + "%"
+
+	// Find all text/string columns
+	var textColumns []string
+	for _, col := range collection.Columns {
+		if col.Type == registry.TypeString || col.Type == registry.TypeText {
+			textColumns = append(textColumns, col.Name)
+		}
+	}
+
+	if len(textColumns) == 0 {
+		return "", nil
+	}
+
+	// Build OR conditions for each text column
+	var conditions []string
+	var args []any
+	placeholderNum := 1
+
+	for _, col := range textColumns {
+		escapedCol := col
+		switch dialect {
+		case database.DialectPostgres:
+			escapedCol = fmt.Sprintf(`"%s"`, col)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE $%d", escapedCol, placeholderNum))
+		case database.DialectMySQL:
+			escapedCol = fmt.Sprintf("`%s`", col)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", escapedCol))
+		case database.DialectSQLite:
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", col))
+		}
+		args = append(args, searchValue)
+		placeholderNum++
+	}
+
+	searchSQL := "(" + strings.Join(conditions, " OR ") + ")"
+	return searchSQL, args
+}
+
+// buildSearchQuery builds complete SELECT query with search (OR) and filters (AND)
+func buildSearchQuery(tableName string, filters []query.Condition, searchSQL string, searchArgs []any, orderBy string, limit int, dialect database.DialectType) (string, []any) {
+	var sb strings.Builder
+	args := []any{}
+
+	// SELECT clause
+	sb.WriteString("SELECT * FROM ")
+	
+	// Escape table name
+	switch dialect {
+	case database.DialectPostgres:
+		sb.WriteString(fmt.Sprintf(`"%s"`, tableName))
+	case database.DialectMySQL:
+		sb.WriteString(fmt.Sprintf("`%s`", tableName))
+	default:
+		sb.WriteString(tableName)
+	}
+
+	// WHERE clause
+	sb.WriteString(" WHERE ")
+	
+	// Add search conditions first
+	sb.WriteString(searchSQL)
+	args = append(args, searchArgs...)
+	
+	// Add filter conditions with AND
+	placeholderNum := len(searchArgs) + 1
+	for _, cond := range filters {
+		sb.WriteString(" AND ")
+		
+		// Escape column name
+		escapedCol := cond.Column
+		switch dialect {
+		case database.DialectPostgres:
+			escapedCol = fmt.Sprintf(`"%s"`, cond.Column)
+		case database.DialectMySQL:
+			escapedCol = fmt.Sprintf("`%s`", cond.Column)
+		}
+		
+		sb.WriteString(escapedCol)
+		sb.WriteString(" ")
+		sb.WriteString(cond.Operator)
+		sb.WriteString(" ")
+		
+		// Handle special operators
+		if cond.Operator == query.OpIn {
+			values, ok := cond.Value.([]any)
+			if !ok {
+				values = []any{cond.Value}
+			}
+			sb.WriteString("(")
+			for j, v := range values {
+				if j > 0 {
+					sb.WriteString(", ")
+				}
+				if dialect == database.DialectPostgres {
+					sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+				} else {
+					sb.WriteString("?")
+				}
+				args = append(args, v)
+				placeholderNum++
+			}
+			sb.WriteString(")")
+		} else {
+			if dialect == database.DialectPostgres {
+				sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+			} else {
+				sb.WriteString("?")
+			}
+			args = append(args, cond.Value)
+			placeholderNum++
+		}
+	}
+
+	// ORDER BY clause
+	if orderBy != "" {
+		sb.WriteString(" ORDER BY ")
+		sb.WriteString(orderBy)
+	}
+
+	// LIMIT clause
+	if limit > 0 {
+		sb.WriteString(" LIMIT ")
+		if dialect == database.DialectPostgres {
+			sb.WriteString(fmt.Sprintf("$%d", placeholderNum))
+		} else {
+			sb.WriteString("?")
+		}
+		args = append(args, limit)
+	}
+
+	return sb.String(), args
 }
 
 // parseRows parses SQL rows into a slice of maps
