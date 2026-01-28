@@ -178,9 +178,9 @@ func TestLogger_WithFields(t *testing.T) {
 	})
 
 	fields := map[string]any{
-		"user_id":   "123",
-		"action":    "login",
-		"ip":        "192.168.1.1",
+		"user_id": "123",
+		"action":  "login",
+		"ip":      "192.168.1.1",
 	}
 
 	logger.WithFields(fields).Info("User action")

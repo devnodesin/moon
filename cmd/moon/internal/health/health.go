@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // Status represents the health status
@@ -27,26 +29,26 @@ const (
 
 // CheckResult represents the result of a health check
 type CheckResult struct {
-	Status  Status `json:"status"`
-	Message string `json:"message,omitempty"`
-	Time    time.Time `json:"time"`
+	Status  Status        `json:"status"`
+	Message string        `json:"message,omitempty"`
+	Time    time.Time     `json:"time"`
 	Latency time.Duration `json:"latency,omitempty"`
 }
 
 // HealthResponse is the response for /health endpoint
 type HealthResponse struct {
-	Status      Status                  `json:"status"`
-	Database    string                  `json:"database,omitempty"`
-	Collections int                     `json:"collections,omitempty"`
-	Timestamp   time.Time               `json:"timestamp"`
-	Version     string                  `json:"version,omitempty"`
+	Status      Status    `json:"status"`
+	Database    string    `json:"database,omitempty"`
+	Collections int       `json:"collections,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+	Version     string    `json:"version,omitempty"`
 }
 
 // ReadinessResponse is the response for /health/ready endpoint
 type ReadinessResponse struct {
-	Status    Status                  `json:"status"`
-	Checks    map[string]CheckResult  `json:"checks"`
-	Timestamp time.Time               `json:"timestamp"`
+	Status    Status                 `json:"status"`
+	Checks    map[string]CheckResult `json:"checks"`
+	Timestamp time.Time              `json:"timestamp"`
 }
 
 // Checker is a function that performs a health check
@@ -78,7 +80,7 @@ type Config struct {
 // DefaultConfig returns the default health configuration
 func DefaultConfig() Config {
 	return Config{
-		Timeout:  5 * time.Second,
+		Timeout:  constants.HealthCheckTimeout,
 		Checkers: make(map[string]Checker),
 	}
 }
@@ -94,7 +96,7 @@ type Service struct {
 // NewService creates a new health check service
 func NewService(config Config, db DatabaseChecker, registry RegistryChecker) *Service {
 	if config.Timeout == 0 {
-		config.Timeout = 5 * time.Second
+		config.Timeout = constants.HealthCheckTimeout
 	}
 	if config.Checkers == nil {
 		config.Checkers = make(map[string]Checker)
@@ -236,7 +238,7 @@ func (s *Service) checkRegistry() CheckResult {
 
 // writeJSON writes a JSON response
 func (s *Service) writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }

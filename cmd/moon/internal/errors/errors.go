@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // ErrorCode represents a standard error code
@@ -26,15 +27,15 @@ const (
 	CodeInvalidType      ErrorCode = "INVALID_TYPE"
 
 	// Authentication errors
-	CodeUnauthorized     ErrorCode = "UNAUTHORIZED"
-	CodeInvalidToken     ErrorCode = "INVALID_TOKEN"
-	CodeTokenExpired     ErrorCode = "TOKEN_EXPIRED"
-	CodeMissingToken     ErrorCode = "MISSING_TOKEN"
-	CodeInvalidAPIKey    ErrorCode = "INVALID_API_KEY"
-	CodeMissingAPIKey    ErrorCode = "MISSING_API_KEY"
+	CodeUnauthorized  ErrorCode = "UNAUTHORIZED"
+	CodeInvalidToken  ErrorCode = "INVALID_TOKEN"
+	CodeTokenExpired  ErrorCode = "TOKEN_EXPIRED"
+	CodeMissingToken  ErrorCode = "MISSING_TOKEN"
+	CodeInvalidAPIKey ErrorCode = "INVALID_API_KEY"
+	CodeMissingAPIKey ErrorCode = "MISSING_API_KEY"
 
 	// Authorization errors
-	CodeForbidden            ErrorCode = "FORBIDDEN"
+	CodeForbidden               ErrorCode = "FORBIDDEN"
 	CodeInsufficientPermissions ErrorCode = "INSUFFICIENT_PERMISSIONS"
 
 	// Resource errors
@@ -44,8 +45,8 @@ const (
 	CodeConflict         ErrorCode = "CONFLICT"
 
 	// Server errors
-	CodeInternalError ErrorCode = "INTERNAL_ERROR"
-	CodeDatabaseError ErrorCode = "DATABASE_ERROR"
+	CodeInternalError      ErrorCode = "INTERNAL_ERROR"
+	CodeDatabaseError      ErrorCode = "DATABASE_ERROR"
 	CodeServiceUnavailable ErrorCode = "SERVICE_UNAVAILABLE"
 
 	// Request errors
@@ -253,7 +254,7 @@ func (h *ErrorHandler) WriteError(w http.ResponseWriter, r *http.Request, err *A
 	}
 
 	// Write response
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(err.StatusCode)
 	json.NewEncoder(w).Encode(response)
 }
@@ -279,13 +280,13 @@ func (h *ErrorHandler) WriteErrorFromError(w http.ResponseWriter, r *http.Reques
 func RequestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check if request ID already exists in header
-		requestID := r.Header.Get("X-Request-ID")
+		requestID := r.Header.Get(constants.HeaderRequestID)
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 
 		// Add to response header
-		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set(constants.HeaderRequestID, requestID)
 
 		// Add to request context
 		ctx := SetRequestID(r.Context(), requestID)
@@ -296,7 +297,7 @@ func RequestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
 // Context key for request ID
 type contextKey string
 
-const requestIDKey contextKey = "request_id"
+const requestIDKey contextKey = constants.ContextKeyRequestID
 
 // SetRequestID sets the request ID in the context
 func SetRequestID(ctx context.Context, requestID string) context.Context {
@@ -349,7 +350,7 @@ func MapDatabaseError(err error) *APIError {
 	errStr := err.Error()
 
 	// Duplicate key / unique constraint
-	if contains(errStr, "duplicate", "unique constraint", "UNIQUE constraint") {
+	if containsAny(errStr, constants.DuplicateKeyPatterns) {
 		return NewConflictError("Resource already exists")
 	}
 
@@ -364,7 +365,7 @@ func MapDatabaseError(err error) *APIError {
 	}
 
 	// Connection error
-	if contains(errStr, "connection refused", "no such host", "timeout") {
+	if containsAny(errStr, constants.ConnectionErrorPatterns) {
 		return NewServiceUnavailableError("Database unavailable")
 	}
 
@@ -376,6 +377,16 @@ func MapDatabaseError(err error) *APIError {
 func contains(s string, substrs ...string) bool {
 	for _, substr := range substrs {
 		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsAny checks if any of the patterns in the slice are in the string
+func containsAny(s string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if strings.Contains(s, pattern) {
 			return true
 		}
 	}
