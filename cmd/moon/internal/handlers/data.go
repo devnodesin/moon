@@ -552,7 +552,7 @@ func parseFilters(r *http.Request) ([]filterParam, error) {
 
 	for key, values := range r.URL.Query() {
 		// Skip standard query params
-		if key == constants.QueryParamLimit || key == "after" || key == "sort" || key == "q" || key == "fields" {
+		if key == constants.QueryParamLimit || key == "after" || key == "sort" || key == "q" || key == "fields" || key == "field" {
 			continue
 		}
 

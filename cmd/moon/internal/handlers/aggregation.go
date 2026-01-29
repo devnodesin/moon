@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/logging"
 	"github.com/thalib/moon/cmd/moon/internal/query"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
@@ -57,6 +58,17 @@ func (h *AggregationHandler) Count(w http.ResponseWriter, r *http.Request, colle
 
 	// Build COUNT query
 	sqlQuery, args := builder.Count(collectionName, conditions)
+
+	// Debug logging when filters are present
+	if len(conditions) > 0 {
+		logging.GetLogger().WithFields(map[string]any{
+			"operation":  "count",
+			"collection": collectionName,
+			"sql":        sqlQuery,
+			"args":       args,
+			"filters":    len(conditions),
+		}).Debug("Aggregation query with filters")
+	}
 
 	// Execute query
 	ctx := r.Context()
@@ -115,6 +127,18 @@ func (h *AggregationHandler) Sum(w http.ResponseWriter, r *http.Request, collect
 
 	// Build SUM query
 	sqlQuery, args := builder.Sum(collectionName, field, conditions)
+
+	// Debug logging when filters are present
+	if len(conditions) > 0 {
+		logging.GetLogger().WithFields(map[string]any{
+			"operation":  "sum",
+			"collection": collectionName,
+			"field":      field,
+			"sql":        sqlQuery,
+			"args":       args,
+			"filters":    len(conditions),
+		}).Debug("Aggregation query with filters")
+	}
 
 	// Execute query
 	ctx := r.Context()
@@ -180,6 +204,18 @@ func (h *AggregationHandler) Avg(w http.ResponseWriter, r *http.Request, collect
 	// Build AVG query
 	sqlQuery, args := builder.Avg(collectionName, field, conditions)
 
+	// Debug logging when filters are present
+	if len(conditions) > 0 {
+		logging.GetLogger().WithFields(map[string]any{
+			"operation":  "avg",
+			"collection": collectionName,
+			"field":      field,
+			"sql":        sqlQuery,
+			"args":       args,
+			"filters":    len(conditions),
+		}).Debug("Aggregation query with filters")
+	}
+
 	// Execute query
 	ctx := r.Context()
 	var avg sql.NullFloat64
@@ -244,6 +280,18 @@ func (h *AggregationHandler) Min(w http.ResponseWriter, r *http.Request, collect
 	// Build MIN query
 	sqlQuery, args := builder.Min(collectionName, field, conditions)
 
+	// Debug logging when filters are present
+	if len(conditions) > 0 {
+		logging.GetLogger().WithFields(map[string]any{
+			"operation":  "min",
+			"collection": collectionName,
+			"field":      field,
+			"sql":        sqlQuery,
+			"args":       args,
+			"filters":    len(conditions),
+		}).Debug("Aggregation query with filters")
+	}
+
 	// Execute query
 	ctx := r.Context()
 	var min sql.NullFloat64
@@ -307,6 +355,18 @@ func (h *AggregationHandler) Max(w http.ResponseWriter, r *http.Request, collect
 
 	// Build MAX query
 	sqlQuery, args := builder.Max(collectionName, field, conditions)
+
+	// Debug logging when filters are present
+	if len(conditions) > 0 {
+		logging.GetLogger().WithFields(map[string]any{
+			"operation":  "max",
+			"collection": collectionName,
+			"field":      field,
+			"sql":        sqlQuery,
+			"args":       args,
+			"filters":    len(conditions),
+		}).Debug("Aggregation query with filters")
+	}
 
 	// Execute query
 	ctx := r.Context()

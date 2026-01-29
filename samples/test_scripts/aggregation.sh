@@ -126,11 +126,11 @@ echo
 
 # Aggregation with filters
 echo "[11] Aggregation with filters - Count orders with total > 200:"
-curl -s -X GET "http://localhost:6006/api/v1/orders:count?total[gt]=200" | jq .
+curl --globoff -s -X GET "http://localhost:6006/api/v1/orders:count?total[gt]=200" | jq .
 echo
 
 echo "[12] Aggregation with filters - Sum of orders with total >= 200:"
-curl -s -X GET "http://localhost:6006/api/v1/orders:sum?field=total&total[gte]=200" | jq .
+curl --globoff -s -X GET "http://localhost:6006/api/v1/orders:sum?field=total&total[gte]=200" | jq .
 echo
 
 echo "=== Test Complete ==="

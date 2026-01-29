@@ -272,3 +272,95 @@ func TestAggregationHandler_NonNumericField(t *testing.T) {
 		})
 	}
 }
+
+func TestAggregationHandler_WithFilters(t *testing.T) {
+	tests := []struct {
+		name             string
+		url              string
+		expectedFilters  int
+		expectedOperator string
+		wantError        bool
+	}{
+		{
+			name:             "count with gt filter",
+			url:              "/api/v1/orders:count?total[gt]=150",
+			expectedFilters:  1,
+			expectedOperator: "gt",
+			wantError:        false,
+		},
+		{
+			name:             "count with lt filter",
+			url:              "/api/v1/orders:count?total[lt]=175",
+			expectedFilters:  1,
+			expectedOperator: "lt",
+			wantError:        false,
+		},
+		{
+			name:             "sum with gte filter and field param",
+			url:              "/api/v1/orders:sum?field=total&total[gte]=200",
+			expectedFilters:  1,
+			expectedOperator: "gte",
+			wantError:        false,
+		},
+		{
+			name:             "avg with multiple filters",
+			url:              "/api/v1/orders:avg?field=total&total[lte]=150&status[eq]=active",
+			expectedFilters:  2,
+			expectedOperator: "lte",
+			wantError:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+
+			// Parse filters from the request
+			filters, err := parseFilters(req)
+			if (err != nil) != tt.wantError {
+				t.Errorf("parseFilters() error = %v, wantError %v", err, tt.wantError)
+			}
+
+			// Verify correct number of filters
+			if len(filters) != tt.expectedFilters {
+				t.Errorf("Expected %d filters, got %d", tt.expectedFilters, len(filters))
+			}
+
+			// Verify at least one filter has the expected operator
+			if len(filters) > 0 {
+				foundOperator := false
+				for _, f := range filters {
+					if f.operator == tt.expectedOperator {
+						foundOperator = true
+						break
+					}
+				}
+				if !foundOperator {
+					t.Errorf("Expected to find operator '%s' in filters", tt.expectedOperator)
+				}
+			}
+		})
+	}
+}
+
+// TestParseFiltersSkipsFieldParameter ensures the "field" parameter is skipped
+func TestParseFiltersSkipsFieldParameter(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders:sum?field=total&total[gt]=100", nil)
+
+	filters, err := parseFilters(req)
+	if err != nil {
+		t.Fatalf("parseFilters() error = %v", err)
+	}
+
+	// Should only have 1 filter (total[gt]=100), "field" should be skipped
+	if len(filters) != 1 {
+		t.Errorf("Expected 1 filter, got %d", len(filters))
+	}
+
+	// The filter should be for "total" column
+	if len(filters) > 0 && filters[0].column != "total" {
+		t.Errorf("Expected filter column 'total', got '%s'", filters[0].column)
+	}
+}
+
+
