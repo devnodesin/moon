@@ -94,6 +94,14 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 
 ### Running Modes
 
+#### Preflight Checks
+
+Before the server starts, Moon performs filesystem preflight checks:
+
+- Ensures the logging directory exists (and creates it if missing)
+- For SQLite, ensures the database parent directory exists (and creates it if missing)
+- In daemon mode, truncates the log file to start fresh
+
 #### Console Mode (Default)
 
 ```bash
@@ -169,6 +177,12 @@ These endpoints manage the records within a specific collection.
 | `POST /{name}:update`  | `POST` | Update an existing record.                         |
 | `POST /{name}:destroy` | `POST` | Delete a record from the table.                    |
 
+#### Identifiers
+
+- Records use a ULID as the external identifier.
+- The database stores this as a `ulid` column.
+- API responses expose this identifier as `id`.
+
 #### Advanced Query Parameters for `/{name}:list`
 
 The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection:
@@ -195,6 +209,11 @@ The list endpoint supports powerful query parameters for filtering, sorting, sea
 - Returns only requested fields (ulid always included)
 - Example: `?fields=name,price`
 - Reduces payload size for large tables
+
+**Cursor Pagination:**
+- Syntax: `?after=<ulid>`
+- Returns `next_cursor` in the response when more results are available
+- Example: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX`
 
 **Combined Example:**
 ```
@@ -266,6 +285,10 @@ The server acts as a "Smart Bridge" between the user and the database.
 - **Dynamic OpenAPI:** The Swagger/OpenAPI documentation is generated dynamically from the **In-Memory Cache**, ensuring the UI always reflects the current DB state.
 - **Dynamic OpenAPI:** The Swagger/OpenAPI documentation is generated dynamically from the **In-Memory Cache**, and always includes authentication/authorization requirements and example payloads for each endpoint, in addition to reflecting the current DB schema.
 - **Middleware Security:** A high-speed JWT and API Key layer that enforces simple allow/deny permissions per endpoint before the request reaches the dynamic handlers.
+- **Advanced Auth Controls:**
+  - JWT role-based authorization per path
+  - API key permissions per endpoint (read/write/delete/admin)
+  - Protected/unprotected path lists and protect-by-default mode
 
 ## 4. Design for AI Maintainability
 
