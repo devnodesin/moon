@@ -284,10 +284,10 @@ curl http://localhost:8080/api/v1/products:list?limit=10
 curl http://localhost:8080/api/v1/products:list?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FAV
 
 # Filter by price greater than 100
-curl "http://localhost:8080/api/v1/products:list?price[gt]=100"
+curl --globoff "http://localhost:8080/api/v1/products:list?price[gt]=100"
 
 # Filter and sort
-curl "http://localhost:8080/api/v1/products:list?price[gt]=100&sort=-price"
+curl --globoff "http://localhost:8080/api/v1/products:list?price[gt]=100&sort=-price"
 
 # Search for laptops
 curl "http://localhost:8080/api/v1/products:list?q=laptop"
@@ -575,14 +575,23 @@ All aggregation endpoints support the same filtering syntax as `:list`:
 
 ```bash
 # Count active users
-curl "http://localhost:8080/api/v1/users:count?active[eq]=true"
+curl --globoff "http://localhost:8080/api/v1/users:count?active[eq]=true"
 
 # Sum sales for a specific product category
-curl "http://localhost:8080/api/v1/orders:sum?field=total&category[eq]=electronics"
+curl --globoff "http://localhost:8080/api/v1/orders:sum?field=total&category[eq]=electronics"
 
 # Average price for items in stock
-curl "http://localhost:8080/api/v1/products:avg?field=price&stock[gt]=0"
+curl --globoff "http://localhost:8080/api/v1/products:avg?field=price&stock[gt]=0"
 ```
+
+**Important Note about curl and Brackets:**
+
+When using curl with filter parameters that contain square brackets `[]`, you must either:
+1. Use the `--globoff` flag to disable URL globbing: `curl --globoff "...?price[gt]=100"`
+2. Use URL encoding: `curl "...?price%5Bgt%5D=100"` (where `%5B` = `[` and `%5D` = `]`)
+3. Escape the brackets in the shell: `curl "...?price\[gt\]=100"`
+
+Without these, curl will interpret `[gt]` as a character class pattern and fail silently.
 
 **Error Responses:**
 
