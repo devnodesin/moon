@@ -1,6 +1,7 @@
-- **Soft Deletes:** A `deleted_at` column support so data isn't permanently lost immediately. 
+## TODO
+
+## FUTURE PLAN
+
 - **Batch Operations:** Bulk `Create`, `Update`, or `Delete` APIs. Creating 100 products one by one is slow.
-- **Aggregation:** Endpoints for `count`, `sum`, `avg`, `min`, `max`. (Critical for dashboards/analytics).
 - **Relations / Population:** Fetching related data (e.g., "Get Product **and** its Author"). Currently requires multiple API calls.
-- **Dockerise:** Create a Dockerfile for containerized deployment
-- Create a way mechism 
+
