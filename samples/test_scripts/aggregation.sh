@@ -1,14 +1,12 @@
 #!/bin/bash
 # Aggregation API test script for Moon
 
-BASE_URL="http://localhost:6006/api/v1"
-
 echo "=== Moon Aggregation API Test ==="
 echo
 
 # Create orders collection
 echo "[1] Creating 'orders' collection..."
-curl -s -X POST "$BASE_URL/collections:create" \
+curl -s -X POST "http://localhost:6006/api/v1/collections:create" \
 	-H "Content-Type: application/json" \
 	-d '{
 		"name": "orders",
@@ -23,110 +21,116 @@ curl -s -X POST "$BASE_URL/collections:create" \
 	}' | jq .
 echo
 
-# Insert 10 sample orders
-echo "[2] Inserting 10 sample orders..."
-for i in {1..10}; do
-	TOTAL=$((100 + i * 25))
-	SUBTOTAL=$((TOTAL * 90 / 100))
-	TAX=$((TOTAL - SUBTOTAL))
-	
-	curl -s -X POST "$BASE_URL/orders:create" \
-		-H "Content-Type: application/json" \
-		-d "{
-			\"data\": {
-				\"order_id\": \"ORD-$(printf '%04d' $i)\",
-				\"customer_name\": \"Customer $i\",
-				\"total\": $TOTAL.00,
-				\"subtotal\": $SUBTOTAL.00,
-				\"tax\": $TAX.00,
-				\"products\": {\"items\": $i}
-			}
-		}" > /dev/null
-done
-echo "✓ Created 10 orders"
+echo "[2] Inserting 5 sample orders..."
+curl -s -X POST "http://localhost:6006/api/v1/orders:create" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"data": {
+			"order_id": "ORD-0001",
+			"customer_name": "Customer 1",
+			"total": 125.00,
+			"subtotal": 112.50,
+			"tax": 12.50,
+			"products": {"items": 1}
+		}
+	}' > /dev/null
+curl -s -X POST "http://localhost:6006/api/v1/orders:create" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"data": {
+			"order_id": "ORD-0002",
+			"customer_name": "Customer 2",
+			"total": 150.00,
+			"subtotal": 135.00,
+			"tax": 15.00,
+			"products": {"items": 2}
+		}
+	}' > /dev/null
+curl -s -X POST "http://localhost:6006/api/v1/orders:create" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"data": {
+			"order_id": "ORD-0003",
+			"customer_name": "Customer 3",
+			"total": 175.00,
+			"subtotal": 157.50,
+			"tax": 17.50,
+			"products": {"items": 3}
+		}
+	}' > /dev/null
+curl -s -X POST "http://localhost:6006/api/v1/orders:create" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"data": {
+			"order_id": "ORD-0004",
+			"customer_name": "Customer 4",
+			"total": 200.00,
+			"subtotal": 180.00,
+			"tax": 20.00,
+			"products": {"items": 4}
+		}
+	}' > /dev/null
+curl -s -X POST "http://localhost:6006/api/v1/orders:create" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"data": {
+			"order_id": "ORD-0005",
+			"customer_name": "Customer 5",
+			"total": 225.00,
+			"subtotal": 202.50,
+			"tax": 22.50,
+			"products": {"items": 5}
+		}
+	}' > /dev/null
+echo "✓ Created 5 orders"
 echo
 
 # List all orders
 echo "[3] Listing all orders:"
-curl -s -X GET "$BASE_URL/orders:list" | jq '.data[] | {order_id, customer_name, total, subtotal, tax}'
+curl -s -X GET "http://localhost:6006/api/v1/orders:list" | jq .
 echo
 
 # Aggregation: Count
 echo "[4] Aggregation - Count all orders:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:count")
-echo "$RESULT" | jq .
-COUNT=$(echo "$RESULT" | jq -r '.value')
-echo "→ Total orders: $COUNT"
+curl -s -X GET "http://localhost:6006/api/v1/orders:count" | jq .
 echo
 
 # Aggregation: Sum of total
 echo "[5] Aggregation - Sum of 'total' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:sum?field=total")
-echo "$RESULT" | jq .
-SUM=$(echo "$RESULT" | jq -r '.value')
-echo "→ Sum of all order totals: \$$SUM"
+curl -s -X GET "http://localhost:6006/api/v1/orders:sum?field=total" | jq .
 echo
 
 # Aggregation: Average of total
 echo "[6] Aggregation - Average of 'total' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:avg?field=total")
-echo "$RESULT" | jq .
-AVG=$(echo "$RESULT" | jq -r '.value')
-echo "→ Average order total: \$$AVG"
+curl -s -X GET "http://localhost:6006/api/v1/orders:avg?field=total" | jq .
 echo
 
 # Aggregation: Min of total
 echo "[7] Aggregation - Minimum 'total' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:min?field=total")
-echo "$RESULT" | jq .
-MIN=$(echo "$RESULT" | jq -r '.value')
-echo "→ Minimum order total: \$$MIN"
+curl -s -X GET "http://localhost:6006/api/v1/orders:min?field=total" | jq .
 echo
 
 # Aggregation: Max of total
 echo "[8] Aggregation - Maximum 'total' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:max?field=total")
-echo "$RESULT" | jq .
-MAX=$(echo "$RESULT" | jq -r '.value')
-echo "→ Maximum order total: \$$MAX"
+curl -s -X GET "http://localhost:6006/api/v1/orders:max?field=total" | jq .
 echo
 
 # Aggregation on other fields
 echo "[9] Aggregation - Sum of 'tax' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:sum?field=tax")
-echo "$RESULT" | jq .
-TAX_SUM=$(echo "$RESULT" | jq -r '.value')
-echo "→ Total tax collected: \$$TAX_SUM"
+curl -s -X GET "http://localhost:6006/api/v1/orders:sum?field=tax" | jq .
 echo
 
 echo "[10] Aggregation - Average of 'subtotal' field:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:avg?field=subtotal")
-echo "$RESULT" | jq .
-SUBTOTAL_AVG=$(echo "$RESULT" | jq -r '.value')
-echo "→ Average subtotal: \$$SUBTOTAL_AVG"
+curl -s -X GET "http://localhost:6006/api/v1/orders:avg?field=subtotal" | jq .
 echo
 
 # Aggregation with filters
 echo "[11] Aggregation with filters - Count orders with total > 200:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:count?total[gt]=200")
-echo "$RESULT" | jq .
-COUNT_FILTERED=$(echo "$RESULT" | jq -r '.value')
-echo "→ Orders with total > \$200: $COUNT_FILTERED"
+curl -s -X GET "http://localhost:6006/api/v1/orders:count?total[gt]=200" | jq .
 echo
 
 echo "[12] Aggregation with filters - Sum of orders with total >= 200:"
-RESULT=$(curl -s -X GET "$BASE_URL/orders:sum?field=total&total[gte]=200")
-echo "$RESULT" | jq .
-SUM_FILTERED=$(echo "$RESULT" | jq -r '.value')
-echo "→ Sum of orders with total >= \$200: \$$SUM_FILTERED"
+curl -s -X GET "http://localhost:6006/api/v1/orders:sum?field=total&total[gte]=200" | jq .
 echo
 
 echo "=== Test Complete ==="
-echo
-echo "Summary:"
-echo "  Total Orders: $COUNT"
-echo "  Sum of Totals: \$$SUM"
-echo "  Average Total: \$$AVG"
-echo "  Min Total: \$$MIN"
-echo "  Max Total: \$$MAX"
-echo "  Total Tax: \$$TAX_SUM"
