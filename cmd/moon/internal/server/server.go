@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
+	"github.com/thalib/moon/cmd/moon/internal/consistency"
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/handlers"
@@ -171,10 +172,44 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Perform consistency check (non-blocking with short timeout, read-only)
+	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	// Create a read-only config for health checks (no repairs)
+	healthCheckConfig := &config.RecoveryConfig{
+		AutoRepair:   false, // Health checks should not modify state
+		DropOrphans:  false,
+		CheckTimeout: 2,
+	}
+	
+	checker := consistency.NewChecker(s.db, s.registry, healthCheckConfig)
+	consistencyResult, err := checker.Check(checkCtx)
+
 	response := map[string]any{
 		"status":      "healthy",
 		"database":    string(s.db.Dialect()),
 		"collections": s.registry.Count(),
+	}
+
+	if err != nil || consistencyResult == nil {
+		response["consistency"] = "error"
+	} else if consistencyResult.TimedOut {
+		response["consistency"] = "timeout"
+	} else if consistencyResult.Consistent {
+		response["consistency"] = "ok"
+	} else {
+		response["consistency"] = "inconsistent"
+		// Add details about issues
+		var details []map[string]string
+		for _, issue := range consistencyResult.Issues {
+			details = append(details, map[string]string{
+				"type":     string(issue.Type),
+				"name":     issue.Name,
+				"repaired": fmt.Sprintf("%v", issue.Repaired),
+			})
+		}
+		response["details"] = details
 	}
 
 	s.writeJSON(w, http.StatusOK, response)
