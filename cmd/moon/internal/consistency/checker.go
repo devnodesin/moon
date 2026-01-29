@@ -73,20 +73,15 @@ func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
 		Issues:     []Issue{},
 	}
 
-	// Check for timeout
-	select {
-	case <-checkCtx.Done():
+	// Get all physical tables
+	tables, err := c.db.ListTables(checkCtx)
+	if err != nil {
+		// Check if we timed out
 		if checkCtx.Err() == context.DeadlineExceeded {
 			result.TimedOut = true
 			result.Duration = time.Since(start)
 			return result, fmt.Errorf("%s", constants.ConsistencyErrorMessages.CheckTimeout)
 		}
-	default:
-	}
-
-	// Get all physical tables
-	tables, err := c.db.ListTables(checkCtx)
-	if err != nil {
 		return nil, fmt.Errorf("failed to list tables: %w", err)
 	}
 
@@ -139,6 +134,12 @@ func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
 
 			if c.config.AutoRepair {
 				if c.config.DropOrphans {
+					// Validate table name to prevent SQL injection
+					if !isValidTableName(table) {
+						logging.Warnf("Skipping drop of table '%s': invalid table name", table)
+						continue
+					}
+					
 					// Drop the orphaned table
 					dropSQL := fmt.Sprintf("DROP TABLE %s", table)
 					if _, err := c.db.Exec(checkCtx, dropSQL); err != nil {
@@ -259,4 +260,34 @@ func (c *Checker) GetStatus(ctx context.Context) string {
 	}
 
 	return "inconsistent"
+}
+
+// isValidTableName validates that a table name contains only safe characters
+// to prevent SQL injection in DROP TABLE and other operations
+func isValidTableName(name string) bool {
+	if name == "" {
+		return false
+	}
+	
+	// Table names should only contain alphanumeric characters and underscores
+	// and must start with a letter or underscore
+	if len(name) > 64 {
+		return false // Reasonable limit for table names
+	}
+	
+	for i, ch := range name {
+		if i == 0 {
+			// First character must be letter or underscore
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_') {
+				return false
+			}
+		} else {
+			// Subsequent characters can be alphanumeric or underscore
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_') {
+				return false
+			}
+		}
+	}
+	
+	return true
 }

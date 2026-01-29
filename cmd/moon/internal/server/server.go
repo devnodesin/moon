@@ -172,11 +172,18 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Perform consistency check (non-blocking with short timeout)
+	// Perform consistency check (non-blocking with short timeout, read-only)
 	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	checker := consistency.NewChecker(s.db, s.registry, &s.config.Recovery)
+	// Create a read-only config for health checks (no repairs)
+	healthCheckConfig := &config.RecoveryConfig{
+		AutoRepair:   false, // Health checks should not modify state
+		DropOrphans:  false,
+		CheckTimeout: 2,
+	}
+	
+	checker := consistency.NewChecker(s.db, s.registry, healthCheckConfig)
 	consistencyResult, err := checker.Check(checkCtx)
 
 	response := map[string]any{

@@ -71,13 +71,18 @@ func (d *baseDriver) ListTables(ctx context.Context) ([]string, error) {
 
 // GetTableInfo retrieves detailed information about a table including its columns
 func (d *baseDriver) GetTableInfo(ctx context.Context, tableName string) (*TableInfo, error) {
+	// Validate table name to prevent SQL injection
+	if !isValidIdentifier(tableName) {
+		return nil, fmt.Errorf("invalid table name: %s", tableName)
+	}
+	
 	var columns []ColumnInfo
 	var query string
 	var args []any
 
 	switch d.dialect {
 	case DialectSQLite:
-		// SQLite: Use PRAGMA table_info
+		// SQLite: Use PRAGMA table_info (safe after validation)
 		query = fmt.Sprintf("PRAGMA table_info(%s)", tableName)
 
 	case DialectMySQL:
@@ -236,4 +241,27 @@ func InferColumnType(dbType string) registry.ColumnType {
 
 	// Default to string for varchar, char, and unknown types
 	return registry.TypeString
+}
+
+// isValidIdentifier validates that an identifier (table/column name) contains only safe characters
+func isValidIdentifier(name string) bool {
+	if name == "" || len(name) > 64 {
+		return false
+	}
+	
+	for i, ch := range name {
+		if i == 0 {
+			// First character must be letter or underscore
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_') {
+				return false
+			}
+		} else {
+			// Subsequent characters can be alphanumeric or underscore
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_') {
+				return false
+			}
+		}
+	}
+	
+	return true
 }
