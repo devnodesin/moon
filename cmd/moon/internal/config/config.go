@@ -135,9 +135,9 @@ type APIKeyConfig struct {
 
 // RecoveryConfig holds database recovery and consistency check configuration.
 type RecoveryConfig struct {
-	AutoRepair   bool `mapstructure:"auto_repair"`    // automatically repair inconsistencies
-	DropOrphans  bool `mapstructure:"drop_orphans"`   // drop orphaned tables (admin-controlled)
-	CheckTimeout int  `mapstructure:"check_timeout"`  // consistency check timeout in seconds
+	AutoRepair   bool `mapstructure:"auto_repair"`   // automatically repair inconsistencies
+	DropOrphans  bool `mapstructure:"drop_orphans"`  // drop orphaned tables (admin-controlled)
+	CheckTimeout int  `mapstructure:"check_timeout"` // consistency check timeout in seconds
 }
 
 var globalConfig *AppConfig

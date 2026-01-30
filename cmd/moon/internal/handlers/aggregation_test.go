@@ -374,5 +374,3 @@ func TestParseFiltersSkipsFieldParameter(t *testing.T) {
 		t.Errorf("Expected filter column 'total', got '%s'", filters[0].column)
 	}
 }
-
-

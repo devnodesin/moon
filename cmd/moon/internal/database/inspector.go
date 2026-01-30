@@ -75,7 +75,7 @@ func (d *baseDriver) GetTableInfo(ctx context.Context, tableName string) (*Table
 	if !isValidIdentifier(tableName) {
 		return nil, fmt.Errorf("invalid table name: %s", tableName)
 	}
-	
+
 	var columns []ColumnInfo
 	var query string
 	var args []any
@@ -248,7 +248,7 @@ func isValidIdentifier(name string) bool {
 	if name == "" || len(name) > 64 {
 		return false
 	}
-	
+
 	for i, ch := range name {
 		if i == 0 {
 			// First character must be letter or underscore
@@ -262,6 +262,6 @@ func isValidIdentifier(name string) bool {
 			}
 		}
 	}
-	
+
 	return true
 }

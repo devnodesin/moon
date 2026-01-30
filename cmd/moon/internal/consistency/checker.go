@@ -37,10 +37,10 @@ type Issue struct {
 
 // CheckResult contains the results of a consistency check
 type CheckResult struct {
-	Consistent bool    `json:"consistent"`
-	Issues     []Issue `json:"issues"`
+	Consistent bool          `json:"consistent"`
+	Issues     []Issue       `json:"issues"`
 	Duration   time.Duration `json:"duration"`
-	TimedOut   bool    `json:"timed_out"`
+	TimedOut   bool          `json:"timed_out"`
 }
 
 // Checker performs consistency checks between registry and database
@@ -139,7 +139,7 @@ func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
 						logging.Warnf("Skipping drop of table '%s': invalid table name", table)
 						continue
 					}
-					
+
 					// Drop the orphaned table
 					dropSQL := fmt.Sprintf("DROP TABLE %s", table)
 					if _, err := c.db.Exec(checkCtx, dropSQL); err != nil {
@@ -268,13 +268,13 @@ func isValidTableName(name string) bool {
 	if name == "" {
 		return false
 	}
-	
+
 	// Table names should only contain alphanumeric characters and underscores
 	// and must start with a letter or underscore
 	if len(name) > 64 {
 		return false // Reasonable limit for table names
 	}
-	
+
 	for i, ch := range name {
 		if i == 0 {
 			// First character must be letter or underscore
@@ -288,6 +288,6 @@ func isValidTableName(name string) bool {
 			}
 		}
 	}
-	
+
 	return true
 }
