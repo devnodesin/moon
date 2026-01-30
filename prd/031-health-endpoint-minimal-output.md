@@ -79,6 +79,7 @@ Redesign the health endpoint to return only the following fields:
 - [ ] Confirm no internal details (e.g., database type) are present in the response.
 - [ ] Check logs to ensure detailed diagnostics are recorded internally.
 - [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `USAGE.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [ ] Ensure all test scripts in `samples/test_scripts/*.sh` are working properly and up to date with the latest code and API changes.
 
 ### Test Scenarios
 
