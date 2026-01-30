@@ -8,22 +8,28 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Authentication](#authentication)
-- [Base URL and Prefix](#base-url-and-prefix)
-- [Available Collections](#available-collections)
-- [Schema Management](#schema-management)
-- [Data Access](#data-access)
-- [Aggregation Operations](#aggregation-operations)
-- [Filtering, Sorting & Pagination](#filtering-sorting-pagination)
-- [Error Responses](#error-responses)
-- [Quickstart](#quickstart)
-- [Example Requests](#example-requests)
+  - [Authentication](#authentication)
+  - [URL Structure](#url-structure)
+  - [Available Collections](#available-collections)
+- [API Endpoints](#api-endpoints)
+  - [Collection Management](#collection-management)
+  - [Data Access](#data-access)
+  - [Aggregation Operations](#aggregation-operations)
+  - [Response Format](#response-format)
+    - [Error Responses](#error-responses)
+  - [Query Options](#query-options)
+    - [Filtering: `?column[operator]=value`](#filtering-columnoperatorvalue)
+    - [Sorting: `?sort=-price,name`](#sorting-sort--pricename)
+    - [Full-Text Search: `?q=laptop`](#full-text-search-qlaptop)
+    - [Field Selection `?fields={field1,field2}`](#field-selection-fieldsfield1field2)
+    - [Pagination `?after={cursor}&limit={limit}`](#pagination-aftercursorlimitlimit)
+- [Examples](#examples)
 
 ## Overview
 
 Moon is a dynamic headless engine that provides a RESTful API for managing database tables and records without manual migrations. All endpoints follow the AIP-136 custom actions pattern using a colon separator between the resource and action.
 
-## Authentication
+### Authentication
 
 {{if or .JWTEnabled .APIKeyEnabled}}This API requires authentication for most endpoints.
 
@@ -42,7 +48,8 @@ Authorization: Bearer <your-jwt-token>
 {{end}}{{else}}Authentication is currently disabled for this instance.
 
 {{end}}
-## Base URL and Prefix
+
+### URL Structure
 
 **Base URL:** `{{.BaseURL}}`
 
@@ -57,15 +64,42 @@ All endpoints are prefixed with `{{.Prefix}}`.
 {{$ApiURL}}/collections:list
 ```
 
-## Available Collections
+### Available Collections
 
 {{if .Collections}}
-{{range .Collections}}- `{{.}}`{{end}}
+{{range .Collections}}- `{{.}}`
+{{end}}
 {{else}}
 No collections have been created yet.
 {{- end }}
 
-## Schema Management
+## API Endpoints
+
+### Response Format
+
+All successful responses return JSON with relevant data.
+
+**Common Status Codes:**
+
+- `200 OK` - Successful GET requests
+- `201 Created` - Successful POST requests creating resources
+- `400 Bad Request` - Invalid input, missing required field, invalid filter operator
+- `404 Not Found` - Collection or record not found
+- `409 Conflict` - Collection already exists
+- `500 Internal Server Error` - Server error
+
+#### Error Responses
+
+All errors follow a consistent JSON structure:
+
+```json
+{
+  "error": "Error message describing what went wrong",
+  "code": 400
+}
+```
+
+### Collection Management
 
 These endpoints manage database tables (collections) and their schemas.
 
@@ -77,7 +111,7 @@ These endpoints manage database tables (collections) and their schemas.
 | `{{.Prefix}}/collections:update` | POST | Update collection schema |
 | `{{.Prefix}}/collections:destroy` | POST | Delete a collection |
 
-## Data Access
+### Data Access
 
 These endpoints manage records within a specific collection. Replace `{collection}` with your collection name.
 
@@ -89,7 +123,7 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `{{.Prefix}}/{collection}:update` | POST | Update an existing record |
 | `{{.Prefix}}/{collection}:destroy` | POST | Delete a record |
 
-## Aggregation Operations
+### Aggregation Operations
 
 Server-side aggregation endpoints for analytics. Replace `{collection}` with your collection name.
 
@@ -101,61 +135,65 @@ Server-side aggregation endpoints for analytics. Replace `{collection}` with you
 | `{{.Prefix}}/{collection}:min` | GET | Minimum value (requires `?field=...`) |
 | `{{.Prefix}}/{collection}:max` | GET | Maximum value (requires `?field=...`) |
 
-## Filtering, Sorting & Pagination
+#### Query Options
 
-### Filtering
+##### Filtering: 
 
-Use query parameters to filter results:
+Query: `?column[operator]=value` 
 
-```
-?column[operator]=value
+```bash
+curl {{$ApiURL}}/{collection}:list?price[gt]=100&category[eq]=electronics
 ```
 
 **Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
 
-**Example:** `{{$ApiURL}}/{collection}:list?price[gt]=100&category[eq]=electronics`
+#### Sorting: 
 
-### Sorting
+Query: `?sort={-field1,field2}` 
 
-Sort by field (ascending) or `-field` (descending): `?sort=-price,name
+```bash
+curl {{$ApiURL}}/{collection}:list?sort=-price,name
+```
 
-### Full-Text Search
+Sort by 
+- `field` (ascending) 
+- `-field` (descending)
 
-Search across all text columns: `?q=laptop`
+#### Full-Text Search:
 
-### Field Selection
+Query: `?q={search_term}`
 
-Return only specific fields (always includes id): `?fields=name,price`
+Search across all text columns
 
-### Pagination
+```bash
+curl {{$ApiURL}}/{collection}:list?q=laptop
+```
 
-Use cursor-based pagination: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10`
+#### Field Selection 
+
+Query: `?fields={field1,field2}`
+
+```bash
+curl {{$ApiURL}}/{collection}:list?fields=name,price
+```
+
+Return only specific fields (always includes id)
+
+#### Pagination 
+
+Query: `?after={cursor}&limit={limit}`
+
+```bash
+curl {{$ApiURL}}/{collection}:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10
+```
 
 Response includes `next_cursor` when more results are available.
 
-**Error Responses**
+## Examples
 
-All errors follow a consistent JSON structure:
+Get started with Moon using these real, working examples for a `products` collection:
 
-```json
-{
-  "error": "Error message describing what went wrong",
-  "code": 400
-}
-```
-
-**Common Status Codes:**
-
-- `400 Bad Request` - Invalid input, missing required field, invalid filter operator
-- `404 Not Found` - Collection or record not found
-- `409 Conflict` - Collection already exists
-- `500 Internal Server Error` - Server error
-
-## Example Requests
-
-### Schema Management Example
-
-**Create a collection:**
+### 1. Create a collection
 
 ```bash
 curl -X POST "{{$ApiURL}}/collections:create" \
@@ -182,12 +220,10 @@ curl -X POST "{{$ApiURL}}/collections:create" \
 }
 ```
 
-### Data Access Example
-
-**Create a record:**
+### 2. Insert a record
 
 ```bash
-curl -X POST "{{$ApiURL}}/{collection}:create" \
+curl -X POST "{{$ApiURL}}/products:create" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -212,60 +248,16 @@ curl -X POST "{{$ApiURL}}/{collection}:create" \
 }
 ```
 
-**List records with filtering:**
-
-```bash
-curl -s "{{$ApiURL}}/{collection}:list?price[gt]=20&sort=-price" | jq .
-```
-
-### Aggregation Example
-
-**Count records:**
-
-```bash
-curl -s "{{$ApiURL}}/{collection}:count"
-```
-
-**Response (200 OK):** `{"value": 42}`
-
-**Sum with filter:**
-
-```bash
-curl -s "{{$ApiURL}}/{collection}:sum?field=price&category[eq]=electronics"
-```
-
-**Response (200 OK):** `{"value": 1599.99}`
-
-## Quickstart
-
-Get started with Moon in 5 simple steps:
-
-### 1. Create a collection
-
-```bash
-curl -X POST "{{$ApiURL}}/collections:create" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"products","columns":[{"name":"title","type":"string","nullable":false},{"name":"price","type":"float","nullable":false}]}'
-```
-
-### 2. Insert a record
-
-```bash
-curl -X POST "{{$ApiURL}}/{collection}:create" \
-  -H "Content-Type: application/json" \
-  -d '{"data":{"title":"Laptop","price":999.99}}'
-```
-
 ### 3. List records
 
 ```bash
-curl -s "{{$ApiURL}}/{collection}:list" | jq .
+curl -s "{{$ApiURL}}/products:list" | jq .
 ```
 
 ### 4. Update a record
 
 ```bash
-curl -X POST "{{$ApiURL}}/{collection}:update" \
+curl -X POST "{{$ApiURL}}/products:update" \
   -H "Content-Type: application/json" \
   -d '{"id":"01ARZ3NDEKTSV4RRFFQ69G5FBX","data":{"price":899.99}}'
 ```
@@ -273,7 +265,37 @@ curl -X POST "{{$ApiURL}}/{collection}:update" \
 ### 5. Delete a record
 
 ```bash
-curl -X POST "{{$ApiURL}}/{collection}:destroy" \
+curl -X POST "{{$ApiURL}}/products:destroy" \
   -H "Content-Type: application/json" \
   -d '{"id":"01ARZ3NDEKTSV4RRFFQ69G5FBX"}'
+```
+
+### 6. List records with filtering
+
+```bash
+curl -s "{{$ApiURL}}/products:list?price[gt]=20&sort=-price" | jq .
+```
+
+### 7. Count records
+
+```bash
+curl -s "{{$ApiURL}}/products:count"
+```
+
+**Response (200 OK):**
+
+```json
+{"value": 42}
+```
+
+### 8. Sum with filter
+
+```bash
+curl -s "{{$ApiURL}}/products:sum?field=price&category[eq]=electronics"
+```
+
+**Response (200 OK):**
+
+```json
+{"value": 1599.99}
 ```
