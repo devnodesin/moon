@@ -25,6 +25,7 @@ The system uses YAML-only configuration with centralized defaults:
 server:
   host: "0.0.0.0"      # Default: 0.0.0.0
   port: 6006           # Default: 6006
+  prefix: ""           # Default: "" (empty - no prefix)
 
 database:
   connection: "sqlite" # Default: sqlite (options: sqlite, postgres, mysql)
@@ -146,16 +147,24 @@ sudo systemctl status moon
 ### Test Scripts
 
 Test scripts are located in the `scripts/` directory and provide examples of API operations:
+- All test scripts support the `PREFIX` environment variable for testing with custom URL prefixes
+- Example: `PREFIX=/api/v1 ./scripts/collection.sh` or `PREFIX="" ./scripts/health.sh`
 
 ## 2. API Endpoint Specification
 
 The system uses a strict pattern to ensure that AI agents and developers can interact with any collection without new code deployment.
 
-- **RESTful API:** A standardized, versioned JSON API (`/api/v1`) that follows strict predictable patterns, making it easy for AI to generate documentation.
+- **RESTful API:** A standardized API following strict predictable patterns, making it easy for AI to generate documentation.
+- **Configurable Prefix:** All API endpoints are mounted under a configurable URL prefix (default: empty string).
+  - Default (no prefix): `/health`, `/collections:list`, `/{collection}:list`
+  - With `/api/v1` prefix: `/api/v1/health`, `/api/v1/collections:list`, `/api/v1/{collection}:list`
+  - With custom prefix: `/{prefix}/health`, `/{prefix}/collections:list`, `/{prefix}/{collection}:list`
 
 ### A. Schema Management (`/collections`)
 
 These endpoints manage the database tables and metadata.
+
+**Note:** All endpoints below are shown without a prefix. If a prefix is configured (e.g., `/api/v1`), prepend it to all paths.
 
 | Endpoint                    | Method | Purpose                                                |
 | --------------------------- | ------ | ------------------------------------------------------ |
@@ -168,6 +177,8 @@ These endpoints manage the database tables and metadata.
 ### B. Data Access (`/{collectionName}`)
 
 These endpoints manage the records within a specific collection.
+
+**Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
 
 | Endpoint               | Method | Purpose                                            |
 | ---------------------- | ------ | -------------------------------------------------- |
@@ -424,9 +435,17 @@ For most API endpoints, simple curl-based testing is sufficient and recommended 
 - Send requests to any endpoint (e.g., create, update, list, delete).
 - Provide JSON payloads with `-d` and set `Content-Type: application/json`.
 - Inspect HTTP status codes and response bodies for validation.
+- Adjust URLs based on configured prefix (default: no prefix).
 
-**Example:**
+**Examples:**
 
 ```sh
-curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:8080/products:create
+# Without prefix (default)
+curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/products:create
+
+# With /api/v1 prefix
+curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/api/v1/products:create
+
+# With custom prefix
+curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/moon/api/products:create
 ```

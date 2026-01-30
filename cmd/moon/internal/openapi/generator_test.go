@@ -174,12 +174,13 @@ func TestGenerate_CollectionEndpoints(t *testing.T) {
 
 	spec := gen.Generate()
 
+	// Default: no prefix
 	collectionPaths := []string{
-		"/api/v1/collections:list",
-		"/api/v1/collections:get",
-		"/api/v1/collections:create",
-		"/api/v1/collections:update",
-		"/api/v1/collections:destroy",
+		"/collections:list",
+		"/collections:get",
+		"/collections:create",
+		"/collections:update",
+		"/collections:destroy",
 	}
 
 	for _, path := range collectionPaths {
@@ -196,13 +197,13 @@ func TestGenerate_DataEndpoints(t *testing.T) {
 
 	spec := gen.Generate()
 
-	// Check users collection endpoints
+	// Check users collection endpoints (default: no prefix)
 	userPaths := []string{
-		"/api/v1/users:list",
-		"/api/v1/users:get",
-		"/api/v1/users:create",
-		"/api/v1/users:update",
-		"/api/v1/users:destroy",
+		"/users:list",
+		"/users:get",
+		"/users:create",
+		"/users:update",
+		"/users:destroy",
 	}
 
 	for _, path := range userPaths {
@@ -213,7 +214,7 @@ func TestGenerate_DataEndpoints(t *testing.T) {
 		}
 
 		// Check that endpoints have appropriate operations
-		if path == "/api/v1/users:list" || path == "/api/v1/users:get" {
+		if path == "/users:list" || path == "/users:get" {
 			if pathItem.Get == nil {
 				t.Errorf("Expected GET operation on %s", path)
 			}
@@ -224,13 +225,13 @@ func TestGenerate_DataEndpoints(t *testing.T) {
 		}
 	}
 
-	// Check products collection endpoints
+	// Check products collection endpoints (default: no prefix)
 	productPaths := []string{
-		"/api/v1/products:list",
-		"/api/v1/products:get",
-		"/api/v1/products:create",
-		"/api/v1/products:update",
-		"/api/v1/products:destroy",
+		"/products:list",
+		"/products:get",
+		"/products:create",
+		"/products:update",
+		"/products:destroy",
 	}
 
 	for _, path := range productPaths {
@@ -532,8 +533,8 @@ func TestGenerate_EmptyRegistry(t *testing.T) {
 		t.Error("Expected /health path even with empty registry")
 	}
 
-	// Should still have collection management endpoints
-	if _, ok := spec.Paths["/api/v1/collections:list"]; !ok {
+	// Should still have collection management endpoints (default: no prefix)
+	if _, ok := spec.Paths["/collections:list"]; !ok {
 		t.Error("Expected collections:list path even with empty registry")
 	}
 
@@ -594,5 +595,59 @@ func TestGenerator_WithContactAndLicense(t *testing.T) {
 
 	if spec.Info.License.Name != "MIT" {
 		t.Errorf("Expected license name 'MIT', got '%s'", spec.Info.License.Name)
+	}
+}
+
+func TestGenerate_WithPrefix(t *testing.T) {
+	reg := setupTestRegistry()
+
+	tests := []struct {
+		name          string
+		prefix        string
+		expectedPaths []string
+	}{
+		{
+			name:   "with /api/v1 prefix",
+			prefix: "/api/v1",
+			expectedPaths: []string{
+				"/api/v1/health",
+				"/api/v1/collections:list",
+				"/api/v1/users:list",
+				"/api/v1/products:list",
+			},
+		},
+		{
+			name:   "with /moon/api prefix",
+			prefix: "/moon/api",
+			expectedPaths: []string{
+				"/moon/api/health",
+				"/moon/api/collections:list",
+				"/moon/api/users:list",
+				"/moon/api/products:list",
+			},
+		},
+		{
+			name:   "with empty prefix (default)",
+			prefix: "",
+			expectedPaths: []string{
+				"/health",
+				"/collections:list",
+				"/users:list",
+				"/products:list",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gen := NewGenerator(reg, GeneratorConfig{Prefix: tt.prefix})
+			spec := gen.Generate()
+
+			for _, path := range tt.expectedPaths {
+				if _, ok := spec.Paths[path]; !ok {
+					t.Errorf("Expected path %s with prefix %q", path, tt.prefix)
+				}
+			}
+		})
 	}
 }
