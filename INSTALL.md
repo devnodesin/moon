@@ -54,6 +54,12 @@ sudo ./build.sh
 sudo ./install.sh
 ```
 
+The build script:
+- Reads the major version from the `VERSION` file (default: 1)
+- Captures the current git commit hash
+- Injects version information into the binary using build flags
+- Compiles the binary with version: `{major}-{git-commit}`
+
 This script:
 
 - Creates moon system user
@@ -65,14 +71,18 @@ This script:
 
 ### Verification
 
-Test the running container:
+Test the running service:
 
 ```bash
-# Check container logs
-sudo docker logs moon
-
 # Test health endpoint
 curl http://localhost:6006/health
+
+# Expected response:
+# {
+#   "status": "live",
+#   "name": "moon",
+#   "version": "1-87811bc"
+# }
 
 # Check collections
 curl http://localhost:6006/api/v1/collections:list

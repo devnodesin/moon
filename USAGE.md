@@ -66,8 +66,19 @@ curl http://localhost:6006/health
 Expected response:
 
 ```json
-{"status":"healthy"}
+{
+  "status": "live",
+  "name": "moon",
+  "version": "1-87811bc"
+}
 ```
+
+The health endpoint provides minimal, non-sensitive information:
+- `status`: Service liveness (`live` or `down`)
+- `name`: Always returns `moon`
+- `version`: Service version in format `{major}-{short-git-commit}`
+
+**Important:** The endpoint always returns HTTP 200, even when the service is down. Check the `status` field to determine actual service health.
 
 ### 3. Create Your First Collection
 
@@ -947,11 +958,19 @@ MOON_LOG_LEVEL=debug ./moon
 Always start troubleshooting with a health check:
 
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:6006/health
 
 # Expected response
-{"status":"healthy"}
+{
+  "status": "live",
+  "name": "moon",
+  "version": "1-87811bc"
+}
 ```
+
+**Note:** The health endpoint always returns HTTP 200. Check the `status` field:
+- `live`: Service is healthy and operational
+- `down`: Service is experiencing issues (e.g., database connection failure)
 
 ### Checking Logs
 
