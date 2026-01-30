@@ -143,6 +143,10 @@ sudo systemctl enable moon
 sudo systemctl status moon
 ```
 
+### Test Scripts
+
+Test scripts are located in the `scripts/` directory and provide examples of API operations:
+
 ## 2. API Endpoint Specification
 
 The system uses a strict pattern to ensure that AI agents and developers can interact with any collection without new code deployment.

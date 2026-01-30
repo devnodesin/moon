@@ -703,30 +703,30 @@ curl -s http://localhost:8080/api/v1/products:list | jq '.data[] | {id, name, pr
 
 ## Using Sample Data
 
-The `samples/` directory contains helpful scripts and examples.
+The `samples/` directory contains helpful configuration files and examples. Test scripts are located in `scripts/`.
 
-### Running the API Demo
+### Running Test Scripts
 
-The API demo script demonstrates all Moon operations:
+The test scripts demonstrate various Moon operations:
 
 ```bash
-# Start Moon server
-./moon &
+# Health check
+./scripts/health.sh
 
-# Run comprehensive demo
-./samples/api-demo.sh
+# Collection operations
+./scripts/collection.sh
+
+# Data operations
+./scripts/data.sh
+
+# Pagination
+./scripts/data-paginate.sh
+
+# Aggregation operations
+./scripts/aggregation.sh
 ```
 
-The script will:
-
-1. Create a products collection
-2. Insert sample data
-3. Demonstrate pagination
-4. Update records
-5. Modify schema
-6. Clean up
-
-See [`samples/README.md`](../samples/README.md) for more details.
+See [`samples/README.md`](../samples/README.md) for configuration examples.
 
 ### Using Sample Configuration
 
@@ -988,26 +988,32 @@ tail -f /var/log/moon/main.log
 
 ### Testing Connection
 
-Use the API demo script to verify everything works:
+Use the test scripts to verify everything works:
 
 ```bash
-./samples/api-demo.sh
+# Test health endpoint
+./scripts/health.sh
+
+# Test collection operations
+./scripts/collection.sh
+
+# Test data operations
+./scripts/data.sh
 ```
 
-If the demo completes successfully, your Moon installation is working correctly.
+If the tests complete successfully, your Moon installation is working correctly.
 
 ## Next Steps
 
 - Review the [Installation Guide](INSTALL.md) for deployment options
 - Check [SPEC.md](../SPEC.md) for architecture details
-- Explore [sample scripts](../samples/README.md) for more examples
+- Explore [test scripts](../scripts/) for examples
 - Read the [README](../README.md) for project overview
 
 ## Additional Resources
 
-- **Sample Scripts:** See `samples/` directory for ready-to-use examples
-- **Configuration Examples:** `samples/config.example.yaml` and `samples/.env.example`
-- **API Demo:** Run `samples/api-demo.sh` for a complete walkthrough
+- **Test Scripts:** See `scripts/` directory for API test examples
+- **Configuration Examples:** See `samples/` for configuration files
 - **GitHub Repository:** [https://github.com/thalib/moon](https://github.com/thalib/moon)
 
 ## Getting Help

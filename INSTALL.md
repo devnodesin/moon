@@ -90,16 +90,16 @@ curl http://localhost:6006/api/v1/collections:list
 
 ```bash
 # Run All Tests
-./samples/test-runner.sh
+./scripts/test-runner.sh
 ```
 
 Test Options
 
 ```bash
-./samples/test-runner.sh unit      # Unit tests only
-./samples/test-runner.sh coverage  # With coverage report
-./samples/test-runner.sh race      # Race detection
-./samples/test-runner.sh bench     # Benchmarks
+./scripts/test-runner.sh unit      # Unit tests only
+./scripts/test-runner.sh coverage  # With coverage report
+./scripts/test-runner.sh race      # Race detection
+./scripts/test-runner.sh bench     # Benchmarks
 ```
 
 Manual Testing

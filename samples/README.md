@@ -25,60 +25,49 @@ cat samples/moon-full.conf
 **Important:** Always change the `jwt.secret` to a secure random string in production!
 Generate with: `openssl rand -base64 32`
 
-## Scripts
+## Test Scripts
 
-### api-demo.sh
+Test scripts are now located in the `scripts/` directory at the repository root:
 
-A comprehensive demonstration script that shows all major Moon API operations:
-- Creating collections (database tables)
-- Managing collection schemas
-- CRUD operations on data
-- Pagination and filtering
+- `scripts/health.sh` - Health endpoint testing
+- `scripts/collection.sh` - Collection management operations
+- `scripts/data.sh` - Data CRUD operations
+- `scripts/data-paginate.sh` - Pagination examples
+- `scripts/aggregation.sh` - Aggregation endpoint examples
 
 **Usage:**
 
 ```bash
-# Standalone mode (auto-starts server)
-# Script will create a temporary server and clean up automatically
-./samples/api-demo.sh
+# Start Moon server first
+./moon --config samples/moon.conf &
 
-# With existing server
-# Start Moon server first, then run the demo
-./moon --config config.yaml &
-./samples/api-demo.sh
+# Run individual test scripts
+./scripts/health.sh
+./scripts/collection.sh
+./scripts/data.sh
+./scripts/data-paginate.sh
+./scripts/aggregation.sh
 ```
 
-**Features:**
-- **Auto-start mode**: If no server is running, the script automatically creates a temporary configuration and starts a Moon server for the demo
-- **Temporary environment**: Uses `/tmp` for database and logs - no special permissions needed
-- **Auto-cleanup**: Automatically stops the server and removes temporary files when complete
-- **Existing server support**: Detects if a server is already running and uses it instead
+### test-runner.sh (moved to scripts/)
 
-The script will walk through:
-1. Health check
-2. Collection management (create, list, get, update, destroy)
-3. Data operations (create, read, update, delete)
-4. Schema modifications
-
-### test-runner.sh
-
-A convenient test runner with multiple modes:
+A convenient test runner with multiple modes, now located in `scripts/`:
 
 ```bash
 # Run all tests
-./samples/test-runner.sh
+./scripts/test-runner.sh
 
 # Run only unit tests
-./samples/test-runner.sh unit
+./scripts/test-runner.sh unit
 
 # Run tests with coverage report
-./samples/test-runner.sh coverage
+./scripts/test-runner.sh coverage
 
 # Run tests with race detector
-./samples/test-runner.sh race
+./scripts/test-runner.sh race
 
 # Run benchmarks
-./samples/test-runner.sh bench
+./scripts/test-runner.sh bench
 ```
 
 ## Quick Start
@@ -88,24 +77,25 @@ A convenient test runner with multiple modes:
    go build -o moon ./cmd/moon
    ```
 
-2. Try the API demo (standalone mode - no config needed):
+2. Copy and configure:
    ```bash
-   ./samples/api-demo.sh
+   cp samples/moon.conf /etc/moon.conf
+   # Edit /etc/moon.conf and set jwt.secret
    ```
 
-The demo script will automatically:
-- Create a temporary configuration
-- Start a Moon server
-- Run through all API operations
-- Clean up when complete
+3. Start the server:
+   ```bash
+   ./moon --config /etc/moon.conf
+   ```
 
-For production use, copy configuration files:
-```bash
-cp samples/moon.conf /etc/moon.conf
-# Edit /etc/moon.conf and set jwt.secret
-```
+4. Run test scripts:
+   ```bash
+   ./scripts/health.sh
+   ./scripts/collection.sh
+   ./scripts/data.sh
+   ```
 
 For detailed documentation, see:
-- [Installation Guide](../docs/INSTALL.md)
-- [Usage Guide](../docs/USAGE.md)
+- [Installation Guide](../INSTALL.md)
+- [Usage Guide](../USAGE.md)
 - [Project README](../README.md)

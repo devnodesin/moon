@@ -30,7 +30,8 @@ See [INSTALL.md](INSTALL.md) for setup.
 - [INSTALL.md](INSTALL.md): Install & deploy
 - [USAGE.md](USAGE.md): API reference & examples
 - [SPEC.md](SPEC.md): Architecture & technical details
-- [samples/](samples/): Configs & scripts
+- [samples/](samples/): Sample Configuration
+- [scripts/](scripts/): Test Scripts
 - [LICENSE](LICENSE): MIT License
 - [GitHub Issues](https://github.com/thalib/moon/issues)
 - [GitHub Discussions](https://github.com/thalib/moon/discussions)
