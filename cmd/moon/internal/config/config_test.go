@@ -425,4 +425,3 @@ func TestDefaults_Prefix(t *testing.T) {
 		t.Errorf("Expected default prefix to be empty, got %s", Defaults.Server.Prefix)
 	}
 }
-

@@ -83,7 +83,7 @@ curl http://localhost:6006/health
 # }
 
 # Check collections
-curl http://localhost:6006/api/v1/collections:list
+curl http://localhost:6006collections:list
 ```
 
 ## Testing

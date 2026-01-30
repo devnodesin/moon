@@ -45,6 +45,16 @@ Moon uses a colon (`:`) separator to distinguish between resources and actions:
 
 This pattern makes the API predictable and easy to use.
 
+### URL Prefix
+
+All API endpoints can be mounted under a configurable URL prefix:
+
+- **Default (no prefix):** `/health`, `/collections:list`, `/{collection}:list`
+- **With `/api/v1` prefix:** `health`, `collections:list`, `{collection}:list`
+- **Custom prefix:** Configure in `server.prefix` (e.g., `/moon/api`, `/v1`)
+
+The prefix is configured in the `moon.conf` file under `server.prefix`. All examples in this guide assume **no prefix** (default). If you've configured a prefix, prepend it to all paths shown.
+
 ## Quick Start
 
 ### 1. Start the Server
@@ -83,7 +93,7 @@ The health endpoint provides minimal, non-sensitive information:
 ### 3. Create Your First Collection
 
 ```bash
-curl -X POST http://localhost:6006/api/v1/collections:create \
+curl -X POST http://localhost:6006/collections:create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "users",
@@ -98,7 +108,7 @@ curl -X POST http://localhost:6006/api/v1/collections:create \
 ### 4. Insert Data
 
 ```bash
-curl -X POST http://localhost:6006/api/v1/users:create \
+curl -X POST http://localhost:6006/users:create \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -112,14 +122,19 @@ curl -X POST http://localhost:6006/api/v1/users:create \
 ### 5. Query Data
 
 ```bash
-curl http://localhost:6006/api/v1/users:list
+curl http://localhost:6006/users:list
 ```
 
 ## API Endpoints
 
 ### Base URL
 
-All API endpoints are prefixed with `/api/v1`.
+**Important:** All examples in this guide assume the default configuration with **no URL prefix**. If you've configured a custom prefix in `server.prefix` (e.g., `/api/v1`), prepend it to all endpoint paths.
+
+Examples:
+- Default: `http://localhost:6006/collections:list`
+- With `/api/v1` prefix: `http://localhost:6006collections:list`
+- With `/moon/api` prefix: `http://localhost:6006/moon/api/collections:list`
 
 ### Collections Management
 
@@ -128,7 +143,7 @@ Manage database schemas (tables and columns).
 #### List Collections
 
 ```
-GET /api/v1/collections:list
+GET collections:list
 ```
 
 Lists all managed collections.
@@ -145,7 +160,7 @@ Lists all managed collections.
 #### Get Collection Schema
 
 ```
-GET /api/v1/collections:get?name={collectionName}
+GET collections:get?name={collectionName}
 ```
 
 Retrieves the schema for a specific collection.
@@ -173,7 +188,7 @@ Retrieves the schema for a specific collection.
 #### Create Collection
 
 ```
-POST /api/v1/collections:create
+POST collections:create
 ```
 
 Creates a new collection (table) in the database.
@@ -213,7 +228,7 @@ Creates a new collection (table) in the database.
 #### Update Collection
 
 ```
-POST /api/v1/collections:update
+POST collections:update
 ```
 
 Modifies a collection schema (adds columns).
@@ -241,7 +256,7 @@ Modifies a collection schema (adds columns).
 #### Destroy Collection
 
 ```
-POST /api/v1/collections:destroy
+POST collections:destroy
 ```
 
 Drops a collection and all its data.
@@ -269,7 +284,7 @@ Perform CRUD operations on collection data.
 #### List Records
 
 ```
-GET /api/v1/{collectionName}:list
+GET {collectionName}:list
 ```
 
 Retrieves all records from a collection with support for advanced filtering, sorting, searching, and field selection.
@@ -288,26 +303,26 @@ Retrieves all records from a collection with support for advanced filtering, sor
 
 ```bash
 # List all products
-curl http://localhost:8080/api/v1/products:list
+curl http://localhost:6006products:list
 
 # List with cursor-based pagination
-curl http://localhost:8080/api/v1/products:list?limit=10
-curl http://localhost:8080/api/v1/products:list?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FAV
+curl http://localhost:6006products:list?limit=10
+curl http://localhost:6006products:list?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FAV
 
 # Filter by price greater than 100
-curl --globoff "http://localhost:8080/api/v1/products:list?price[gt]=100"
+curl --globoff "http://localhost:6006products:list?price[gt]=100"
 
 # Filter and sort
-curl --globoff "http://localhost:8080/api/v1/products:list?price[gt]=100&sort=-price"
+curl --globoff "http://localhost:6006products:list?price[gt]=100&sort=-price"
 
 # Search for laptops
-curl "http://localhost:8080/api/v1/products:list?q=laptop"
+curl "http://localhost:6006products:list?q=laptop"
 
 # Select specific fields
-curl "http://localhost:8080/api/v1/products:list?fields=name,price"
+curl "http://localhost:6006products:list?fields=name,price"
 
 # Combined query
-curl "http://localhost:8080/api/v1/products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10"
+curl "http://localhost:6006products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10"
 ```
 
 **Response:**
@@ -327,7 +342,7 @@ curl "http://localhost:8080/api/v1/products:list?q=laptop&price[gt]=500&sort=-pr
 #### Get Record
 
 ```
-GET /api/v1/{collectionName}:get?id={id}
+GET {collectionName}:get?id={id}
 ```
 
 Retrieves a single record by ID.
@@ -339,7 +354,7 @@ Retrieves a single record by ID.
 **Example:**
 
 ```bash
-curl http://localhost:8080/api/v1/products:get?id=01ARZ3NDEKTSV4RRFFQ69G5FAV
+curl http://localhost:6006products:get?id=01ARZ3NDEKTSV4RRFFQ69G5FAV
 ```
 
 **Response:**
@@ -358,7 +373,7 @@ curl http://localhost:8080/api/v1/products:get?id=01ARZ3NDEKTSV4RRFFQ69G5FAV
 #### Create Record
 
 ```
-POST /api/v1/{collectionName}:create
+POST {collectionName}:create
 ```
 
 Inserts a new record into the collection.
@@ -392,7 +407,7 @@ Inserts a new record into the collection.
 #### Update Record
 
 ```
-POST /api/v1/{collectionName}:update
+POST {collectionName}:update
 ```
 
 Updates an existing record.
@@ -428,7 +443,7 @@ Only the fields provided in `data` will be updated; other fields remain unchange
 #### Delete Record
 
 ```
-POST /api/v1/{collectionName}:destroy
+POST {collectionName}:destroy
 ```
 
 Deletes a record from the collection.
@@ -458,7 +473,7 @@ Moon provides server-side aggregation endpoints for analytics without fetching f
 #### Count Records
 
 ```
-GET /api/v1/{collectionName}:count
+GET {collectionName}:count
 ```
 
 Counts all records in a collection. Supports filtering.
@@ -467,10 +482,10 @@ Counts all records in a collection. Supports filtering.
 
 ```bash
 # Count all orders
-curl http://localhost:8080/api/v1/orders:count
+curl http://localhost:6006orders:count
 
 # Count orders with total > 200
-curl "http://localhost:8080/api/v1/orders:count?total[gt]=200"
+curl "http://localhost:6006orders:count?total[gt]=200"
 ```
 
 **Response:**
@@ -484,7 +499,7 @@ curl "http://localhost:8080/api/v1/orders:count?total[gt]=200"
 #### Sum
 
 ```
-GET /api/v1/{collectionName}:sum?field={fieldName}
+GET {collectionName}:sum?field={fieldName}
 ```
 
 Calculates the sum of a numeric field.
@@ -497,10 +512,10 @@ Calculates the sum of a numeric field.
 
 ```bash
 # Sum all order totals
-curl "http://localhost:8080/api/v1/orders:sum?field=total"
+curl "http://localhost:6006orders:sum?field=total"
 
 # Sum orders with status=completed
-curl "http://localhost:8080/api/v1/orders:sum?field=total&status[eq]=completed"
+curl "http://localhost:6006orders:sum?field=total&status[eq]=completed"
 ```
 
 **Response:**
@@ -514,7 +529,7 @@ curl "http://localhost:8080/api/v1/orders:sum?field=total&status[eq]=completed"
 #### Average
 
 ```
-GET /api/v1/{collectionName}:avg?field={fieldName}
+GET {collectionName}:avg?field={fieldName}
 ```
 
 Calculates the average of a numeric field.
@@ -523,7 +538,7 @@ Calculates the average of a numeric field.
 
 ```bash
 # Average order total
-curl "http://localhost:8080/api/v1/orders:avg?field=total"
+curl "http://localhost:6006orders:avg?field=total"
 ```
 
 **Response:**
@@ -537,7 +552,7 @@ curl "http://localhost:8080/api/v1/orders:avg?field=total"
 #### Minimum
 
 ```
-GET /api/v1/{collectionName}:min?field={fieldName}
+GET {collectionName}:min?field={fieldName}
 ```
 
 Finds the minimum value of a numeric field.
@@ -546,7 +561,7 @@ Finds the minimum value of a numeric field.
 
 ```bash
 # Lowest order total
-curl "http://localhost:8080/api/v1/orders:min?field=total"
+curl "http://localhost:6006orders:min?field=total"
 ```
 
 **Response:**
@@ -560,7 +575,7 @@ curl "http://localhost:8080/api/v1/orders:min?field=total"
 #### Maximum
 
 ```
-GET /api/v1/{collectionName}:max?field={fieldName}
+GET {collectionName}:max?field={fieldName}
 ```
 
 Finds the maximum value of a numeric field.
@@ -569,7 +584,7 @@ Finds the maximum value of a numeric field.
 
 ```bash
 # Highest order total
-curl "http://localhost:8080/api/v1/orders:max?field=total"
+curl "http://localhost:6006orders:max?field=total"
 ```
 
 **Response:**
@@ -586,13 +601,13 @@ All aggregation endpoints support the same filtering syntax as `:list`:
 
 ```bash
 # Count active users
-curl --globoff "http://localhost:8080/api/v1/users:count?active[eq]=true"
+curl --globoff "http://localhost:6006users:count?active[eq]=true"
 
 # Sum sales for a specific product category
-curl --globoff "http://localhost:8080/api/v1/orders:sum?field=total&category[eq]=electronics"
+curl --globoff "http://localhost:6006orders:sum?field=total&category[eq]=electronics"
 
 # Average price for items in stock
-curl --globoff "http://localhost:8080/api/v1/products:avg?field=price&stock[gt]=0"
+curl --globoff "http://localhost:6006products:avg?field=price&stock[gt]=0"
 ```
 
 **Important Note about curl and Brackets:**
@@ -617,7 +632,7 @@ Here's a complete workflow demonstrating Moon's capabilities:
 
 ```bash
 # 1. Create a blog collection
-curl -X POST http://localhost:8080/api/v1/collections:create \
+curl -X POST http://localhost:6006collections:create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "posts",
@@ -630,7 +645,7 @@ curl -X POST http://localhost:8080/api/v1/collections:create \
   }'
 
 # 2. Create some posts
-curl -X POST http://localhost:8080/api/v1/posts:create \
+curl -X POST http://localhost:6006posts:create \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -641,7 +656,7 @@ curl -X POST http://localhost:8080/api/v1/posts:create \
     }
   }'
 
-curl -X POST http://localhost:8080/api/v1/posts:create \
+curl -X POST http://localhost:6006posts:create \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -653,13 +668,13 @@ curl -X POST http://localhost:8080/api/v1/posts:create \
   }'
 
 # 3. List all posts
-curl http://localhost:8080/api/v1/posts:list
+curl http://localhost:6006posts:list
 
 # 4. Get a specific post
-curl http://localhost:8080/api/v1/posts:get?id=01ARZ3NDEKTSV4RRFFQ69G5FAV
+curl http://localhost:6006posts:get?id=01ARZ3NDEKTSV4RRFFQ69G5FAV
 
 # 5. Update a post
-curl -X POST http://localhost:8080/api/v1/posts:update \
+curl -X POST http://localhost:6006posts:update \
   -H "Content-Type: application/json" \
   -d '{
     "id": "01ARZ3NDEKTSV4RRFFQ69G5FBW",
@@ -669,7 +684,7 @@ curl -X POST http://localhost:8080/api/v1/posts:update \
   }'
 
 # 6. Add a new column to the schema
-curl -X POST http://localhost:8080/api/v1/collections:update \
+curl -X POST http://localhost:6006collections:update \
   -H "Content-Type: application/json" \
   -d '{
     "name": "posts",
@@ -679,12 +694,12 @@ curl -X POST http://localhost:8080/api/v1/collections:update \
   }'
 
 # 7. Delete a post
-curl -X POST http://localhost:8080/api/v1/posts:destroy \
+curl -X POST http://localhost:6006posts:destroy \
   -H "Content-Type: application/json" \
   -d '{"id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}'
 
 # 8. Clean up - destroy the collection
-curl -X POST http://localhost:8080/api/v1/collections:destroy \
+curl -X POST http://localhost:6006collections:destroy \
   -H "Content-Type: application/json" \
   -d '{"name": "posts"}'
 ```
@@ -695,10 +710,10 @@ Install `jq` for formatted JSON output:
 
 ```bash
 # List collections with formatted output
-curl -s http://localhost:8080/api/v1/collections:list | jq '.'
+curl -s http://localhost:6006collections:list | jq '.'
 
 # Get and extract specific fields
-curl -s http://localhost:8080/api/v1/products:list | jq '.data[] | {id, name, price}'
+curl -s http://localhost:6006products:list | jq '.data[] | {id, name, price}'
 ```
 
 ## Using Sample Data
@@ -895,7 +910,7 @@ MOON_APIKEY_HEADER=X-API-Key
 Then pass the API key in requests:
 
 ```bash
-curl -H "X-API-Key: your-api-key" http://localhost:8080/api/v1/collections:list
+curl -H "X-API-Key: your-api-key" http://localhost:6006collections:list
 ```
 
 ## Troubleshooting
@@ -930,8 +945,8 @@ export MOON_JWT_SECRET=your-secret-key
 
 **Solutions:**
 
-1. Check URL pattern: `/api/v1/{collection}:{action}`
-2. Verify collection exists: `GET /api/v1/collections:list`
+1. Check URL pattern: `{collection}:{action}`
+2. Verify collection exists: `GET collections:list`
 3. Ensure proper HTTP method (GET vs POST)
 
 #### Schema Validation Errors
@@ -942,7 +957,7 @@ export MOON_JWT_SECRET=your-secret-key
 
 1. Check column types: `string`, `text`, `integer`, `float`, `boolean`, `datetime`, `json`
 2. Ensure required fields are provided
-3. Get collection schema: `GET /api/v1/collections:get?name={collection}`
+3. Get collection schema: `GET collections:get?name={collection}`
 
 ### Debug Mode
 
