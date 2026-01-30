@@ -332,7 +332,7 @@ func TestDocHandler_QuickstartSection(t *testing.T) {
 	handler.Markdown(rec, req)
 
 	body := rec.Body.String()
-	
+
 	// Check for quickstart steps
 	if !strings.Contains(body, "## Quickstart") {
 		t.Error("expected Quickstart section")
@@ -375,7 +375,7 @@ func TestDocHandler_ErrorSection(t *testing.T) {
 	handler.HTML(rec, req)
 
 	body := rec.Body.String()
-	
+
 	// Check for error documentation
 	if !strings.Contains(body, "Error Responses") {
 		t.Error("expected Error Responses section")
@@ -412,7 +412,7 @@ func TestDocHandler_ExampleRequests(t *testing.T) {
 	handler.Markdown(rec, req)
 
 	body := rec.Body.String()
-	
+
 	// Check for example categories
 	if !strings.Contains(body, "## Example Requests") {
 		t.Error("expected Example Requests section")
