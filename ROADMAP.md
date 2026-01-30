@@ -126,3 +126,33 @@ The full PLAN5.md document contains:
 6. Progress through remaining phases
 7. Create master orchestration script
 
+
+## Endpoint
+
+All endpoints are shown without a prefix. If a prefix is configured (e.g., /api/v1), prepend it to all paths.
+
+### System & Health
+- `GET /health` — Service liveness and version info
+
+### Schema Management (Collections)
+- `GET /collections:list` — List all managed collections
+- `GET /collections:get` — Retrieve schema for a collection
+- `POST /collections:create` — Create a new collection (table)
+- `POST /collections:update` — Add, remove, rename, or modify columns
+- `POST /collections:destroy` — Drop a collection (table)
+
+### Data Access (Per Collection)
+- `GET /{collection}:list` — List records (supports filtering, sorting, search via `q`, field selection, cursor pagination)
+- `GET /{collection}:get` — Get a single record by ULID
+- `POST /{collection}:create` — Insert a new record
+- `POST /{collection}:update` — Update an existing record
+- `POST /{collection}:destroy` — Delete a record
+
+### Aggregation (Per Collection)
+- `GET /{collection}:count` — Count records
+- `GET /{collection}:sum?field=...` — Sum a numeric field
+- `GET /{collection}:avg?field=...` — Average of a numeric field
+- `GET /{collection}:min?field=...` — Minimum value of a numeric field
+- `GET /{collection}:max?field=...` — Maximum value of a numeric field
+
+**Note:** All endpoints support a configurable URL prefix (e.g., `/api/v1`).
