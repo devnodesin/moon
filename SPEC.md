@@ -70,25 +70,21 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 - Startup fails if critical issues cannot be repaired
 
 **Health Endpoint:**
-- The `/health` endpoint includes consistency status
-- Returns `"consistency": "ok"` when synchronized
-- Returns `"consistency": "inconsistent"` with details when issues are detected
-- Performs a quick 2-second consistency check on each health request
+- The `/health` endpoint provides minimal, non-sensitive information for liveness checks
+- Returns a simple JSON response with three fields:
+  - `status`: Service liveness (`live` or `down`)
+  - `name`: Service name (always `moon`)
+  - `version`: Service version in format `{major}-{short-git-commit}` (e.g., `1-87811bc`)
+- Always returns HTTP 200, even when the service is down
+- Clients must check the `status` field to determine service health
+- Does not expose internal details like database type, collection count, or consistency status
 
-**Example health response with consistency issue:**
+**Example health response:**
 ```json
 {
-  "status": "healthy",
-  "database": "sqlite",
-  "collections": 5,
-  "consistency": "inconsistent",
-  "details": [
-    {
-      "type": "orphaned_table",
-      "name": "old_table",
-      "repaired": "false"
-    }
-  ]
+  "status": "live",
+  "name": "moon",
+  "version": "1-87811bc"
 }
 ```
 
