@@ -290,11 +290,10 @@ curl -s -X POST "{{$ApiURL}}/products:destroy" \
 ```
 
 ---
-### Query Options
 
-**Filtering:** 
+## Query Options
 
-Query: `?column[operator]=value` 
+**Filtering :** `?column[operator]=value` 
 
 ```bash
 curl -g "{{$ApiURL}}/products:list?price[gt]=100&brand[eq]=Wow" | jq .
@@ -302,51 +301,47 @@ curl -g "{{$ApiURL}}/products:list?price[gt]=100&brand[eq]=Wow" | jq .
 
 **Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
 
-**Sorting:** 
-
-Query: `?sort={-field1,field2}` 
+**Sorting :** `?sort={-field1,field2}` 
 
 ```bash
-curl {{$ApiURL}}/products:list?sort=-price,name
+curl {{$ApiURL}}/products:list?sort=-price,name | jq .
 ```
 
 Sort by 
 - `field` (ascending) 
 - `-field` (descending)
 
-**Full-Text Search:**
-
-Query: `?q={search_term}`
+**Full-Text Search :** `?q={search_term}`
 
 Search across all text columns
 
 ```bash
-curl {{$ApiURL}}/products:list?q=laptop
+curl {{$ApiURL}}/products:list?q=mouse | jq .
 ```
 
-**Field Selection:** 
-
-Query: `?fields={field1,field2}`
+**Field Selection :** `?fields={field1,field2}`
 
 ```bash
-curl {{$ApiURL}}/products:list?fields=name,price
+curl {{$ApiURL}}/products:list?fields=name,title | jq .
 ```
 
-Return only specific fields (always includes id)
-
-**Pagination:** 
-
-Query: `?after={cursor}&limit={limit}`
+**Limit :** `?limit={limit}`
 
 ```bash
-curl {{$ApiURL}}/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10
+curl {{$ApiURL}}/products:list?limit=2 | jq .
+```
+
+**Pagination :** `?after={cursor}`
+
+```bash
+curl {{$ApiURL}}/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10 | jq .
 ```
 
 Response includes `next_cursor` when more results are available.
 
 ---
 
-### Aggregation Operations
+## Aggregation Operations
 
 Server-side aggregation endpoints for analytics. Replace `{collection}` with your collection name.
 
@@ -358,3 +353,33 @@ Server-side aggregation endpoints for analytics. Replace `{collection}` with you
 | `{{.Prefix}}/{collection}:min` | GET | Minimum value (requires `?field=...`) |
 | `{{.Prefix}}/{collection}:max` | GET | Maximum value (requires `?field=...`) |
 
+
+**Count Records :** `:count`
+
+```bash
+curl {{$ApiURL}}/products:count | jq .
+```
+
+**Sum Numeric Field :** `:sum?field=price`
+
+```bash
+curl {{$ApiURL}}/products:sum?field=price | jq .
+```
+
+**Average Numeric Field :** `:avg?field=price`
+
+```bash
+curl {{$ApiURL}}/products:avg?field=price | jq .
+```
+
+**Minimum Value :** `:min?field=price`
+
+```bash
+curl {{$ApiURL}}/products:min?field=price | jq .
+```
+
+**Maximum Value :** `:max?field=price`
+
+```bash
+curl {{$ApiURL}}/products:max?field=price | jq .
+```
