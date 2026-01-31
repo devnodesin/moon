@@ -8,11 +8,9 @@
 ## Table of Contents
 
 - [Overview](#overview)
-  - [Authentication](#authentication)
-  - [URL Structure](#url-structure)
-  - [Available Collections](#available-collections)
 - [Response Format](#response-format)
 - [Data Types](#data-types)
+- [Health Check](#health-check)
 - [Collection Management](#collection-management)
 - [Data Access](#data-access)
 - [Query Options](#query-options)
@@ -52,10 +50,6 @@ Authorization: Bearer <your-jwt-token>
 All endpoints are prefixed with `{{.Prefix}}`.
 {{end}}
 
-```
-{{$ApiURL}}/health
-{{$ApiURL}}/collections:list
-```
 
 ## Response Format
 
@@ -104,6 +98,23 @@ Supported column data types:
 - `boolean` – true/false values
 - `datetime` – Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z)
 - `json` – Arbitrary JSON object or array
+
+## Health Check
+
+```bash
+curl -s  http://localhost:6006/health | jq .
+```
+
+Response:
+
+```bash
+{
+  "name": "moon",
+  "status": "live",
+  "version": "1.99"
+}
+
+```
 
 ## Collection Management
 
