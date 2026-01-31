@@ -12,9 +12,10 @@
   - [URL Structure](#url-structure)
   - [Available Collections](#available-collections)
 - [Response Format](#response-format)
+- [Data Types](#data-types)
 - [Collection Management](#collection-management)
+- [Data Access](#data-access)
 - [API Endpoints](#api-endpoints)
-  - [Data Access](#data-access)
   - [Aggregation Operations](#aggregation-operations)
   - [Query Options](#query-options)
     - [Filtering](#filtering)
@@ -99,7 +100,17 @@ All errors follow a consistent JSON structure:
 }
 ```
 
+## Data Types
 
+Supported column data types:
+
+- `string` – Short, length-limited text (e.g., names, titles, emails)
+- `text` – Long, unbounded text (e.g., descriptions, comments)
+- `integer` – Whole numbers
+- `float` – Decimal numbers
+- `boolean` – true/false values
+- `datetime` – Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z)
+- `json` – Arbitrary JSON object or array
 
 ## Collection Management
 
@@ -128,8 +139,8 @@ curl -X POST "{{$ApiURL}}/collections:create" \
     "name": "products",
     "columns": [
       {"name": "title", "type": "string", "nullable": false},
-      {"name": "price", "type": "float", "nullable": false},
-      {"name": "description", "type": "text", "nullable": true}
+      {"name": "price", "type": "integer", "nullable": false},
+        {"name": "description", "type": "text", "nullable": true}
     ]
   }'
 ```
@@ -152,11 +163,12 @@ Update collection schemas using one or more of the following operations:
 Add new columns:
 
 ```bash
-curl -s -X POST "{{$ApiURL}}/collections:update" \
+curl -s -X POST "http://localhost:6006/collections:update" \
 	-H "Content-Type: application/json" \
 	-d '{
 		"name": "products",
 		"add_columns": [
+      {"name": "stock", "type": "integer", "nullable": false},
 			{"name": "category", "type": "text", "required": false}
 		]
 	}' | jq .
@@ -183,7 +195,7 @@ curl -s -X POST "{{$ApiURL}}/collections:update" \
 	-d '{
 		"name": "products",
 		"modify_columns": [
-			{"name": "details", "type": "string"}
+			{"name": "category", "type": "string"}
 		]
 	}' | jq .
 ```
@@ -226,9 +238,7 @@ curl -X POST "{{$ApiURL}}/collections:destroy" \
   -d '{"name": "products"}'
 ```
 
-## API Endpoints
-
-### Data Access
+## Data Access
 
 These endpoints manage records within a specific collection. Replace `{collection}` with your collection name.
 
@@ -239,6 +249,54 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `{{.Prefix}}/{collection}:create` | POST | Create a new record |
 | `{{.Prefix}}/{collection}:update` | POST | Update an existing record |
 | `{{.Prefix}}/{collection}:destroy` | POST | Delete a record |
+
+List All Records
+
+```bash
+curl -s "{{$ApiURL}}/products:list" | jq .
+```
+
+Get a Single Record
+
+```bash
+curl -s "{{$ApiURL}}/products:get?id=01ARZ3NDEKTSV4RRFFQ69G5FBX" | jq .
+```
+
+Note replace the `id` value with the actual record ID.
+
+Create a New Record
+
+```bash
+curl -X POST "{{$ApiURL}}/products:create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "title": "Wireless Mouse",
+      "price": 29.99,
+      "description": "Ergonomic wireless mouse"
+    }
+  }'
+```
+
+Update an Existing Record
+
+```bash
+curl -X POST "{{$ApiURL}}/products:update" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"01ARZ3NDEKTSV4RRFFQ69G5FBX","data":{"price":899.99}}'
+```
+
+Delete a Record
+
+```bash
+curl -X POST "{{$ApiURL}}/products:destroy" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"01ARZ3NDEKTSV4RRFFQ69G5FBX"}'
+```
+
+---
+
+## API Endpoints
 
 ### Aggregation Operations
 
