@@ -548,6 +548,79 @@ func TestDataHandler_Create_UnknownField(t *testing.T) {
 	}
 }
 
+func TestDataHandler_Create_IgnoresClientProvidedULID(t *testing.T) {
+	reg := registry.NewSchemaRegistry()
+	collection := &registry.Collection{
+		Name: "products",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString, Nullable: false},
+			{Name: "price", Type: registry.TypeFloat, Nullable: false},
+		},
+	}
+	reg.Set(collection)
+
+	var capturedArgs []any
+	driver := &mockDataDriver{
+		dialect: database.DialectSQLite,
+		execFunc: func(ctx context.Context, query string, args ...any) (sql.Result, error) {
+			capturedArgs = args
+			return mockResult{lastInsertID: 42, rowsAffected: 1}, nil
+		},
+	}
+	handler := NewDataHandler(driver, reg)
+
+	// Client attempts to provide a ULID
+	clientProvidedULID := "01AAAAAAAAAAAAAAAAAAAAAAA"
+	reqBody := CreateDataRequest{
+		Data: map[string]any{
+			"ulid":  clientProvidedULID,
+			"name":  "Test Product",
+			"price": 19.99,
+		},
+	}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/products:create", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.Create(w, req, "products")
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
+	}
+
+	var response CreateDataResponse
+	json.NewDecoder(w.Body).Decode(&response)
+
+	// Verify the response contains a ULID
+	idStr, ok := response.Data["id"].(string)
+	if !ok {
+		t.Fatalf("expected id to be string, got %T", response.Data["id"])
+	}
+	if len(idStr) != 26 {
+		t.Errorf("expected ULID (26 chars), got %d chars: %v", len(idStr), idStr)
+	}
+
+	// Verify the server-generated ULID is different from the client-provided one
+	if idStr == clientProvidedULID {
+		t.Errorf("server should generate a new ULID, not use client-provided value")
+	}
+
+	// Verify the INSERT query used the server-generated ULID, not the client-provided one
+	if len(capturedArgs) > 0 {
+		insertedULID, ok := capturedArgs[0].(string)
+		if !ok {
+			t.Fatalf("expected first arg to be ULID string, got %T", capturedArgs[0])
+		}
+		if insertedULID == clientProvidedULID {
+			t.Errorf("INSERT should use server-generated ULID, not client-provided value")
+		}
+		if insertedULID != idStr {
+			t.Errorf("INSERT ULID (%s) should match response ULID (%s)", insertedULID, idStr)
+		}
+	}
+}
+
 // Integration test with real SQLite database
 func TestDataHandler_Integration_SQLite(t *testing.T) {
 	// Create in-memory SQLite database
