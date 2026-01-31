@@ -268,7 +268,7 @@ curl -s -X POST "{{$ApiURL}}/products:create" \
 **Get a Single Record**
 
 ```bash
-curl -s "{{$ApiURL}}/products:get?id={item_id}" | jq .
+curl -s "{{$ApiURL}}/products:get?id=ItemID" | jq .
 ```
 
 Note replace the `id` value with the actual record ID.
@@ -278,7 +278,7 @@ Note replace the `id` value with the actual record ID.
 ```bash
 curl -s -X POST "{{$ApiURL}}/products:update" \
   -H "Content-Type: application/json" \
-  -d '{"id":"{item_id}","data":{"price":6000.00}}' | jq .
+  -d '{"id":"ItemID","data":{"price":6000.00}}' | jq .
 ```
 
 **Delete a Record**
@@ -286,7 +286,7 @@ curl -s -X POST "{{$ApiURL}}/products:update" \
 ```bash
 curl -s -X POST "{{$ApiURL}}/products:destroy" \
   -H "Content-Type: application/json" \
-  -d '{"id":"{item_id}"}' | jq .
+  -d '{"id":"ItemID"}' | jq .
 ```
 
 ---
@@ -304,7 +304,7 @@ curl -g "{{$ApiURL}}/products:list?price[gt]=100&brand[eq]=Wow" | jq .
 **Sorting :** `?sort={-field1,field2}` 
 
 ```bash
-curl {{$ApiURL}}/products:list?sort=-price,name | jq .
+curl {{$ApiURL}}/products:list?sort=-price,title | jq .
 ```
 
 Sort by `field` (ascending) or `-field` (descending)
