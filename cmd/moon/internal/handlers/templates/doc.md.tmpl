@@ -142,18 +142,80 @@ curl -s {{$ApiURL}}/collections:get?name=products | jq .
 
 **Update a Collection Schema**
 
+Update collection schemas using one or more of the following operations:
+
+- `add_columns` - Add new columns
+- `rename_columns` - Rename existing columns
+- `modify_columns` - Change column types or attributes
+- `remove_columns` - Remove existing columns
+
+Add new columns:
+
 ```bash
-curl -X POST "{{$ApiURL}}/collections:update" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "products",
-    "columns": [
-      {"name": "title", "type": "string", "nullable": false},
-      {"name": "price", "type": "float", "nullable": false},
-      {"name": "description", "type": "text", "nullable": true},
-      {"name": "stock", "type": "integer", "nullable": false}
-    ]
-  }'
+curl -s -X POST "{{$ApiURL}}/collections:update" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "products",
+		"add_columns": [
+			{"name": "category", "type": "text", "required": false}
+		]
+	}' | jq .
+```
+
+Rename existing columns:
+
+```bash
+curl -s -X POST "{{$ApiURL}}/collections:update" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "products",
+		"rename_columns": [
+			{"old_name": "description", "new_name": "details"}
+		]
+	}' | jq .
+```
+
+Modify existing columns:
+
+```bash
+curl -s -X POST "{{$ApiURL}}/collections:update" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "products",
+		"modify_columns": [
+			{"name": "details", "type": "string"}
+		]
+	}' | jq .
+```
+
+Remove existing columns:
+
+```bash
+curl -s -X POST "{{$ApiURL}}/collections:update" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "products",
+		"remove_columns": ["category"]
+	}' | jq .
+```
+
+Combine multiple operations:
+
+```bash
+curl -s -X POST "{{$ApiURL}}/collections:update" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "products",
+		"add_columns": [
+			{"name": "brand", "type": "string", "required": false}
+		],
+		"rename_columns": [
+			{"old_name": "stock", "new_name": "quantity"}
+		],
+		"modify_columns": [
+			{"name": "price", "type": "float", "nullable": false}
+		]
+	}' | jq .
 ```
 
 **Delete a Collection**
