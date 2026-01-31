@@ -16,13 +16,13 @@ Moon supports a simplified, portable type system that maps consistently across a
 
 ### Supported Data Types
 
-| API Type   | Description                                      | SQLite     | PostgreSQL | MySQL      |
-|------------|--------------------------------------------------|------------|------------|------------|
-| `string`   | Text values of any length                        | TEXT       | TEXT       | TEXT       |
-| `integer`  | 64-bit integer values                            | INTEGER    | BIGINT     | BIGINT     |
-| `boolean`  | True/false values                                | INTEGER    | BOOLEAN    | BOOLEAN    |
-| `datetime` | Date and time (RFC3339/ISO 8601 format)          | TEXT       | TIMESTAMP  | TIMESTAMP  |
-| `json`     | Arbitrary JSON objects or arrays                 | TEXT       | JSON       | JSON       |
+| API Type   | Description                             | SQLite  | PostgreSQL | MySQL     |
+| ---------- | --------------------------------------- | ------- | ---------- | --------- |
+| `string`   | Text values of any length               | TEXT    | TEXT       | TEXT      |
+| `integer`  | 64-bit integer values                   | INTEGER | BIGINT     | BIGINT    |
+| `boolean`  | True/false values                       | INTEGER | BOOLEAN    | BOOLEAN   |
+| `datetime` | Date and time (RFC3339/ISO 8601 format) | TEXT    | TIMESTAMP  | TIMESTAMP |
+| `json`     | Arbitrary JSON objects or arrays        | TEXT    | JSON       | JSON      |
 
 ### Design Rationale
 
@@ -34,6 +34,7 @@ Moon supports a simplified, portable type system that maps consistently across a
 ### Migration from Previous Versions
 
 If upgrading from a previous version that supported `text` or `float` types:
+
 - **`text`** columns should be changed to `string` - behavior is identical
 - **`float`** columns should be changed to `integer` or stored as `string` with application-level decimal handling
 
@@ -50,32 +51,32 @@ The system uses YAML-only configuration with centralized defaults:
 
 ```yaml
 server:
-  host: "0.0.0.0"      # Default: 0.0.0.0
-  port: 6006           # Default: 6006
-  prefix: ""           # Default: "" (empty - no prefix)
+  host: "0.0.0.0" # Default: 0.0.0.0
+  port: 6006 # Default: 6006
+  prefix: "" # Default: "" (empty - no prefix)
 
 database:
   connection: "sqlite" # Default: sqlite (options: sqlite, postgres, mysql)
-  database: "/opt/moon/sqlite.db"  # Default: /opt/moon/sqlite.db
-  user: ""             # Default: "" (empty for SQLite)
-  password: ""         # Default: "" (empty for SQLite)
-  host: "0.0.0.0"      # Default: 0.0.0.0
+  database: "/opt/moon/sqlite.db" # Default: /opt/moon/sqlite.db
+  user: "" # Default: "" (empty for SQLite)
+  password: "" # Default: "" (empty for SQLite)
+  host: "0.0.0.0" # Default: 0.0.0.0
 
 logging:
   path: "/var/log/moon" # Default: /var/log/moon
 
 jwt:
-  secret: ""           # REQUIRED - must be set in config file
-  expiry: 3600         # Default: 3600 seconds (1 hour)
+  secret: "" # REQUIRED - must be set in config file
+  expiry: 3600 # Default: 3600 seconds (1 hour)
 
 apikey:
-  enabled: false       # Default: false
-  header: "X-API-KEY"  # Default: X-API-KEY
+  enabled: false # Default: false
+  header: "X-API-KEY" # Default: X-API-KEY
 
 recovery:
-  auto_repair: true    # Default: true - automatically repair consistency issues
-  drop_orphans: false  # Default: false - drop orphaned tables (if false, register them)
-  check_timeout: 5     # Default: 5 seconds - timeout for consistency checks
+  auto_repair: true # Default: true - automatically repair consistency issues
+  drop_orphans: false # Default: false - drop orphaned tables (if false, register them)
+  check_timeout: 5 # Default: 5 seconds - timeout for consistency checks
 ```
 
 ### Recovery and Consistency Checking
@@ -83,21 +84,24 @@ recovery:
 Moon includes robust consistency checking and recovery logic that ensures the in-memory schema registry remains synchronized with the physical database tables across restarts and failures.
 
 **On Startup:**
+
 - Moon performs an automatic consistency check comparing the registry with physical database tables
 - If inconsistencies are detected, they are logged with detailed information
 - With `auto_repair: true` (default), Moon automatically repairs inconsistencies:
   - **Orphaned registry entries** (registered but table doesn't exist): Removed from registry
-  - **Orphaned tables** (table exists but not registered): 
+  - **Orphaned tables** (table exists but not registered):
     - If `drop_orphans: false` (default): Table schema is inferred and registered
     - If `drop_orphans: true`: Table is dropped from database
 
 **Consistency Check:**
+
 - Runs within the configured timeout (default 5 seconds)
 - Non-blocking with configurable timeout to prevent indefinite startup delays
 - Results are logged and displayed during startup
 - Startup fails if critical issues cannot be repaired
 
 **Health Endpoint:**
+
 - The `/health` endpoint provides minimal, non-sensitive information for liveness checks
 - Returns a simple JSON response with three fields:
   - `status`: Service liveness (`live` or `down`)
@@ -108,6 +112,7 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 - Does not expose internal details like database type, collection count, or consistency status
 
 **Example health response:**
+
 ```json
 {
   "status": "live",
@@ -174,6 +179,7 @@ sudo systemctl status moon
 ### Test Scripts
 
 Test scripts are located in the `scripts/` directory and provide examples of API operations:
+
 - All test scripts support the `PREFIX` environment variable for testing with custom URL prefixes
 - Example: `PREFIX=/api/v1 ./scripts/collection.sh` or `PREFIX="" ./scripts/health.sh`
 
@@ -218,42 +224,49 @@ These endpoints manage the records within a specific collection.
 #### Identifiers
 
 - Records use a ULID as the external identifier.
-- The database stores this as a `ulid` column.
-- API responses expose this identifier as `id`.
+- The database stores an auto-increment `id` column (internal use only) and a `ulid` column (ULID string).
+- API responses expose the `ulid` column as `id` for simplicity.
+- The internal auto-increment `id` is never exposed via the API.
 
 #### Advanced Query Parameters for `/{name}:list`
 
 The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection:
 
 **Filtering:**
+
 - Syntax: `?column[operator]=value`
 - Operators: `eq` (equal), `ne` (not equal), `gt` (greater than), `lt` (less than), `gte` (greater/equal), `lte` (less/equal), `like` (pattern match), `in` (in list)
 - Example: `?price[gt]=100&category[eq]=electronics`
 - Multiple filters are combined with AND logic
 
 **Sorting:**
+
 - Syntax: `?sort=field` (ascending) or `?sort=-field` (descending)
 - Multiple fields: `?sort=-created_at,name` (comma-separated)
 - Example: `?sort=-price,name`
 
 **Full-Text Search:**
+
 - Syntax: `?q=searchterm`
 - Searches across all text/string columns with OR logic
 - Example: `?q=laptop`
 - Can be combined with filters and sorting
 
 **Field Selection:**
+
 - Syntax: `?fields=field1,field2`
-- Returns only requested fields (ulid always included)
+- Returns only requested fields (id always included)
 - Example: `?fields=name,price`
 - Reduces payload size for large tables
 
 **Cursor Pagination:**
+
 - Syntax: `?after=<ulid>`
 - Returns `next_cursor` in the response when more results are available
 - Example: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX`
 
 **Combined Example:**
+
 ```
 GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10
 ```
@@ -262,27 +275,32 @@ GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10
 
 These endpoints provide server-side aggregation for analytics without fetching full datasets.
 
-| Endpoint                    | Method | Purpose                                     |
-| --------------------------- | ------ | ------------------------------------------- |
-| `GET /{name}:count`         | `GET`  | Count records in the collection.            |
-| `GET /{name}:sum?field=...` | `GET`  | Sum values of a numeric field.              |
-| `GET /{name}:avg?field=...` | `GET`  | Calculate average of a numeric field.       |
-| `GET /{name}:min?field=...` | `GET`  | Find minimum value of a numeric field.      |
-| `GET /{name}:max?field=...` | `GET`  | Find maximum value of a numeric field.      |
+| Endpoint                    | Method | Purpose                                |
+| --------------------------- | ------ | -------------------------------------- |
+| `GET /{name}:count`         | `GET`  | Count records in the collection.       |
+| `GET /{name}:sum?field=...` | `GET`  | Sum values of a numeric field.         |
+| `GET /{name}:avg?field=...` | `GET`  | Calculate average of a numeric field.  |
+| `GET /{name}:min?field=...` | `GET`  | Find minimum value of a numeric field. |
+| `GET /{name}:max?field=...` | `GET`  | Find maximum value of a numeric field. |
 
 **Parameters:**
+
 - `field` (query): Required for `:sum`, `:avg`, `:min`, `:max`. Must be a numeric field (integer).
 - Filtering: All aggregation endpoints support the same filtering syntax as `:list` (e.g., `?price[gt]=100`)
 - Filters are applied at the database level before aggregation
 
 **Response Format:**
+
 ```json
 {
   "value": <number>
 }
 ```
 
+**Note:** While only `integer` type fields can be aggregated, `:avg` operations return decimal results calculated by the database.
+
 **Examples:**
+
 ```bash
 # Count all orders
 GET /orders:count
@@ -302,6 +320,7 @@ GET /orders:max?field=total
 ```
 
 **Validation:**
+
 - Collection must exist
 - Field must exist in the collection schema
 - Field must be numeric type (integer) for `:sum`, `:avg`, `:min`, `:max`
@@ -314,13 +333,14 @@ Moon provides human- and AI-readable documentation endpoints that automatically 
 
 **Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `GET /doc/` | `GET` | Retrieve HTML documentation (single-page, styled) |
-| `GET /doc/md` | `GET` | Retrieve Markdown documentation (for AI agents and markdown readers) |
-| `POST /doc:refresh` | `POST` | Clear cached documentation and force regeneration |
+| Endpoint            | Method | Purpose                                                              |
+| ------------------- | ------ | -------------------------------------------------------------------- |
+| `GET /doc/`         | `GET`  | Retrieve HTML documentation (single-page, styled)                    |
+| `GET /doc/md`       | `GET`  | Retrieve Markdown documentation (for AI agents and markdown readers) |
+| `POST /doc:refresh` | `POST` | Clear cached documentation and force regeneration                    |
 
 **Features:**
+
 - Generic documentation with `{collection}` placeholders
 - Lists currently available collections
 - Includes all endpoint categories (schema, data, aggregation)
@@ -331,12 +351,14 @@ Moon provides human- and AI-readable documentation endpoints that automatically 
 - Table of contents for easy navigation
 
 **Caching:**
+
 - Documentation is generated once and cached in memory
 - Responses include `Cache-Control`, `ETag`, and `Last-Modified` headers
 - Supports conditional caching with `If-None-Match` (returns 304 Not Modified)
 - Cache can be cleared using `POST /doc:refresh`
 
 **Response Headers:**
+
 - HTML: `Content-Type: text/html; charset=utf-8`
 - Markdown: `Content-Type: text/markdown; charset=utf-8`
 - Both: `Cache-Control: public, max-age=3600`
@@ -349,6 +371,7 @@ The `POST /collections:update` endpoint supports comprehensive column lifecycle 
 Operations are executed in the following order: rename → modify → add → remove
 
 **Request Body Structure:**
+
 ```json
 {
   "name": "collection_name",
@@ -360,6 +383,7 @@ Operations are executed in the following order: rename → modify → add → re
 ```
 
 **Add Columns:**
+
 ```json
 {
   "name": "products",
@@ -376,16 +400,19 @@ Operations are executed in the following order: rename → modify → add → re
 ```
 
 **Remove Columns:**
+
 ```json
 {
   "name": "products",
   "remove_columns": ["old_field", "deprecated_column"]
 }
 ```
+
 - Cannot remove system columns (`id`, `ulid`)
 - Column must exist in collection
 
 **Rename Columns:**
+
 ```json
 {
   "name": "products",
@@ -397,11 +424,13 @@ Operations are executed in the following order: rename → modify → add → re
   ]
 }
 ```
+
 - Cannot rename system columns (`id`, `ulid`)
 - New name must not conflict with existing columns
 - Old column must exist
 
 **Modify Columns:**
+
 ```json
 {
   "name": "products",
@@ -416,28 +445,25 @@ Operations are executed in the following order: rename → modify → add → re
   ]
 }
 ```
+
 - Cannot modify system columns (`id`, `ulid`)
 - Column must exist
 - Type changes should be compatible with existing data
 
 **Combined Operations Example:**
+
 ```json
 {
   "name": "products",
-  "rename_columns": [
-    {"old_name": "stock", "new_name": "quantity"}
-  ],
-  "modify_columns": [
-    {"name": "price", "type": "integer", "nullable": false}
-  ],
-  "add_columns": [
-    {"name": "brand", "type": "string", "nullable": true}
-  ],
+  "rename_columns": [{ "old_name": "stock", "new_name": "quantity" }],
+  "modify_columns": [{ "name": "price", "type": "integer", "nullable": false }],
+  "add_columns": [{ "name": "brand", "type": "string", "nullable": true }],
   "remove_columns": ["deprecated_field"]
 }
 ```
 
 **Validation & Error Handling:**
+
 - All operations are validated before execution
 - Registry is atomically updated only after successful DDL execution
 - On failure, registry is rolled back to previous state
@@ -445,11 +471,11 @@ Operations are executed in the following order: rename → modify → add → re
 - Descriptive errors returned for invalid operations
 
 **Database Dialect Support:**
+
 - SQLite: DROP COLUMN (3.35.0+), RENAME COLUMN (3.25.0+)
 - PostgreSQL: Full support for all operations
 - MySQL: Full support for all operations
 - Note: SQLite MODIFY COLUMN has limited support and may require table recreation
-
 
 ## 3. Architecture: The Dynamic Data Flow
 
@@ -463,15 +489,7 @@ The server acts as a "Smart Bridge" between the user and the database.
 
 ## Interface & Integration Layer
 
-- **Documentation Endpoints:** Human- and AI-readable documentation is available via `/doc/` (HTML) and `/doc/md` (Markdown) endpoints. Documentation is generated from the in-memory schema registry and includes:
-  - API overview and authentication requirements
-  - Complete endpoint reference with examples
-  - Quickstart guide with copy-pasteable curl commands
-  - Filtering, sorting, and pagination documentation
-  - Error response format and common status codes
-  - List of available collections (without per-collection schema expansion)
-  - Documentation is cached in memory for performance with ETag and Last-Modified headers for conditional caching
-  - Cache can be refreshed via `POST /doc:refresh` endpoint
+- **Documentation Endpoints:** Human- and AI-readable documentation is available via `/doc/` (HTML) and `/doc/md` (Markdown) endpoints (see Section 2.D for details).
 - **Middleware Security:** A high-speed JWT and API Key layer that enforces simple allow/deny permissions per endpoint before the request reaches the dynamic handlers.
 - **Advanced Auth Controls:**
   - JWT role-based authorization per path
@@ -482,8 +500,7 @@ The server acts as a "Smart Bridge" between the user and the database.
 
 - **Predictable Interface:** By standardizing the `:action` suffix, AI agents can guess the correct endpoint for any new collection with 100% accuracy.
 - **Statically Typed Logic:** Although data is dynamic (`map[string]any`), the internal validation logic is strictly typed, preventing AI-generated bugs from corrupting the database.
-- **Test-Driven Development:** Every module and feature is covered by automated tests (unit, integration, and API tests). Integration tests mock the database to ensure safe refactoring (e.g., of the SQL builder) and to guarantee the API contract is never broken. Tests are the foundation for all new code and refactoring.
-- **Test Coverage:** The project aims for maximum possible test coverage, including both unit and integration tests, to ensure reliability and maintainability.
+- **Test-Driven Development:** Every module and feature is covered by automated tests (unit, integration, and API tests). Integration tests mock the database to ensure safe refactoring (e.g., of the SQL builder) and to guarantee the API contract is never broken. Tests are the foundation for all new code and refactoring. The project aims for maximum possible test coverage to ensure reliability and maintainability.
 - **Strict Conventions:** By adhering to standard Go patterns, the codebase remains "recognizably structured." Both AI agents and human developers can navigate the project with 99% accuracy because files are exactly where they are expected to be.
 
 ---
