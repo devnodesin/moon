@@ -231,7 +231,7 @@ func (h *DocHandler) generateHTML() (string, error) {
         h2 { color: #34495e; margin-top: 30px; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
         h3 { color: #555; margin-top: 20px; }
         code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "Courier New", monospace; }
-        pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; position: relative; padding-right: 80px; }
         pre code { background: none; color: inherit; padding: 0; }
         table { border-collapse: collapse; width: 100%; margin: 15px 0; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
@@ -241,6 +241,9 @@ func (h *DocHandler) generateHTML() (string, error) {
         a:hover { text-decoration: underline; }
         ul { padding-left: 20px; }
         li { margin: 8px 0; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; padding: 6px 12px; font-size: 0.85em; font-weight: 500; background: #34495e; color: #ecf0f1; border: 1px solid #2c3e50; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; z-index: 10; }
+        .copy-btn:hover { background: #2c3e50; border-color: #1a252f; }
+        .copy-btn.copied { background: #27ae60; border-color: #229954; }
     </style>
 </head>
 <body>
@@ -249,7 +252,36 @@ func (h *DocHandler) generateHTML() (string, error) {
 	// Add the converted HTML body
 	sb.WriteString(htmlBody.String())
 
-	sb.WriteString("</body>\n</html>")
+	// Add copy button JavaScript
+	sb.WriteString(`<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('pre > code').forEach(function(codeBlock) {
+        var pre = codeBlock.parentNode;
+        var button = document.createElement('button');
+        button.innerText = 'Copy';
+        button.className = 'copy-btn';
+        
+        pre.style.position = 'relative';
+        pre.appendChild(button);
+        
+        button.addEventListener('click', function() {
+            var text = codeBlock.innerText;
+            navigator.clipboard.writeText(text).then(function() {
+                button.innerText = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.innerText = 'Copy';
+                    button.classList.remove('copied');
+                }, 1200);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+            });
+        });
+    });
+});
+</script>
+</body>
+</html>`)
 
 	return sb.String(), nil
 }

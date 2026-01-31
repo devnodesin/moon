@@ -437,3 +437,60 @@ func TestDocHandler_ExampleRequests(t *testing.T) {
 		t.Error("expected jq in curl examples")
 	}
 }
+
+func TestDocHandler_CopyButtonHTML(t *testing.T) {
+	// Setup
+	reg := registry.NewSchemaRegistry()
+	cfg := &config.AppConfig{
+		Server: config.ServerConfig{
+			Host:   "localhost",
+			Port:   6006,
+			Prefix: "",
+		},
+	}
+
+	handler := NewDocHandler(reg, cfg, "1.99")
+
+	// Test HTML
+	req := httptest.NewRequest(http.MethodGet, "/doc/", nil)
+	rec := httptest.NewRecorder()
+	handler.HTML(rec, req)
+
+	body := rec.Body.String()
+
+	// Check for copy button CSS
+	if !strings.Contains(body, ".copy-btn") {
+		t.Error("expected .copy-btn CSS class")
+	}
+	if !strings.Contains(body, "position: absolute") {
+		t.Error("expected absolute positioning in CSS")
+	}
+	if !strings.Contains(body, ".copy-btn.copied") {
+		t.Error("expected .copy-btn.copied CSS class for copied state")
+	}
+
+	// Check for JavaScript
+	if !strings.Contains(body, "<script>") {
+		t.Error("expected JavaScript tag")
+	}
+	if !strings.Contains(body, "document.querySelectorAll('pre > code')") {
+		t.Error("expected code block selector")
+	}
+	if !strings.Contains(body, "navigator.clipboard.writeText") {
+		t.Error("expected clipboard API usage")
+	}
+	if !strings.Contains(body, "button.innerText = 'Copy'") {
+		t.Error("expected copy button text")
+	}
+	if !strings.Contains(body, "button.innerText = 'Copied!'") {
+		t.Error("expected copied state text")
+	}
+	if !strings.Contains(body, "1200") {
+		t.Error("expected 1200ms timeout for copied state")
+	}
+
+	// Check for pre element positioning
+	if !strings.Contains(body, "pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; position: relative; padding-right: 80px; }") {
+		t.Error("expected pre element to have position: relative and padding-right")
+	}
+}
