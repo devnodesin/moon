@@ -15,11 +15,31 @@ echo "Using prefix: ${PREFIX:-<empty>}"
 echo "Base URL: ${BASE_URL}"
 echo ""
 
-echo "[1] List products with limit=1:"
-curl -s -X GET "${BASE_URL}/products:list?limit=1" | jq . || curl -s -X GET "${BASE_URL}/products:list?limit=1"
-echo
+echo "[1] List products with limit=1 (first page):"
+RESPONSE=$(curl -s -X GET "${BASE_URL}/products:list?limit=1")
+echo "$RESPONSE" | jq . 2>/dev/null || echo "$RESPONSE"
+echo ""
 
-echo "[2] List products with limit=1 and after=<CURSOR>:"
-curl -s -X GET "${BASE_URL}/products:list?limit=1&after=<CURSOR>" | jq . || curl -s -X GET "${BASE_URL}/products:list?limit=1&after=<CURSOR>"
-echo
+# Extract cursor from response
+CURSOR=$(echo "$RESPONSE" | jq -r '.next_cursor // empty' 2>/dev/null)
+
+if [ -n "$CURSOR" ] && [ "$CURSOR" != "null" ]; then
+    echo "[2] List products with limit=1 and after=$CURSOR (second page):"
+    RESPONSE2=$(curl -s -X GET "${BASE_URL}/products:list?limit=1&after=${CURSOR}")
+    echo "$RESPONSE2" | jq . 2>/dev/null || echo "$RESPONSE2"
+    echo ""
+    
+    # Extract second cursor
+    CURSOR2=$(echo "$RESPONSE2" | jq -r '.next_cursor // empty' 2>/dev/null)
+    
+    if [ -n "$CURSOR2" ] && [ "$CURSOR2" != "null" ]; then
+        echo "[3] List products with limit=1 and after=$CURSOR2 (third page):"
+        curl -s -X GET "${BASE_URL}/products:list?limit=1&after=${CURSOR2}" | jq . 2>/dev/null || curl -s -X GET "${BASE_URL}/products:list?limit=1&after=${CURSOR2}"
+        echo ""
+    fi
+else
+    echo "No more pages available (next_cursor is null)"
+fi
+
+echo "Pagination test complete!"
 

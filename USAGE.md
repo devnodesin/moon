@@ -322,7 +322,7 @@ Retrieves all records from a collection with support for advanced filtering, sor
 **Query Parameters:**
 
 - `limit` (optional): Number of records to return (default: 30)
-- `after` (optional): Cursor for pagination - ULID of the last record from the previous page
+- `after` (optional): Cursor for pagination - Use the `next_cursor` value from the previous page response
 - `fields` (optional): Comma-separated list of fields to return (e.g., `fields=name,price`)
 - `sort` (optional): Sort order - field name or `-field` for descending (e.g., `sort=-created_at,name`)
 - `q` (optional): Search term to search across all text columns (e.g., `q=laptop`)
@@ -363,7 +363,6 @@ curl "http://localhost:6006products:list?q=laptop&price[gt]=500&sort=-price&fiel
     {"id": "01ARZ3NDEKTSV4RRFFQ69G5FAV", "name": "Laptop", "price": 1299.99},
     {"id": "01ARZ3NDEKTSV4RRFFQ69G5FBW", "name": "Mouse", "price": 29.99}
   ],
-  "count": 2,
   "limit": 10,
   "next_cursor": "01ARZ3NDEKTSV4RRFFQ69G5FBW"
 }

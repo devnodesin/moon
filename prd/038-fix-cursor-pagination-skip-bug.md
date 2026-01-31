@@ -89,14 +89,15 @@
 
 ## Acceptance
 
-- [ ] Code changes applied to `cmd/moon/internal/handlers/data.go`
-- [ ] Unit tests added to verify cursor logic with multiple pagination scenarios
-- [ ] Integration tests verify no records are skipped across SQLite, Postgres, MySQL
-- [ ] Manual testing confirms:
+- [x] Code changes applied to `cmd/moon/internal/handlers/data.go`
+- [x] Unit tests added to verify cursor logic with multiple pagination scenarios
+- [x] Integration tests verify no records are skipped across SQLite, Postgres, MySQL
+- [x] Manual testing confirms:
   - Collection with 3 records, limit=1: Three requests return record 1, record 2, record 3 sequentially
   - No records are skipped when using `next_cursor` from each response
   - Last page correctly returns `next_cursor: null`
-- [ ] All existing tests pass without modification
-- [ ] No new compilation warnings introduced
-- [ ] Code formatted with `gofmt`
-- [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `USAGE.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] All existing tests pass without modification
+- [x] No new compilation warnings introduced
+- [x] Code formatted with `gofmt`
+- [x] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `USAGE.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] Ensure all test scripts in `scripts/*.sh` are working properly and up to date with the latest code and API changes.
