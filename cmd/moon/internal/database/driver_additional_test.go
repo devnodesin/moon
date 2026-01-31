@@ -166,10 +166,10 @@ func TestInferColumnType_Extended(t *testing.T) {
 // TestDetectDialect_EdgeCases tests edge cases in dialect detection
 func TestDetectDialect_EdgeCases(t *testing.T) {
 	tests := []struct {
-		name       string
-		connString string
+		name        string
+		connString  string
 		wantDialect DialectType
-		wantError  bool
+		wantError   bool
 	}{
 		// PostgreSQL variations
 		{

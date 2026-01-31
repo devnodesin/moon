@@ -214,11 +214,11 @@ func TestHealthHandler_DatabaseDown(t *testing.T) {
 // mockFailingPingDriver is a mock driver that fails on ping
 type mockFailingPingDriver struct{}
 
-func (m *mockFailingPingDriver) Connect(ctx context.Context) error              { return nil }
-func (m *mockFailingPingDriver) Close() error                                   { return nil }
-func (m *mockFailingPingDriver) Ping(ctx context.Context) error                 { return context.DeadlineExceeded }
-func (m *mockFailingPingDriver) Dialect() database.DialectType                  { return database.DialectSQLite }
-func (m *mockFailingPingDriver) DB() *sql.DB                                    { return nil }
+func (m *mockFailingPingDriver) Connect(ctx context.Context) error                { return nil }
+func (m *mockFailingPingDriver) Close() error                                     { return nil }
+func (m *mockFailingPingDriver) Ping(ctx context.Context) error                   { return context.DeadlineExceeded }
+func (m *mockFailingPingDriver) Dialect() database.DialectType                    { return database.DialectSQLite }
+func (m *mockFailingPingDriver) DB() *sql.DB                                      { return nil }
 func (m *mockFailingPingDriver) ListTables(ctx context.Context) ([]string, error) { return nil, nil }
 func (m *mockFailingPingDriver) GetTableInfo(ctx context.Context, tableName string) (*database.TableInfo, error) {
 	return nil, nil
