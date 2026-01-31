@@ -7,8 +7,8 @@ const (
 	// in a single paginated response when no limit is specified.
 	// Used in: handlers/data.go
 	// Purpose: Prevents excessive memory usage and improves response times
-	// Default: 100 records
-	DefaultPaginationLimit = 100
+	// Default: 15 records
+	DefaultPaginationLimit = 15
 
 	// DefaultPaginationOffset is the default starting position for pagination
 	// when no offset is specified.
