@@ -113,14 +113,14 @@ Note: The server generates a new ULID (`01ARZ3NDEKTSV4RRFFQ69G5FAV`) and ignores
 
 ## Acceptance
 
-- [ ] The `/{collection}:create` endpoint successfully creates records without requiring `ulid` in the request payload.
-- [ ] The server auto-generates a valid 26-character ULID for every new record.
-- [ ] The generated ULID is returned in the response under the `id` field.
-- [ ] Client-provided `ulid` values in create requests are ignored, and the server always generates a new one.
-- [ ] Update, get, and destroy operations continue to validate ULID format when provided by clients.
-- [ ] All existing unit tests for record creation pass without modification (except those testing the incorrect validation behavior).
-- [ ] New unit test added: `TestDataHandler_Create_IgnoresClientProvidedULID` verifies that client-provided ULIDs are ignored.
-- [ ] No compilation warnings or errors introduced.
-- [ ] The fix is consistent with PRD-019 (ULID Identifiers) and SPEC.md requirements.
-- [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `USAGE.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
-- [ ] Ensure all test scripts in `scripts/*.sh` are working properly and up to date with the latest code and API changes.
+- [x] The `/{collection}:create` endpoint successfully creates records without requiring `ulid` in the request payload.
+- [x] The server auto-generates a valid 26-character ULID for every new record.
+- [x] The generated ULID is returned in the response under the `id` field.
+- [x] Client-provided `ulid` values in create requests are ignored, and the server always generates a new one.
+- [x] Update, get, and destroy operations continue to validate ULID format when provided by clients.
+- [x] All existing unit tests for record creation pass without modification (except those testing the incorrect validation behavior).
+- [x] New unit test added: `TestDataHandler_Create_IgnoresClientProvidedULID` verifies that client-provided ULIDs are ignored.
+- [x] No compilation warnings or errors introduced.
+- [x] The fix is consistent with PRD-019 (ULID Identifiers) and SPEC.md requirements.
+- [x] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `USAGE.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] Ensure all test scripts in `scripts/*.sh` are working properly and up to date with the latest code and API changes.
