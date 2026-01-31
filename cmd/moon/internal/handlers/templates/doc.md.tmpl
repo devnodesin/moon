@@ -318,7 +318,7 @@ curl {{$ApiURL}}/products:list?q=mouse | jq .
 **Field Selection :** `?fields={field1,field2}`
 
 ```bash
-curl {{$ApiURL}}/products:list?fields=name,title | jq .
+curl {{$ApiURL}}/products:list?fields=price,title | jq .
 ```
 
 **Limit :** `?limit={limit}`
