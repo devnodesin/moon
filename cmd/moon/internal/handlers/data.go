@@ -335,7 +335,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 			}
 			values = append(values, val)
 			i++
-		} else if !col.Nullable && col.DefaultValue == nil {
+		} else if !col.Nullable && col.DefaultValue == nil && col.Name != "ulid" {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("required field '%s' is missing", col.Name))
 			return
 		}
@@ -1032,6 +1032,8 @@ func validateFields(data map[string]any, collection *registry.Collection) error 
 	for _, col := range collection.Columns {
 		validFields[col.Name] = true
 	}
+	// Allow ulid in request data (will be ignored during creation)
+	validFields["ulid"] = true
 
 	for field := range data {
 		if !validFields[field] {
