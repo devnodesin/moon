@@ -400,7 +400,7 @@ func mapColumnTypeToPostgres(colType registry.ColumnType) string {
 	case registry.TypeDatetime:
 		return "TIMESTAMP"
 	case registry.TypeJSON:
-		return "JSON"
+		return "JSONB"
 	default:
 		return "TEXT"
 	}
@@ -415,7 +415,7 @@ func mapColumnTypeToMySQL(colType registry.ColumnType) string {
 	case registry.TypeBoolean:
 		return "BOOLEAN"
 	case registry.TypeDatetime:
-		return "TIMESTAMP"
+		return "DATETIME"
 	case registry.TypeJSON:
 		return "JSON"
 	default:
