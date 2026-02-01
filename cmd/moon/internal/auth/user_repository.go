@@ -219,3 +219,176 @@ func (r *UserRepository) Exists(ctx context.Context, username, email string) (bo
 	}
 	return count > 0, nil
 }
+
+// UsernameExists checks if a username already exists (optionally excluding a user ID).
+func (r *UserRepository) UsernameExists(ctx context.Context, username string, excludeID int64) (bool, error) {
+	var query string
+	var args []any
+
+	if excludeID > 0 {
+		query = "SELECT COUNT(*) FROM users WHERE username = ? AND id != ?"
+		args = []any{username, excludeID}
+		if r.db.Dialect() == database.DialectPostgres {
+			query = "SELECT COUNT(*) FROM users WHERE username = $1 AND id != $2"
+		}
+	} else {
+		query = "SELECT COUNT(*) FROM users WHERE username = ?"
+		args = []any{username}
+		if r.db.Dialect() == database.DialectPostgres {
+			query = "SELECT COUNT(*) FROM users WHERE username = $1"
+		}
+	}
+
+	var count int64
+	err := r.db.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check username existence: %w", err)
+	}
+	return count > 0, nil
+}
+
+// EmailExists checks if an email already exists (optionally excluding a user ID).
+func (r *UserRepository) EmailExists(ctx context.Context, email string, excludeID int64) (bool, error) {
+	var query string
+	var args []any
+
+	if excludeID > 0 {
+		query = "SELECT COUNT(*) FROM users WHERE email = ? AND id != ?"
+		args = []any{email, excludeID}
+		if r.db.Dialect() == database.DialectPostgres {
+			query = "SELECT COUNT(*) FROM users WHERE email = $1 AND id != $2"
+		}
+	} else {
+		query = "SELECT COUNT(*) FROM users WHERE email = ?"
+		args = []any{email}
+		if r.db.Dialect() == database.DialectPostgres {
+			query = "SELECT COUNT(*) FROM users WHERE email = $1"
+		}
+	}
+
+	var count int64
+	err := r.db.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check email existence: %w", err)
+	}
+	return count > 0, nil
+}
+
+// CountByRole returns the number of users with a specific role.
+func (r *UserRepository) CountByRole(ctx context.Context, role string) (int64, error) {
+	query := "SELECT COUNT(*) FROM users WHERE role = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "SELECT COUNT(*) FROM users WHERE role = $1"
+	}
+
+	var count int64
+	err := r.db.QueryRow(ctx, query, role).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users by role: %w", err)
+	}
+	return count, nil
+}
+
+// ListOptions contains options for listing users.
+type ListOptions struct {
+	Limit      int
+	AfterULID  string
+	RoleFilter string
+}
+
+// List retrieves users with pagination and optional filtering.
+func (r *UserRepository) List(ctx context.Context, opts ListOptions) ([]*User, error) {
+	var query string
+	var args []any
+	argIdx := 1
+
+	baseSelect := "SELECT id, ulid, username, email, password_hash, role, can_write, created_at, updated_at, last_login_at FROM users"
+
+	var conditions []string
+	if opts.AfterULID != "" {
+		if r.db.Dialect() == database.DialectPostgres {
+			conditions = append(conditions, fmt.Sprintf("ulid > $%d", argIdx))
+		} else {
+			conditions = append(conditions, "ulid > ?")
+		}
+		args = append(args, opts.AfterULID)
+		argIdx++
+	}
+
+	if opts.RoleFilter != "" {
+		if r.db.Dialect() == database.DialectPostgres {
+			conditions = append(conditions, fmt.Sprintf("role = $%d", argIdx))
+		} else {
+			conditions = append(conditions, "role = ?")
+		}
+		args = append(args, opts.RoleFilter)
+		argIdx++
+	}
+
+	query = baseSelect
+	if len(conditions) > 0 {
+		query += " WHERE " + conditions[0]
+		for i := 1; i < len(conditions); i++ {
+			query += " AND " + conditions[i]
+		}
+	}
+
+	query += " ORDER BY ulid ASC"
+
+	if opts.Limit > 0 {
+		if r.db.Dialect() == database.DialectPostgres {
+			query += fmt.Sprintf(" LIMIT $%d", argIdx)
+		} else {
+			query += " LIMIT ?"
+		}
+		args = append(args, opts.Limit)
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*User
+	for rows.Next() {
+		user := &User{}
+		if err := rows.Scan(
+			&user.ID, &user.ULID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.Role, &user.CanWrite, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating users: %w", err)
+	}
+
+	return users, nil
+}
+
+// DeleteByULID deletes a user by their ULID.
+func (r *UserRepository) DeleteByULID(ctx context.Context, ulid string) error {
+	query := "DELETE FROM users WHERE ulid = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "DELETE FROM users WHERE ulid = $1"
+	}
+
+	result, err := r.db.Exec(ctx, query, ulid)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}

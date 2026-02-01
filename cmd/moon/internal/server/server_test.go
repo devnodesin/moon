@@ -374,13 +374,13 @@ func TestDynamicDataHandler_WithPrefix(t *testing.T) {
 		{
 			name:           "Collection action with /api/v1 prefix",
 			prefix:         "/api/v1",
-			requestPath:    "/api/v1/users:list",
+			requestPath:    "/api/v1/customers:list",
 			expectedStatus: http.StatusNotFound, // Collection doesn't exist yet
 		},
 		{
 			name:           "Collection action with empty prefix",
 			prefix:         "",
-			requestPath:    "/users:list",
+			requestPath:    "/customers:list",
 			expectedStatus: http.StatusNotFound, // Collection doesn't exist yet
 		},
 		{

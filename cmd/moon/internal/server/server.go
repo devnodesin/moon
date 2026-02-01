@@ -80,6 +80,9 @@ func (s *Server) setupRoutes() {
 	}
 	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
 
+	// Create users handler (admin only endpoints)
+	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+
 	// Get the prefix from config
 	prefix := s.config.Server.Prefix
 
@@ -98,6 +101,13 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("POST "+prefix+"/auth:refresh", s.loggingMiddleware(authHandler.Refresh))
 	s.mux.HandleFunc("GET "+prefix+"/auth:me", s.loggingMiddleware(authHandler.GetMe))
 	s.mux.HandleFunc("POST "+prefix+"/auth:me", s.loggingMiddleware(authHandler.UpdateMe))
+
+	// User management endpoints (admin only)
+	s.mux.HandleFunc("GET "+prefix+"/users:list", s.loggingMiddleware(usersHandler.List))
+	s.mux.HandleFunc("GET "+prefix+"/users:get", s.loggingMiddleware(usersHandler.Get))
+	s.mux.HandleFunc("POST "+prefix+"/users:create", s.loggingMiddleware(usersHandler.Create))
+	s.mux.HandleFunc("POST "+prefix+"/users:update", s.loggingMiddleware(usersHandler.Update))
+	s.mux.HandleFunc("POST "+prefix+"/users:destroy", s.loggingMiddleware(usersHandler.Destroy))
 
 	// Documentation endpoints
 	s.mux.HandleFunc("GET "+prefix+"/doc/", s.loggingMiddleware(docHandler.HTML))
