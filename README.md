@@ -4,6 +4,19 @@
 
 Moon is an API-first, migration-less backend in Go. Manage database schemas and data via REST APIs—no migration files needed.
 
+> ## ⚠️ Breaking Change: Mandatory Authentication
+> 
+> **All API endpoints now require authentication** (except `/health`).
+> 
+> Quick setup:
+> 1. Generate JWT secret: `openssl rand -base64 32`
+> 2. Configure `jwt.secret` in `moon.conf`
+> 3. Set up bootstrap admin in config
+> 4. Login via `POST /auth:login`
+> 5. Use `Authorization: Bearer <token>` header
+> 
+> See [INSTALL.md](INSTALL.md#authentication-setup) for complete setup instructions.
+
 ## Features
 
 - Migration-less schema management (create/modify tables via API)
@@ -13,7 +26,9 @@ Moon is an API-first, migration-less backend in Go. Manage database schemas and 
 - Built-in HTML & Markdown documentation (`/doc/`, `/doc/md`)
 - Server-side aggregations (`:count`, `:sum`, etc.)
 - Docker-ready, efficient (<50MB RAM)
-- JWT & API key auth
+- **JWT & API key authentication** (mandatory)
+- **Role-based access control** (admin, user with can_write)
+- **Rate limiting** (100 req/min JWT, 1000 req/min API key)
 - ULID identifiers
 - Headless Backend for API-first apps like CMS, E-Commerce, CRM, Blog, Datastores etc.
 
@@ -21,9 +36,34 @@ Moon is an API-first, migration-less backend in Go. Manage database schemas and 
 
 ```bash
 git clone https://github.com/thalib/moon.git
+cd moon
 ```
 
-See [INSTALL.md](INSTALL.md) for setup.
+### With Authentication (Required)
+
+```bash
+# 1. Build and install
+sudo ./build.sh && sudo ./install.sh
+
+# 2. Edit /etc/moon.conf:
+#    - Set jwt.secret to: $(openssl rand -base64 32)
+#    - Configure auth.bootstrap_admin section
+
+# 3. Start Moon
+sudo systemctl start moon
+
+# 4. Login and get token
+TOKEN=$(curl -s -X POST http://localhost:6006/auth:login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "change-me-on-first-login"}' \
+  | jq -r '.access_token')
+
+# 5. Use authenticated requests
+curl http://localhost:6006/collections:list \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+See [INSTALL.md](INSTALL.md) for complete setup including Docker deployment.
 
 ## Documentation
 
@@ -31,13 +71,26 @@ Moon provides comprehensive, auto-generated API documentation:
 
 - **HTML Documentation**: Visit `http://localhost:6006/doc/` in your browser for a complete, interactive API reference
 - **Markdown Documentation**: Access `http://localhost:6006/doc/md` for terminal-friendly or AI-agent documentation
-- Configuration: See `samples/moon.conf` and `samples/moon-full.conf`.
+- Configuration: See `samples/moon.conf` and `samples/moon-full.conf`
 - Testing: See `scripts/test-runner.sh`
+
+### Authentication Test Suite
+
+Run the authentication test scripts to verify your setup:
+
+```bash
+./scripts/auth-all.sh      # Run all auth tests
+./scripts/auth-jwt.sh      # JWT authentication tests
+./scripts/auth-apikey.sh   # API key tests
+./scripts/auth-rbac.sh     # Role-based access control tests
+./scripts/auth-ratelimit.sh # Rate limiting tests
+```
 
 ### Additional Resources
 
-- [INSTALL.md](INSTALL.md): Installation and deployment guide
+- [INSTALL.md](INSTALL.md): Installation and deployment guide (includes authentication setup)
 - [SPEC.md](SPEC.md): Architecture and technical specifications
+- [SPEC_AUTH.md](SPEC_AUTH.md): Detailed authentication specification
 - [samples/](samples/): Sample configuration files
 - [scripts/](scripts/): Test and demo scripts
 - [LICENSE](LICENSE): MIT License

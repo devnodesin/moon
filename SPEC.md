@@ -515,6 +515,55 @@ The server acts as a "Smart Bridge" between the user and the database.
   - API key permissions per endpoint (read/write/delete/admin)
   - Protected/unprotected path lists and protect-by-default mode
 
+## Authentication & Authorization
+
+Moon requires authentication for all API endpoints except `/health`. Two authentication methods are supported:
+
+### Authentication Methods
+
+| Method | Header | Use Case | Rate Limit |
+|--------|--------|----------|------------|
+| **JWT** | `Authorization: Bearer <token>` | Interactive users (web/mobile) | 100 req/min |
+| **API Key** | `X-API-Key: <key>` | Machine-to-machine integrations | 1000 req/min |
+
+### Roles and Permissions
+
+Moon supports two roles with configurable write permissions:
+
+| Role | Manage Users/Keys | Manage Collections | Read Data | Write Data |
+|------|-------------------|-------------------|-----------|------------|
+| **admin** | ✓ | ✓ | ✓ | ✓ |
+| **user** | ✗ | ✗ | ✓ | if `can_write: true` |
+
+- **admin**: Full system access including user management, collection schema changes, and all data operations
+- **user**: Read access to all collections; write access controlled by `can_write` flag (default: false)
+
+### Protected Endpoints
+
+| Category | Endpoints | Admin | User (read-only) | User (can_write) |
+|----------|-----------|-------|------------------|------------------|
+| Health | `/health` | ✓ (no auth) | ✓ (no auth) | ✓ (no auth) |
+| Auth | `/auth:*` | ✓ | ✓ | ✓ |
+| Collections | `/collections:list`, `/collections:get` | ✓ | ✓ | ✓ |
+| Collections | `/collections:create`, `/collections:update`, `/collections:destroy` | ✓ | ✗ | ✗ |
+| Data Read | `/{name}:list`, `/{name}:get`, `/{name}:count/sum/avg/min/max` | ✓ | ✓ | ✓ |
+| Data Write | `/{name}:create`, `/{name}:update`, `/{name}:destroy` | ✓ | ✗ | ✓ |
+| Users | `/users:*` | ✓ | ✗ | ✗ |
+| API Keys | `/apikeys:*` | ✓ | ✗ | ✗ |
+
+### Rate Limits
+
+- **JWT Users**: 100 requests/minute
+- **API Keys**: 1000 requests/minute  
+- **Login Attempts**: 5 per 15 minutes per IP/username
+
+Rate limit headers included in responses:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining in window
+- `X-RateLimit-Reset`: Unix timestamp when limit resets
+
+> **📖 For detailed authentication specification**, see [SPEC_AUTH.md](SPEC_AUTH.md)
+
 ## 4. Design for AI Maintainability
 
 - **Predictable Interface:** By standardizing the `:action` suffix, AI agents can guess the correct endpoint for any new collection with 100% accuracy.
