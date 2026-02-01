@@ -20,10 +20,10 @@ Moon supports a simplified, portable type system that maps consistently across a
 | ---------- | --------------------------------------- | -------- | ------------ | ------------ |
 | `string`   | Text values of any length               | TEXT     | TEXT         | TEXT         |
 | `integer`  | 64-bit integer values                   | INTEGER  | BIGINT       | BIGINT       |
+| `decimal`  | Exact numeric values (e.g., price)      | NUMERIC  | NUMERIC(19,2)| DECIMAL(19,2)|
 | `boolean`  | True/false values                       | INTEGER  | BOOLEAN      | BOOLEAN      |
 | `datetime` | Date and time (RFC3339/ISO 8601 format) | TEXT     | TIMESTAMP    | TIMESTAMP    |
 | `json`     | Arbitrary JSON objects or arrays        | TEXT     | JSON         | JSON         |
-| `decimal`  | Exact numeric values (e.g., price)      | NUMERIC  | NUMERIC(19,2)| DECIMAL(19,2)|
 
 ### Decimal Type
 
@@ -194,25 +194,6 @@ moon -d --config /etc/moon.conf
 - PID file written to `/var/run/moon.pid`
 - Process continues after terminal closes
 - Supports graceful shutdown via SIGTERM/SIGINT
-
-### Systemd Integration
-
-A systemd service file is provided at `samples/moon.service` for production deployment:
-
-```bash
-# Install service
-sudo cp samples/moon.service /etc/systemd/system/
-sudo systemctl daemon-reload
-
-# Start service
-sudo systemctl start moon
-
-# Enable on boot
-sudo systemctl enable moon
-
-# Check status
-sudo systemctl status moon
-```
 
 ### Test Scripts
 

@@ -1,5 +1,19 @@
 #!/bin/bash
 # Test runner script for Moon project
+# Usage:
+# Run all tests:
+# ./scripts/test-runner.sh
+# 
+# Run specific tests:
+# ./scripts/test-runner.sh unit      # Unit tests only
+# ./scripts/test-runner.sh coverage  # With coverage report
+# ./scripts/test-runner.sh race      # Race detection
+# ./scripts/test-runner.sh bench     # Benchmarks
+#
+# Manual Testing
+# go test ./... -v
+# go test ./... -coverprofile=coverage.txt -covermode=atomic
+# go test ./... -race -v
 
 set -e
 

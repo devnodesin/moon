@@ -54,11 +54,12 @@ sudo ./build.sh
 sudo ./install.sh
 ```
 
-The build script:
+The build script: `build.sh`
+
 - Compiles the Moon binary using Docker
 - Version information is defined in the codebase as constants
 
-This script:
+This script: `install.sh`
 
 - Creates moon system user
 - Sets up directories (`/opt/moon`, `/var/log/moon`, `/var/lib/moon`)
@@ -84,28 +85,4 @@ curl http://localhost:6006/health
 
 # Check collections
 curl http://localhost:6006collections:list
-```
-
-## Testing
-
-```bash
-# Run All Tests
-./scripts/test-runner.sh
-```
-
-Test Options
-
-```bash
-./scripts/test-runner.sh unit      # Unit tests only
-./scripts/test-runner.sh coverage  # With coverage report
-./scripts/test-runner.sh race      # Race detection
-./scripts/test-runner.sh bench     # Benchmarks
-```
-
-Manual Testing
-
-```bash
-go test ./... -v
-go test ./... -coverprofile=coverage.txt -covermode=atomic
-go test ./... -race -v
 ```
