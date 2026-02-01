@@ -133,6 +133,145 @@ Response: `status: live|down`
 }
 ```
 
+## Auth Endpoints
+
+| Endpoint       | Method | Description                                 |
+|----------------|--------|---------------------------------------------|
+| /auth:login    | POST   | Authenticate user, receive tokens           |
+| /auth:logout   | POST   | Invalidate current session's refresh token  |
+| /auth:refresh  | POST   | Exchange refresh token for new tokens       |
+| /auth:me       | GET    | Get current authenticated user info         |
+| /auth:me       | POST   | Update current user's profile/password      |
+
+**Login**
+
+```bash
+curl -X POST "{{$ApiURL}}/auth:login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"moonadmin12#"}'
+```
+
+**Logout**
+
+```bash
+curl -X POST "{{$ApiURL}}/auth:logout" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>"}'
+```
+
+**Refresh Token**
+
+```bash
+curl -X POST "{{$ApiURL}}/auth:refresh" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>"}'
+```
+
+**Get Current User**
+
+```bash
+curl -X GET "{{$ApiURL}}/auth:me" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Update Current User (Email)**
+
+```bash
+curl -X POST "{{$ApiURL}}/auth:me" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"newemail@example.com"}'
+```
+
+**Update Current User (Change Password)**
+
+```bash
+curl -X POST "{{$ApiURL}}/auth:me" \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"current_password":"moonadmin12#","new_password":"NewSecurePass456"}'
+```
+
+## User Management Endpoints
+
+| Endpoint        | Method | Description                              |
+|-----------------|--------|------------------------------------------|
+| /users:list     | GET    | List all users (admin only)              |
+| /users:get      | GET    | Get specific user by ID (admin only)     |
+| /users:create   | POST   | Create new user (admin only)             |
+| /users:update   | POST   | Update user properties or admin actions  |
+| /users:destroy  | POST   | Delete user account (admin only)         |
+
+[TODO: Add examples for each User Management Endpoints]
+
+## API Key Management Endpoints
+
+| Endpoint         | Method | Description                                 |
+|------------------|--------|---------------------------------------------|
+| /apikeys:list    | GET    | List all API keys (metadata only, admin)    |
+| /apikeys:get     | GET    | Get specific API key metadata (admin only)  |
+| /apikeys:create  | POST   | Create new API key (admin only)             |
+| /apikeys:update  | POST   | Update API key metadata or rotate key       |
+| /apikeys:destroy | POST   | Delete API key (admin only)                 |
+
+**List API Keys**
+
+```bash
+curl -X GET "{{$ApiURL}}/apikeys:list" \
+  -H "Authorization: Bearer <admin_access_token>" | jq .
+```
+
+**Get API Key Metadata**
+
+```bash
+curl -X GET "{{$ApiURL}}/apikeys:get?id=APIKeyULID" \
+  -H "Authorization: Bearer <admin_access_token>" | jq .
+```
+
+**Create API Key**
+
+```bash
+curl -X POST "{{$ApiURL}}/apikeys:create" \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration Service",
+    "description": "Key for integration",
+    "role": "user",
+    "can_write": false
+  }' | jq .
+```
+
+**Update API Key Metadata**
+
+```bash
+curl -X POST "{{$ApiURL}}/apikeys:update?id=APIKeyULID" \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Service Name",
+    "description": "Updated description",
+    "can_write": true
+  }' | jq .
+```
+
+**Rotate API Key**
+
+```bash
+curl -X POST "{{$ApiURL}}/apikeys:update?id=APIKeyULID" \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"rotate"}' | jq .
+```
+
+**Delete API Key**
+
+```bash
+curl -X POST "{{$ApiURL}}/apikeys:destroy?id=APIKeyULID" \
+  -H "Authorization: Bearer <admin_access_token>" | jq .
+```
+
 ## Collection Management
 
 These endpoints manage database tables (collections) and their schemas.
