@@ -9,14 +9,16 @@ import (
 	"github.com/thalib/moon/cmd/moon/internal/auth"
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
+	"github.com/thalib/moon/cmd/moon/internal/middleware"
 )
 
 // AuthHandler handles authentication endpoints.
 type AuthHandler struct {
-	db           database.Driver
-	userRepo     *auth.UserRepository
-	tokenRepo    *auth.RefreshTokenRepository
-	tokenService *auth.TokenService
+	db               database.Driver
+	userRepo         *auth.UserRepository
+	tokenRepo        *auth.RefreshTokenRepository
+	tokenService     *auth.TokenService
+	loginRateLimiter *middleware.LoginRateLimiter
 }
 
 // NewAuthHandler creates a new auth handler.
@@ -26,6 +28,24 @@ func NewAuthHandler(db database.Driver, jwtSecret string, accessExpiry, refreshE
 		userRepo:     auth.NewUserRepository(db),
 		tokenRepo:    auth.NewRefreshTokenRepository(db),
 		tokenService: auth.NewTokenService(jwtSecret, accessExpiry, refreshExpiry),
+		loginRateLimiter: middleware.NewLoginRateLimiter(middleware.LoginRateLimiterConfig{
+			MaxAttempts:   5,   // 5 failed attempts
+			WindowSeconds: 900, // 15 minutes
+		}),
+	}
+}
+
+// NewAuthHandlerWithRateLimiter creates a new auth handler with custom rate limiter config.
+func NewAuthHandlerWithRateLimiter(db database.Driver, jwtSecret string, accessExpiry, refreshExpiry, maxAttempts, windowSeconds int) *AuthHandler {
+	return &AuthHandler{
+		db:           db,
+		userRepo:     auth.NewUserRepository(db),
+		tokenRepo:    auth.NewRefreshTokenRepository(db),
+		tokenService: auth.NewTokenService(jwtSecret, accessExpiry, refreshExpiry),
+		loginRateLimiter: middleware.NewLoginRateLimiter(middleware.LoginRateLimiterConfig{
+			MaxAttempts:   maxAttempts,
+			WindowSeconds: windowSeconds,
+		}),
 	}
 }
 
@@ -83,6 +103,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get client IP for rate limiting
+	clientIP := getClientIP(r)
+
+	// Check login rate limit before processing
+	blocked, resetAt := h.loginRateLimiter.IsBlocked(clientIP, req.Username)
+	if blocked {
+		middleware.LogLoginRateLimitExceeded(clientIP, req.Username, r.URL.Path)
+		middleware.WriteLoginRateLimitError(w, resetAt)
+		return
+	}
+
 	ctx := r.Context()
 
 	// Get user by username
@@ -93,15 +124,22 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user == nil {
+		// Record failed attempt
+		h.loginRateLimiter.CheckAndRecord(clientIP, req.Username)
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
 	// Verify password
 	if err := auth.ComparePassword(user.PasswordHash, req.Password); err != nil {
+		// Record failed attempt
+		h.loginRateLimiter.CheckAndRecord(clientIP, req.Username)
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
+
+	// Successful login - reset rate limit counter
+	h.loginRateLimiter.ResetForUser(clientIP, req.Username)
 
 	// Generate token pair
 	tokenPair, rawRefreshToken, err := h.tokenService.GenerateTokenPair(user)
@@ -403,4 +441,36 @@ func (h *AuthHandler) extractUserIDFromToken(r *http.Request) (string, error) {
 	}
 
 	return claims.UserID, nil
+}
+
+// getClientIP extracts the client IP from the request.
+// It checks X-Forwarded-For and X-Real-IP headers first (for reverse proxy scenarios),
+// then falls back to RemoteAddr.
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header (common in reverse proxies)
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		// X-Forwarded-For can contain multiple IPs; the first one is the client
+		ips := strings.Split(xff, ",")
+		if len(ips) > 0 {
+			ip := strings.TrimSpace(ips[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+
+	// Check X-Real-IP header (used by nginx)
+	xri := r.Header.Get("X-Real-IP")
+	if xri != "" {
+		return strings.TrimSpace(xri)
+	}
+
+	// Fall back to RemoteAddr
+	// RemoteAddr is in the form "IP:port", we need to extract just the IP
+	addr := r.RemoteAddr
+	if colonIndex := strings.LastIndex(addr, ":"); colonIndex != -1 {
+		return addr[:colonIndex]
+	}
+	return addr
 }

@@ -338,13 +338,13 @@ func TestServerRoutes_WithPrefix(t *testing.T) {
 			name:           "Collections list with prefix",
 			prefix:         "/api/v1",
 			requestPath:    "/api/v1/collections:list",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "Collections list with empty prefix",
 			prefix:         "",
 			requestPath:    "/collections:list",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 	}
 
@@ -375,19 +375,19 @@ func TestDynamicDataHandler_WithPrefix(t *testing.T) {
 			name:           "Collection action with /api/v1 prefix",
 			prefix:         "/api/v1",
 			requestPath:    "/api/v1/customers:list",
-			expectedStatus: http.StatusNotFound, // Collection doesn't exist yet
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "Collection action with empty prefix",
 			prefix:         "",
 			requestPath:    "/customers:list",
-			expectedStatus: http.StatusNotFound, // Collection doesn't exist yet
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "Collection action with /moon/api/ prefix",
 			prefix:         "/moon/api",
 			requestPath:    "/moon/api/products:list",
-			expectedStatus: http.StatusNotFound, // Collection doesn't exist yet
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "Invalid path should 404 with prefix",
@@ -489,7 +489,7 @@ func TestRootMessageHandler_Integration(t *testing.T) {
 			name:           "Collections endpoint should work with no prefix",
 			prefix:         "",
 			requestPath:    "/collections:list",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 	}
 
