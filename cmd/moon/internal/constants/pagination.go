@@ -10,6 +10,12 @@ const (
 	// Default: 15 records
 	DefaultPaginationLimit = 15
 
+	// MaxPaginationLimit is the maximum allowed limit for paginated responses.
+	// Used in: handlers/data.go, handlers/users.go
+	// Purpose: Prevents clients from requesting too many records at once
+	// Default: 100 records
+	MaxPaginationLimit = 100
+
 	// DefaultPaginationOffset is the default starting position for pagination
 	// when no offset is specified.
 	// Used in: handlers/data.go

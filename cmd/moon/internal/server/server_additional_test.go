@@ -34,48 +34,48 @@ func TestDynamicDataHandler_AllActions(t *testing.T) {
 		expectedStatus int
 		description    string
 	}{
-		// GET actions
+		// GET actions - Now require authentication (401)
 		{
 			name:           "list action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:list",
-			expectedStatus: http.StatusInternalServerError, // No actual table, but routes correctly
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "get action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:get?id=01ARYZ6S41TSV4RRFFQ69G5FAV",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "count action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:count",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "sum action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:sum?field=total",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "avg action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:avg?field=total",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "min action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:min?field=total",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "max action with GET",
 			method:         http.MethodGet,
 			path:           "/orders:max?field=total",
-			expectedStatus: http.StatusInternalServerError, // No actual table
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		// Wrong methods for GET actions
 		{
@@ -263,7 +263,7 @@ func TestServerRoutes_DocumentationEndpoints(t *testing.T) {
 			name:           "Refresh documentation cache",
 			method:         http.MethodPost,
 			path:           "/doc:refresh",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 	}
 
@@ -295,13 +295,13 @@ func TestServerRoutes_CollectionsEndpoints(t *testing.T) {
 			name:           "Collections list",
 			method:         http.MethodGet,
 			path:           "/collections:list",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 		{
 			name:           "Collections get",
 			method:         http.MethodGet,
 			path:           "/collections:get?name=test",
-			expectedStatus: http.StatusNotFound, // Collection doesn't exist
+			expectedStatus: http.StatusUnauthorized, // Requires authentication
 		},
 	}
 

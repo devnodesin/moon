@@ -131,7 +131,7 @@ func TestDocHandler_Markdown(t *testing.T) {
 	if !strings.Contains(body, "# Moon API Documentation") {
 		t.Error("expected markdown heading")
 	}
-	if !strings.Contains(body, "**Version:** 1.99") {
+	if !strings.Contains(body, "| Version     | 1.99") {
 		t.Error("expected version number")
 	}
 	if !strings.Contains(body, "## Table of Contents") {

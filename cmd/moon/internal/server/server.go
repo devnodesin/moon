@@ -15,33 +15,62 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thalib/moon/cmd/moon/internal/auth"
 	"github.com/thalib/moon/cmd/moon/internal/config"
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/handlers"
+	"github.com/thalib/moon/cmd/moon/internal/middleware"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
 // Server represents the HTTP server
 type Server struct {
-	config   *config.AppConfig
-	db       database.Driver
-	registry *registry.SchemaRegistry
-	mux      *http.ServeMux
-	server   *http.Server
-	version  string
+	config       *config.AppConfig
+	db           database.Driver
+	registry     *registry.SchemaRegistry
+	mux          *http.ServeMux
+	server       *http.Server
+	version      string
+	rateLimiter  *middleware.RateLimitMiddleware
+	authzMiddle  *middleware.AuthorizationMiddleware
+	tokenService *auth.TokenService
+	apiKeyRepo   *auth.APIKeyRepository
 }
 
 // New creates a new server instance
 func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry, version string) *Server {
 	mux := http.NewServeMux()
 
+	// Create rate limiter with config values
+	rateLimiterConfig := middleware.RateLimiterConfig{
+		UserRPM:   cfg.Auth.RateLimit.UserRPM,
+		APIKeyRPM: cfg.Auth.RateLimit.APIKeyRPM,
+	}
+	if rateLimiterConfig.UserRPM == 0 {
+		rateLimiterConfig.UserRPM = config.Defaults.Auth.RateLimit.UserRPM
+	}
+	if rateLimiterConfig.APIKeyRPM == 0 {
+		rateLimiterConfig.APIKeyRPM = config.Defaults.Auth.RateLimit.APIKeyRPM
+	}
+
+	// Create token service for authentication
+	accessExpiry := cfg.JWT.AccessExpiry
+	if accessExpiry == 0 {
+		accessExpiry = cfg.JWT.Expiry
+	}
+	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
+
 	srv := &Server{
-		config:   cfg,
-		db:       db,
-		registry: reg,
-		mux:      mux,
-		version:  version,
+		config:       cfg,
+		db:           db,
+		registry:     reg,
+		mux:          mux,
+		version:      version,
+		rateLimiter:  middleware.NewRateLimitMiddleware(rateLimiterConfig),
+		authzMiddle:  middleware.NewAuthorizationMiddleware(),
+		tokenService: tokenService,
+		apiKeyRepo:   auth.NewAPIKeyRepository(db),
 		server: &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 			Handler:      mux,
@@ -69,36 +98,137 @@ func (s *Server) setupRoutes() {
 	// Create documentation handler
 	docHandler := handlers.NewDocHandler(s.registry, s.config, s.version)
 
+	// Create auth handler with login rate limiting
+	accessExpiry := s.config.JWT.AccessExpiry
+	if accessExpiry == 0 {
+		accessExpiry = s.config.JWT.Expiry // fallback to legacy config
+	}
+	refreshExpiry := s.config.JWT.RefreshExpiry
+	if refreshExpiry == 0 {
+		refreshExpiry = 604800 // 7 days default
+	}
+	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+
+	// Create users handler (admin only endpoints)
+	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+
+	// Create API keys handler (admin only endpoints)
+	apiKeysHandler := handlers.NewAPIKeysHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+
 	// Get the prefix from config
 	prefix := s.config.Server.Prefix
 
+	// Middleware helper functions for cleaner route definitions
+	// Public endpoints: only logging
+	public := func(h http.HandlerFunc) http.HandlerFunc {
+		return s.loggingMiddleware(h)
+	}
+
+	// Auth endpoints: logging + auth (login/refresh don't need rate limit or authz)
+	authNoLimit := func(h http.HandlerFunc) http.HandlerFunc {
+		return s.loggingMiddleware(h)
+	}
+
+	// Authenticated: logging + auth + rate limit (any authenticated entity)
+	authenticated := func(h http.HandlerFunc) http.HandlerFunc {
+		return s.loggingMiddleware(
+			s.authMiddleware(
+				s.rateLimiter.RateLimit(
+					s.authzMiddle.RequireAuthenticated(h))))
+	}
+
+	// Admin only: logging + auth + rate limit + admin role
+	adminOnly := func(h http.HandlerFunc) http.HandlerFunc {
+		return s.loggingMiddleware(
+			s.authMiddleware(
+				s.rateLimiter.RateLimit(
+					s.authzMiddle.RequireAdmin(h))))
+	}
+
+	// Write required: logging + auth + rate limit + write permission
+	writeRequired := func(h http.HandlerFunc) http.HandlerFunc {
+		return s.loggingMiddleware(
+			s.authMiddleware(
+				s.rateLimiter.RateLimit(
+					s.authzMiddle.RequireWrite(h))))
+	}
+
 	// Root message endpoint (only for exact "/" path with no prefix)
 	if prefix == "" {
-		s.mux.HandleFunc("GET /{$}", s.loggingMiddleware(s.rootMessageHandler))
+		s.mux.HandleFunc("GET /{$}", public(s.rootMessageHandler))
 	}
+
+	// ==========================================
+	// PUBLIC ENDPOINTS (No Auth)
+	// ==========================================
 
 	// Health check endpoint (always at /health, respects prefix)
 	healthPath := prefix + "/health"
-	s.mux.HandleFunc("GET "+healthPath, s.loggingMiddleware(s.healthHandler))
+	s.mux.HandleFunc("GET "+healthPath, public(s.healthHandler))
 
-	// Documentation endpoints
-	s.mux.HandleFunc("GET "+prefix+"/doc/", s.loggingMiddleware(docHandler.HTML))
-	s.mux.HandleFunc("GET "+prefix+"/doc/md", s.loggingMiddleware(docHandler.Markdown))
-	s.mux.HandleFunc("POST "+prefix+"/doc:refresh", s.loggingMiddleware(docHandler.RefreshCache))
+	// Documentation endpoints (public)
+	s.mux.HandleFunc("GET "+prefix+"/doc/", public(docHandler.HTML))
+	s.mux.HandleFunc("GET "+prefix+"/doc/md", public(docHandler.Markdown))
 
-	// Schema management endpoints (collections)
-	s.mux.HandleFunc("GET "+prefix+"/collections:list", s.loggingMiddleware(collectionsHandler.List))
-	s.mux.HandleFunc("GET "+prefix+"/collections:get", s.loggingMiddleware(collectionsHandler.Get))
-	s.mux.HandleFunc("POST "+prefix+"/collections:create", s.loggingMiddleware(collectionsHandler.Create))
-	s.mux.HandleFunc("POST "+prefix+"/collections:update", s.loggingMiddleware(collectionsHandler.Update))
-	s.mux.HandleFunc("POST "+prefix+"/collections:destroy", s.loggingMiddleware(collectionsHandler.Destroy))
+	// ==========================================
+	// AUTH ENDPOINTS (No role check)
+	// ==========================================
+
+	// Login and refresh don't need auth/rate limit (they have their own rate limiting)
+	s.mux.HandleFunc("POST "+prefix+"/auth:login", authNoLimit(authHandler.Login))
+	s.mux.HandleFunc("POST "+prefix+"/auth:refresh", authNoLimit(authHandler.Refresh))
+
+	// ==========================================
+	// AUTHENTICATED ENDPOINTS (Any Role)
+	// ==========================================
+
+	// Logout requires authentication
+	s.mux.HandleFunc("POST "+prefix+"/auth:logout", authenticated(authHandler.Logout))
+
+	// Me endpoints require authentication
+	s.mux.HandleFunc("GET "+prefix+"/auth:me", authenticated(authHandler.GetMe))
+	s.mux.HandleFunc("POST "+prefix+"/auth:me", authenticated(authHandler.UpdateMe))
+
+	// Collections read endpoints (any authenticated user)
+	s.mux.HandleFunc("GET "+prefix+"/collections:list", authenticated(collectionsHandler.List))
+	s.mux.HandleFunc("GET "+prefix+"/collections:get", authenticated(collectionsHandler.Get))
+
+	// Doc refresh requires authentication
+	s.mux.HandleFunc("POST "+prefix+"/doc:refresh", authenticated(docHandler.RefreshCache))
+
+	// ==========================================
+	// ADMIN ONLY ENDPOINTS
+	// ==========================================
+
+	// User management endpoints (admin only)
+	s.mux.HandleFunc("GET "+prefix+"/users:list", adminOnly(usersHandler.List))
+	s.mux.HandleFunc("GET "+prefix+"/users:get", adminOnly(usersHandler.Get))
+	s.mux.HandleFunc("POST "+prefix+"/users:create", adminOnly(usersHandler.Create))
+	s.mux.HandleFunc("POST "+prefix+"/users:update", adminOnly(usersHandler.Update))
+	s.mux.HandleFunc("POST "+prefix+"/users:destroy", adminOnly(usersHandler.Destroy))
+
+	// API key management endpoints (admin only)
+	s.mux.HandleFunc("GET "+prefix+"/apikeys:list", adminOnly(apiKeysHandler.List))
+	s.mux.HandleFunc("GET "+prefix+"/apikeys:get", adminOnly(apiKeysHandler.Get))
+	s.mux.HandleFunc("POST "+prefix+"/apikeys:create", adminOnly(apiKeysHandler.Create))
+	s.mux.HandleFunc("POST "+prefix+"/apikeys:update", adminOnly(apiKeysHandler.Update))
+	s.mux.HandleFunc("POST "+prefix+"/apikeys:destroy", adminOnly(apiKeysHandler.Destroy))
+
+	// Collections management endpoints (admin only)
+	s.mux.HandleFunc("POST "+prefix+"/collections:create", adminOnly(collectionsHandler.Create))
+	s.mux.HandleFunc("POST "+prefix+"/collections:update", adminOnly(collectionsHandler.Update))
+	s.mux.HandleFunc("POST "+prefix+"/collections:destroy", adminOnly(collectionsHandler.Destroy))
+
+	// ==========================================
+	// DYNAMIC DATA ENDPOINTS
+	// ==========================================
 
 	// Data access endpoints (dynamic collections with :action pattern)
 	// This also serves as catch-all when prefix is empty
 	if prefix == "" {
-		s.mux.HandleFunc("/", s.loggingMiddleware(s.dynamicDataHandler(dataHandler, aggregationHandler)))
+		s.mux.HandleFunc("/", s.loggingMiddleware(s.dynamicDataHandler(dataHandler, aggregationHandler, authenticated, writeRequired)))
 	} else {
-		s.mux.HandleFunc(prefix+"/", s.loggingMiddleware(s.dynamicDataHandler(dataHandler, aggregationHandler)))
+		s.mux.HandleFunc(prefix+"/", s.loggingMiddleware(s.dynamicDataHandler(dataHandler, aggregationHandler, authenticated, writeRequired)))
 		// Catch-all for 404 when prefix is set
 		s.mux.HandleFunc("/", s.loggingMiddleware(s.notFoundHandler))
 	}
@@ -125,6 +255,87 @@ func (s *Server) loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			duration,
 		)
 	}
+}
+
+// authMiddleware extracts and validates JWT or API key and sets the auth entity in context.
+func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		// Try JWT authentication first (Authorization: Bearer <token>)
+		authHeader := r.Header.Get(constants.HeaderAuthorization)
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && strings.ToLower(parts[0]) == strings.ToLower(constants.AuthSchemeBearer) {
+				token := strings.TrimSpace(parts[1])
+				if token != "" {
+					claims, err := s.tokenService.ValidateAccessToken(token)
+					if err == nil {
+						// Valid JWT - create auth entity
+						entity := &middleware.AuthEntity{
+							ID:       claims.UserID,
+							Type:     middleware.EntityTypeUser,
+							Role:     claims.Role,
+							CanWrite: claims.CanWrite,
+							Username: claims.Username,
+						}
+						ctx = middleware.SetAuthEntity(ctx, entity)
+						next(w, r.WithContext(ctx))
+						return
+					}
+					// Invalid JWT token
+					s.writeAuthError(w, http.StatusUnauthorized, "invalid or expired token")
+					return
+				}
+			}
+		}
+
+		// Try API key authentication (X-API-Key header)
+		apiKey := r.Header.Get(s.config.APIKey.Header)
+		if apiKey == "" && s.config.APIKey.Header != constants.HeaderAPIKey {
+			apiKey = r.Header.Get(constants.HeaderAPIKey)
+		}
+		if apiKey != "" {
+			keyHash := auth.HashAPIKey(apiKey)
+			apiKeyObj, err := s.apiKeyRepo.GetByHash(ctx, keyHash)
+			if err == nil && apiKeyObj != nil {
+				// Valid API key - create auth entity
+				entity := &middleware.AuthEntity{
+					ID:       apiKeyObj.ULID,
+					Type:     middleware.EntityTypeAPIKey,
+					Role:     apiKeyObj.Role,
+					CanWrite: apiKeyObj.CanWrite,
+				}
+				ctx = middleware.SetAuthEntity(ctx, entity)
+
+				// Update last used (non-blocking)
+				go func(id int64) {
+					if err := s.apiKeyRepo.UpdateLastUsed(context.Background(), id); err != nil {
+						log.Printf("Failed to update API key last used: %v", err)
+					}
+				}(apiKeyObj.ID)
+
+				next(w, r.WithContext(ctx))
+				return
+			}
+			// Invalid API key
+			s.writeAuthError(w, http.StatusUnauthorized, "invalid API key")
+			return
+		}
+
+		// No authentication provided
+		s.writeAuthError(w, http.StatusUnauthorized, "authentication required")
+	}
+}
+
+// writeAuthError writes an authentication error response.
+func (s *Server) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]any{
+		"error": message,
+		"code":  statusCode,
+	})
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
@@ -245,7 +456,7 @@ func (s *Server) writeError(w http.ResponseWriter, statusCode int, message strin
 
 // Data handler wrappers that extract collection name from URL path
 
-func (s *Server) dynamicDataHandler(dataHandler *handlers.DataHandler, aggregationHandler *handlers.AggregationHandler) http.HandlerFunc {
+func (s *Server) dynamicDataHandler(dataHandler *handlers.DataHandler, aggregationHandler *handlers.AggregationHandler, authenticated, writeRequired func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse path: {prefix}/{name}:{action}
 		path := strings.TrimPrefix(r.URL.Path, s.config.Server.Prefix+"/")
@@ -266,68 +477,96 @@ func (s *Server) dynamicDataHandler(dataHandler *handlers.DataHandler, aggregati
 			return
 		}
 
+		// Skip reserved endpoints that are handled by other routes
+		if collectionName == "auth" || collectionName == "users" || collectionName == "apikeys" || collectionName == "doc" {
+			s.writeError(w, http.StatusNotFound, "Endpoint not found")
+			return
+		}
+
 		// Route to appropriate handler based on action
+		// Read operations: authenticated (any role)
+		// Write operations: writeRequired (admin or user with can_write)
 		switch action {
 		case "list":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			dataHandler.List(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				dataHandler.List(w, r, collectionName)
+			})(w, r)
 		case "get":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			dataHandler.Get(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				dataHandler.Get(w, r, collectionName)
+			})(w, r)
 		case "create":
 			if r.Method != http.MethodPost {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			dataHandler.Create(w, r, collectionName)
+			writeRequired(func(w http.ResponseWriter, r *http.Request) {
+				dataHandler.Create(w, r, collectionName)
+			})(w, r)
 		case "update":
 			if r.Method != http.MethodPost {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			dataHandler.Update(w, r, collectionName)
+			writeRequired(func(w http.ResponseWriter, r *http.Request) {
+				dataHandler.Update(w, r, collectionName)
+			})(w, r)
 		case "destroy":
 			if r.Method != http.MethodPost {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			dataHandler.Destroy(w, r, collectionName)
+			writeRequired(func(w http.ResponseWriter, r *http.Request) {
+				dataHandler.Destroy(w, r, collectionName)
+			})(w, r)
 		case "count":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			aggregationHandler.Count(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				aggregationHandler.Count(w, r, collectionName)
+			})(w, r)
 		case "sum":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			aggregationHandler.Sum(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				aggregationHandler.Sum(w, r, collectionName)
+			})(w, r)
 		case "avg":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			aggregationHandler.Avg(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				aggregationHandler.Avg(w, r, collectionName)
+			})(w, r)
 		case "min":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			aggregationHandler.Min(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				aggregationHandler.Min(w, r, collectionName)
+			})(w, r)
 		case "max":
 			if r.Method != http.MethodGet {
 				s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 				return
 			}
-			aggregationHandler.Max(w, r, collectionName)
+			authenticated(func(w http.ResponseWriter, r *http.Request) {
+				aggregationHandler.Max(w, r, collectionName)
+			})(w, r)
 		default:
 			s.writeError(w, http.StatusNotFound, "Unknown action")
 		}
