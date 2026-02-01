@@ -44,11 +44,21 @@ var Defaults = struct {
 		Path string
 	}
 	JWT struct {
-		Expiry int
+		Expiry        int
+		AccessExpiry  int
+		RefreshExpiry int
 	}
 	APIKey struct {
 		Enabled bool
 		Header  string
+	}
+	Auth struct {
+		RateLimit struct {
+			UserRPM       int
+			APIKeyRPM     int
+			LoginAttempts int
+			LoginWindow   int
+		}
 	}
 	Recovery struct {
 		AutoRepair   bool
@@ -85,9 +95,13 @@ var Defaults = struct {
 		Path: "/var/log/moon",
 	},
 	JWT: struct {
-		Expiry int
+		Expiry        int
+		AccessExpiry  int
+		RefreshExpiry int
 	}{
-		Expiry: 3600,
+		Expiry:        3600,
+		AccessExpiry:  3600,   // 1 hour
+		RefreshExpiry: 604800, // 7 days
 	},
 	APIKey: struct {
 		Enabled bool
@@ -95,6 +109,26 @@ var Defaults = struct {
 	}{
 		Enabled: false,
 		Header:  "X-API-KEY",
+	},
+	Auth: struct {
+		RateLimit struct {
+			UserRPM       int
+			APIKeyRPM     int
+			LoginAttempts int
+			LoginWindow   int
+		}
+	}{
+		RateLimit: struct {
+			UserRPM       int
+			APIKeyRPM     int
+			LoginAttempts int
+			LoginWindow   int
+		}{
+			UserRPM:       100,
+			APIKeyRPM:     1000,
+			LoginAttempts: 5,
+			LoginWindow:   900, // 15 minutes
+		},
 	},
 	Recovery: struct {
 		AutoRepair   bool
@@ -116,6 +150,7 @@ type AppConfig struct {
 	Logging  LoggingConfig  `mapstructure:"logging"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	APIKey   APIKeyConfig   `mapstructure:"apikey"`
+	Auth     AuthConfig     `mapstructure:"auth"`
 	Recovery RecoveryConfig `mapstructure:"recovery"`
 }
 
@@ -142,14 +177,37 @@ type LoggingConfig struct {
 
 // JWTConfig holds JWT authentication configuration.
 type JWTConfig struct {
-	Secret string `mapstructure:"secret"`
-	Expiry int    `mapstructure:"expiry"` // in seconds
+	Secret        string `mapstructure:"secret"`
+	Expiry        int    `mapstructure:"expiry"`         // in seconds (deprecated, use access_expiry)
+	AccessExpiry  int    `mapstructure:"access_expiry"`  // access token expiry in seconds
+	RefreshExpiry int    `mapstructure:"refresh_expiry"` // refresh token expiry in seconds
 }
 
 // APIKeyConfig holds API key configuration.
 type APIKeyConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Header  string `mapstructure:"header"`
+}
+
+// AuthConfig holds authentication and rate limiting configuration.
+type AuthConfig struct {
+	BootstrapAdmin BootstrapAdminConfig `mapstructure:"bootstrap_admin"`
+	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
+}
+
+// BootstrapAdminConfig holds bootstrap admin user configuration.
+type BootstrapAdminConfig struct {
+	Username string `mapstructure:"username"`
+	Email    string `mapstructure:"email"`
+	Password string `mapstructure:"password"`
+}
+
+// RateLimitConfig holds rate limiting configuration.
+type RateLimitConfig struct {
+	UserRPM       int `mapstructure:"user_rpm"`       // requests per minute for authenticated users
+	APIKeyRPM     int `mapstructure:"apikey_rpm"`     // requests per minute for API keys
+	LoginAttempts int `mapstructure:"login_attempts"` // max login attempts before lockout
+	LoginWindow   int `mapstructure:"login_window"`   // lockout window in seconds
 }
 
 // RecoveryConfig holds database recovery and consistency check configuration.
@@ -178,8 +236,14 @@ func Load(configPath string) (*AppConfig, error) {
 	v.SetDefault("database.host", Defaults.Database.Host)
 	v.SetDefault("logging.path", Defaults.Logging.Path)
 	v.SetDefault("jwt.expiry", Defaults.JWT.Expiry)
+	v.SetDefault("jwt.access_expiry", Defaults.JWT.AccessExpiry)
+	v.SetDefault("jwt.refresh_expiry", Defaults.JWT.RefreshExpiry)
 	v.SetDefault("apikey.enabled", Defaults.APIKey.Enabled)
 	v.SetDefault("apikey.header", Defaults.APIKey.Header)
+	v.SetDefault("auth.rate_limit.user_rpm", Defaults.Auth.RateLimit.UserRPM)
+	v.SetDefault("auth.rate_limit.apikey_rpm", Defaults.Auth.RateLimit.APIKeyRPM)
+	v.SetDefault("auth.rate_limit.login_attempts", Defaults.Auth.RateLimit.LoginAttempts)
+	v.SetDefault("auth.rate_limit.login_window", Defaults.Auth.RateLimit.LoginWindow)
 	v.SetDefault("recovery.auto_repair", Defaults.Recovery.AutoRepair)
 	v.SetDefault("recovery.drop_orphans", Defaults.Recovery.DropOrphans)
 	v.SetDefault("recovery.check_timeout", Defaults.Recovery.CheckTimeout)

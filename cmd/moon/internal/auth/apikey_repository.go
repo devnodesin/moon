@@ -1,0 +1,232 @@
+package auth
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
+	"fmt"
+	"time"
+
+	"github.com/thalib/moon/cmd/moon/internal/database"
+	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
+)
+
+// base62Charset is used for generating API keys.
+const base62Charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+// APIKeyRepository provides database operations for API keys.
+type APIKeyRepository struct {
+	db database.Driver
+}
+
+// NewAPIKeyRepository creates a new API key repository.
+func NewAPIKeyRepository(db database.Driver) *APIKeyRepository {
+	return &APIKeyRepository{db: db}
+}
+
+// GenerateAPIKey generates a new API key with the moon_live_ prefix.
+// Returns the raw key (to be shown to user once) and the hash (to be stored).
+func GenerateAPIKey() (rawKey string, keyHash string, err error) {
+	// Generate 64 random bytes
+	randomBytes := make([]byte, APIKeyLength)
+	_, err = rand.Read(randomBytes)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
+
+	// Convert to base62
+	chars := make([]byte, APIKeyLength)
+	for i, b := range randomBytes {
+		chars[i] = base62Charset[int(b)%len(base62Charset)]
+	}
+
+	rawKey = APIKeyPrefix + string(chars)
+	keyHash = HashAPIKey(rawKey)
+	return rawKey, keyHash, nil
+}
+
+// HashAPIKey hashes an API key using SHA-256.
+func HashAPIKey(key string) string {
+	hash := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hash[:])
+}
+
+// Create creates a new API key in the database.
+func (r *APIKeyRepository) Create(ctx context.Context, apiKey *APIKey) error {
+	apiKey.ULID = moonulid.Generate()
+	apiKey.CreatedAt = time.Now()
+
+	var query string
+	switch r.db.Dialect() {
+	case database.DialectPostgres:
+		query = `INSERT INTO apikeys (ulid, name, description, key_hash, role, can_write, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+		err := r.db.QueryRow(ctx, query,
+			apiKey.ULID, apiKey.Name, apiKey.Description, apiKey.KeyHash,
+			apiKey.Role, apiKey.CanWrite, apiKey.CreatedAt,
+		).Scan(&apiKey.ID)
+		return err
+	default:
+		query = `INSERT INTO apikeys (ulid, name, description, key_hash, role, can_write, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`
+		result, err := r.db.Exec(ctx, query,
+			apiKey.ULID, apiKey.Name, apiKey.Description, apiKey.KeyHash,
+			apiKey.Role, apiKey.CanWrite, apiKey.CreatedAt,
+		)
+		if err != nil {
+			return err
+		}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return err
+		}
+		apiKey.ID = id
+		return nil
+	}
+}
+
+// GetByID retrieves an API key by internal ID.
+func (r *APIKeyRepository) GetByID(ctx context.Context, id int64) (*APIKey, error) {
+	query := "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE id = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE id = $1"
+	}
+
+	apiKey := &APIKey{}
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&apiKey.ID, &apiKey.ULID, &apiKey.Name, &apiKey.Description, &apiKey.KeyHash,
+		&apiKey.Role, &apiKey.CanWrite, &apiKey.CreatedAt, &apiKey.LastUsedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key: %w", err)
+	}
+	return apiKey, nil
+}
+
+// GetByULID retrieves an API key by ULID.
+func (r *APIKeyRepository) GetByULID(ctx context.Context, ulid string) (*APIKey, error) {
+	query := "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE ulid = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE ulid = $1"
+	}
+
+	apiKey := &APIKey{}
+	err := r.db.QueryRow(ctx, query, ulid).Scan(
+		&apiKey.ID, &apiKey.ULID, &apiKey.Name, &apiKey.Description, &apiKey.KeyHash,
+		&apiKey.Role, &apiKey.CanWrite, &apiKey.CreatedAt, &apiKey.LastUsedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key: %w", err)
+	}
+	return apiKey, nil
+}
+
+// GetByHash retrieves an API key by its hash.
+func (r *APIKeyRepository) GetByHash(ctx context.Context, keyHash string) (*APIKey, error) {
+	query := "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE key_hash = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys WHERE key_hash = $1"
+	}
+
+	apiKey := &APIKey{}
+	err := r.db.QueryRow(ctx, query, keyHash).Scan(
+		&apiKey.ID, &apiKey.ULID, &apiKey.Name, &apiKey.Description, &apiKey.KeyHash,
+		&apiKey.Role, &apiKey.CanWrite, &apiKey.CreatedAt, &apiKey.LastUsedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key: %w", err)
+	}
+	return apiKey, nil
+}
+
+// Update updates an API key in the database.
+func (r *APIKeyRepository) Update(ctx context.Context, apiKey *APIKey) error {
+	var query string
+	switch r.db.Dialect() {
+	case database.DialectPostgres:
+		query = `UPDATE apikeys SET name = $1, description = $2, role = $3, can_write = $4, last_used_at = $5 WHERE id = $6`
+	default:
+		query = `UPDATE apikeys SET name = ?, description = ?, role = ?, can_write = ?, last_used_at = ? WHERE id = ?`
+	}
+
+	_, err := r.db.Exec(ctx, query,
+		apiKey.Name, apiKey.Description, apiKey.Role, apiKey.CanWrite, apiKey.LastUsedAt, apiKey.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update API key: %w", err)
+	}
+	return nil
+}
+
+// UpdateLastUsed updates the last used time for an API key.
+func (r *APIKeyRepository) UpdateLastUsed(ctx context.Context, id int64) error {
+	now := time.Now()
+	var query string
+	switch r.db.Dialect() {
+	case database.DialectPostgres:
+		query = "UPDATE apikeys SET last_used_at = $1 WHERE id = $2"
+	default:
+		query = "UPDATE apikeys SET last_used_at = ? WHERE id = ?"
+	}
+
+	_, err := r.db.Exec(ctx, query, now, id)
+	if err != nil {
+		return fmt.Errorf("failed to update last used: %w", err)
+	}
+	return nil
+}
+
+// Delete deletes an API key from the database.
+func (r *APIKeyRepository) Delete(ctx context.Context, id int64) error {
+	query := "DELETE FROM apikeys WHERE id = ?"
+	if r.db.Dialect() == database.DialectPostgres {
+		query = "DELETE FROM apikeys WHERE id = $1"
+	}
+
+	_, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete API key: %w", err)
+	}
+	return nil
+}
+
+// List retrieves all API keys.
+func (r *APIKeyRepository) List(ctx context.Context) ([]*APIKey, error) {
+	query := "SELECT id, ulid, name, description, key_hash, role, can_write, created_at, last_used_at FROM apikeys ORDER BY created_at DESC"
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list API keys: %w", err)
+	}
+	defer rows.Close()
+
+	var keys []*APIKey
+	for rows.Next() {
+		apiKey := &APIKey{}
+		err := rows.Scan(
+			&apiKey.ID, &apiKey.ULID, &apiKey.Name, &apiKey.Description, &apiKey.KeyHash,
+			&apiKey.Role, &apiKey.CanWrite, &apiKey.CreatedAt, &apiKey.LastUsedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan API key: %w", err)
+		}
+		keys = append(keys, apiKey)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate API keys: %w", err)
+	}
+
+	return keys, nil
+}

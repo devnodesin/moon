@@ -69,6 +69,17 @@ func (s *Server) setupRoutes() {
 	// Create documentation handler
 	docHandler := handlers.NewDocHandler(s.registry, s.config, s.version)
 
+	// Create auth handler
+	accessExpiry := s.config.JWT.AccessExpiry
+	if accessExpiry == 0 {
+		accessExpiry = s.config.JWT.Expiry // fallback to legacy config
+	}
+	refreshExpiry := s.config.JWT.RefreshExpiry
+	if refreshExpiry == 0 {
+		refreshExpiry = 604800 // 7 days default
+	}
+	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+
 	// Get the prefix from config
 	prefix := s.config.Server.Prefix
 
@@ -80,6 +91,13 @@ func (s *Server) setupRoutes() {
 	// Health check endpoint (always at /health, respects prefix)
 	healthPath := prefix + "/health"
 	s.mux.HandleFunc("GET "+healthPath, s.loggingMiddleware(s.healthHandler))
+
+	// Authentication endpoints
+	s.mux.HandleFunc("POST "+prefix+"/auth:login", s.loggingMiddleware(authHandler.Login))
+	s.mux.HandleFunc("POST "+prefix+"/auth:logout", s.loggingMiddleware(authHandler.Logout))
+	s.mux.HandleFunc("POST "+prefix+"/auth:refresh", s.loggingMiddleware(authHandler.Refresh))
+	s.mux.HandleFunc("GET "+prefix+"/auth:me", s.loggingMiddleware(authHandler.GetMe))
+	s.mux.HandleFunc("POST "+prefix+"/auth:me", s.loggingMiddleware(authHandler.UpdateMe))
 
 	// Documentation endpoints
 	s.mux.HandleFunc("GET "+prefix+"/doc/", s.loggingMiddleware(docHandler.HTML))
