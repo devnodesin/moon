@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/thalib/moon/cmd/moon/internal/auth"
 	"github.com/thalib/moon/cmd/moon/internal/config"
 	"github.com/thalib/moon/cmd/moon/internal/consistency"
 	"github.com/thalib/moon/cmd/moon/internal/daemon"
@@ -123,6 +124,13 @@ func main() {
 	fmt.Println("Running consistency check...")
 	if err := runConsistencyCheck(ctx, driver, reg, &cfg.Recovery); err != nil {
 		fmt.Fprintf(os.Stderr, "Consistency check failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Bootstrap authentication (create admin user on first startup)
+	fmt.Println("Bootstrapping authentication...")
+	if err := bootstrapAuth(ctx, driver, cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to bootstrap authentication: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -290,4 +298,26 @@ func runConsistencyCheck(ctx context.Context, driver database.Driver, reg *regis
 
 	logging.Error("Inconsistencies detected. Enable auto_repair in config to fix automatically")
 	return fmt.Errorf("consistency check failed: inconsistencies detected (auto_repair disabled)")
+}
+
+// bootstrapAuth initializes authentication tables and creates bootstrap admin if configured
+func bootstrapAuth(ctx context.Context, driver database.Driver, cfg *config.AppConfig) error {
+// Create bootstrap config from app config
+var bootstrapCfg *auth.BootstrapConfig
+if cfg.Auth.BootstrapAdmin.Username != "" {
+bootstrapCfg = &auth.BootstrapConfig{
+Username: cfg.Auth.BootstrapAdmin.Username,
+Email:    cfg.Auth.BootstrapAdmin.Email,
+Password: cfg.Auth.BootstrapAdmin.Password,
+}
+}
+
+// Bootstrap authentication
+if err := auth.Bootstrap(ctx, driver, bootstrapCfg); err != nil {
+return fmt.Errorf("bootstrap failed: %w", err)
+}
+
+logging.Info("✓ Authentication bootstrap completed")
+fmt.Println("✓ Authentication bootstrap completed")
+return nil
 }
