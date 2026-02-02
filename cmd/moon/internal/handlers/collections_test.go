@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -369,20 +370,44 @@ func TestDestroy_NotFound(t *testing.T) {
 	}
 }
 
+// TestValidateCollectionName tests collection name validation (PRD-047, PRD-048)
 func TestValidateCollectionName(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
 		expectError bool
+		errContains string // substring expected in error
 	}{
-		{"valid name", "users", false},
-		{"valid with underscore", "user_profiles", false},
-		{"valid with numbers", "table123", false},
-		{"empty", "", true},
-		{"starts with number", "123table", true},
-		{"reserved word", "select", true},
-		{"with dash", "user-profiles", true},
-		{"with space", "user profiles", true},
+		// Valid cases
+		{"valid name", "products", false, ""},
+		{"valid with underscore", "user_profiles", false, ""},
+		{"valid with numbers", "table123", false, ""},
+		{"valid min length", "ab", false, ""},
+
+		// Invalid: empty
+		{"empty", "", true, "empty"},
+
+		// Invalid: length
+		{"too short (1 char)", "a", true, "at least 2"},
+
+		// Invalid: reserved endpoints
+		{"reserved collections", "collections", true, "reserved"},
+		{"reserved auth", "auth", true, "reserved"},
+		{"reserved users", "users", true, "reserved"},
+		{"reserved apikeys", "apikeys", true, "reserved"},
+
+		// Invalid: pattern
+		{"starts with number", "123table", true, "start with a letter"},
+		{"with dash", "user-profiles", true, "start with a letter"},
+		{"with space", "user profiles", true, "start with a letter"},
+
+		// Invalid: reserved SQL keywords
+		{"reserved word select", "select", true, "reserved keyword"},
+		{"reserved word table", "table", true, "reserved keyword"},
+		{"reserved word insert", "insert", true, "reserved keyword"},
+
+		// Invalid: system prefix
+		{"moon prefix", "moon_data", true, "moon_"},
 	}
 
 	for _, tt := range tests {
@@ -393,6 +418,126 @@ func TestValidateCollectionName(t *testing.T) {
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("Did not expect error for '%s', got: %v", tt.input, err)
+			}
+			if tt.expectError && err != nil && tt.errContains != "" {
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got: %v", tt.errContains, err)
+				}
+			}
+		})
+	}
+}
+
+// TestValidateColumnName tests column name validation (PRD-048)
+func TestValidateColumnName(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectError bool
+		errContains string
+	}{
+		// Valid cases
+		{"valid name", "name", false, ""},
+		{"valid with underscore", "user_name", false, ""},
+		{"valid with number", "address_line_2", false, ""},
+
+		// Invalid: empty
+		{"empty name", "", true, "empty"},
+
+		// Invalid: length
+		{"too short", "ab", true, "at least 3"},
+
+		// Invalid: system columns (note: these are also too short, so length error comes first)
+		// Using a longer name that's still a system column concept
+		// Actually, id and ulid are both only 2-4 chars, so we need to test system column check separately
+
+		// Invalid: uppercase
+		{"starts uppercase", "Name", true, "lowercase"},
+		{"contains uppercase", "userName", true, "lowercase"},
+
+		// Invalid: pattern
+		{"starts with number", "123name", true, "lowercase"},
+		{"starts with underscore", "_name", true, "lowercase"},
+
+		// Invalid: SQL keywords
+		{"select keyword", "select", true, "reserved keyword"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateColumnName(tt.input)
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error for '%s'", tt.input)
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Did not expect error for '%s', got: %v", tt.input, err)
+			}
+			if tt.expectError && err != nil && tt.errContains != "" {
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got: %v", tt.errContains, err)
+				}
+			}
+		})
+	}
+}
+
+// TestValidateColumnName_SystemColumns tests system column validation specifically
+func TestValidateColumnName_SystemColumns(t *testing.T) {
+	// "id" and "ulid" are system columns
+	// However, they are also too short (2 and 4 chars, min is 3)
+	// So the length check fails first
+	err := validateColumnName("id")
+	if err == nil {
+		t.Error("Expected error for system column 'id'")
+	}
+
+	err = validateColumnName("ulid")
+	if err == nil {
+		t.Error("Expected error for system column 'ulid'")
+	}
+	if err != nil && !strings.Contains(err.Error(), "system column") {
+		t.Errorf("Expected system column error for 'ulid', got: %v", err)
+	}
+}
+
+// TestValidateColumnType tests column type validation (PRD-048)
+func TestValidateColumnType(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectError bool
+		errContains string
+	}{
+		// Valid types
+		{"valid string", "string", false, ""},
+		{"valid integer", "integer", false, ""},
+		{"valid decimal", "decimal", false, ""},
+		{"valid boolean", "boolean", false, ""},
+		{"valid datetime", "datetime", false, ""},
+		{"valid json", "json", false, ""},
+
+		// Deprecated types
+		{"deprecated text", "text", true, "deprecated"},
+		{"deprecated float", "float", true, "deprecated"},
+
+		// Invalid types
+		{"invalid varchar", "varchar", true, "invalid column type"},
+		{"invalid unknown", "unknown", true, "invalid column type"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateColumnType(tt.input)
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error for '%s'", tt.input)
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Did not expect error for '%s', got: %v", tt.input, err)
+			}
+			if tt.expectError && err != nil && tt.errContains != "" {
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got: %v", tt.errContains, err)
+				}
 			}
 		})
 	}
