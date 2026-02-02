@@ -12,6 +12,9 @@ const (
 
 	// TableAPIKeys is the system table for API key credentials
 	TableAPIKeys = "moon_apikeys"
+
+	// TableBlacklistedTokens is the system table for revoked JWT access tokens
+	TableBlacklistedTokens = "moon_blacklisted_tokens"
 )
 
 // SystemTables is a list of all system tables that should be excluded from
@@ -20,6 +23,7 @@ var SystemTables = []string{
 	TableUsers,
 	TableRefreshTokens,
 	TableAPIKeys,
+	TableBlacklistedTokens,
 }
 
 // IsSystemTable checks if a given table name is a system table.

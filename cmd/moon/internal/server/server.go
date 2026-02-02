@@ -26,16 +26,17 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	config       *config.AppConfig
-	db           database.Driver
-	registry     *registry.SchemaRegistry
-	mux          *http.ServeMux
-	server       *http.Server
-	version      string
-	rateLimiter  *middleware.RateLimitMiddleware
-	authzMiddle  *middleware.AuthorizationMiddleware
-	tokenService *auth.TokenService
-	apiKeyRepo   *auth.APIKeyRepository
+	config         *config.AppConfig
+	db             database.Driver
+	registry       *registry.SchemaRegistry
+	mux            *http.ServeMux
+	server         *http.Server
+	version        string
+	rateLimiter    *middleware.RateLimitMiddleware
+	authzMiddle    *middleware.AuthorizationMiddleware
+	tokenService   *auth.TokenService
+	tokenBlacklist *auth.TokenBlacklist
+	apiKeyRepo     *auth.APIKeyRepository
 }
 
 // New creates a new server instance
@@ -62,15 +63,16 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
 
 	srv := &Server{
-		config:       cfg,
-		db:           db,
-		registry:     reg,
-		mux:          mux,
-		version:      version,
-		rateLimiter:  middleware.NewRateLimitMiddleware(rateLimiterConfig),
-		authzMiddle:  middleware.NewAuthorizationMiddleware(),
-		tokenService: tokenService,
-		apiKeyRepo:   auth.NewAPIKeyRepository(db),
+		config:         cfg,
+		db:             db,
+		registry:       reg,
+		mux:            mux,
+		version:        version,
+		rateLimiter:    middleware.NewRateLimitMiddleware(rateLimiterConfig),
+		authzMiddle:    middleware.NewAuthorizationMiddleware(),
+		tokenService:   tokenService,
+		tokenBlacklist: auth.NewTokenBlacklist(db),
+		apiKeyRepo:     auth.NewAPIKeyRepository(db),
 		server: &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 			Handler:      mux,
@@ -269,6 +271,18 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			if len(parts) == 2 && strings.ToLower(parts[0]) == strings.ToLower(constants.AuthSchemeBearer) {
 				token := strings.TrimSpace(parts[1])
 				if token != "" {
+					// Check if token is blacklisted
+					blacklisted, err := s.tokenBlacklist.IsBlacklisted(ctx, token)
+					if err != nil {
+						log.Printf("Error checking token blacklist: %v", err)
+						s.writeAuthError(w, http.StatusInternalServerError, "authentication error")
+						return
+					}
+					if blacklisted {
+						s.writeAuthError(w, http.StatusUnauthorized, "token has been revoked")
+						return
+					}
+
 					claims, err := s.tokenService.ValidateAccessToken(token)
 					if err == nil {
 						// Valid JWT - create auth entity

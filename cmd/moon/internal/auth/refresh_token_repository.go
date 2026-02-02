@@ -139,6 +139,11 @@ func (r *RefreshTokenRepository) DeleteByUserID(ctx context.Context, userID int6
 	return nil
 }
 
+// DeleteAllByUserID is an alias for DeleteByUserID for backwards compatibility
+func (r *RefreshTokenRepository) DeleteAllByUserID(ctx context.Context, userID int64) error {
+	return r.DeleteByUserID(ctx, userID)
+}
+
 // DeleteExpired deletes all expired refresh tokens.
 func (r *RefreshTokenRepository) DeleteExpired(ctx context.Context) (int64, error) {
 	query := fmt.Sprintf("DELETE FROM %s WHERE expires_at < ?", constants.TableRefreshTokens)

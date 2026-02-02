@@ -64,6 +64,17 @@ func getSQLiteSchema() []string {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_moon_apikeys_ulid ON ` + constants.TableAPIKeys + `(ulid)`,
 		`CREATE INDEX IF NOT EXISTS idx_moon_apikeys_key_hash ON ` + constants.TableAPIKeys + `(key_hash)`,
+
+		`CREATE TABLE IF NOT EXISTS ` + constants.TableBlacklistedTokens + ` (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			token_hash TEXT NOT NULL UNIQUE,
+			user_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES ` + constants.TableUsers + `(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_moon_blacklisted_tokens_token_hash ON ` + constants.TableBlacklistedTokens + `(token_hash)`,
+		`CREATE INDEX IF NOT EXISTS idx_moon_blacklisted_tokens_expires_at ON ` + constants.TableBlacklistedTokens + `(expires_at)`,
 	}
 }
 
@@ -110,6 +121,16 @@ func getPostgresSchema() []string {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_moon_apikeys_ulid ON ` + constants.TableAPIKeys + `(ulid)`,
 		`CREATE INDEX IF NOT EXISTS idx_moon_apikeys_key_hash ON ` + constants.TableAPIKeys + `(key_hash)`,
+
+		`CREATE TABLE IF NOT EXISTS ` + constants.TableBlacklistedTokens + ` (
+			id BIGSERIAL PRIMARY KEY,
+			token_hash VARCHAR(64) NOT NULL UNIQUE,
+			user_id BIGINT NOT NULL REFERENCES ` + constants.TableUsers + `(id) ON DELETE CASCADE,
+			expires_at TIMESTAMP NOT NULL,
+			created_at TIMESTAMP NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_moon_blacklisted_tokens_token_hash ON ` + constants.TableBlacklistedTokens + `(token_hash)`,
+		`CREATE INDEX IF NOT EXISTS idx_moon_blacklisted_tokens_expires_at ON ` + constants.TableBlacklistedTokens + `(expires_at)`,
 	}
 }
 
@@ -156,6 +177,17 @@ func getMySQLSchema() []string {
 			last_used_at DATETIME,
 			INDEX idx_moon_apikeys_ulid (ulid),
 			INDEX idx_moon_apikeys_key_hash (key_hash)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS ` + constants.TableBlacklistedTokens + ` (
+			id BIGINT AUTO_INCREMENT PRIMARY KEY,
+			token_hash VARCHAR(64) NOT NULL UNIQUE,
+			user_id BIGINT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME NOT NULL,
+			INDEX idx_moon_blacklisted_tokens_token_hash (token_hash),
+			INDEX idx_moon_blacklisted_tokens_expires_at (expires_at),
+			FOREIGN KEY (user_id) REFERENCES ` + constants.TableUsers + `(id) ON DELETE CASCADE
 		)`,
 	}
 }
