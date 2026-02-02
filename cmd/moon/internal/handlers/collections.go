@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
@@ -16,18 +17,15 @@ import (
 )
 
 var (
-	// Valid collection name pattern: alphanumeric and underscores only
-	collectionNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
+	// collectionNameRegex validates collection names.
+	// Pattern: Must start with a letter, followed by letters, numbers, or underscores.
+	collectionNameRegex = regexp.MustCompile(constants.CollectionNamePattern)
 
-	// Reserved SQL keywords that cannot be used as collection names
-	reservedWords = map[string]bool{
-		"select": true, "insert": true, "update": true, "delete": true,
-		"from": true, "where": true, "join": true, "table": true,
-		"index": true, "view": true, "trigger": true, "function": true,
-		"procedure": true, "database": true, "schema": true, "user": true,
-	}
+	// columnNameRegex validates column names (lowercase only).
+	// Pattern: Must start with a lowercase letter, followed by lowercase letters, numbers, or underscores.
+	columnNameRegex = regexp.MustCompile(constants.ColumnNamePattern)
 
-	// System columns that cannot be removed or renamed
+	// System columns that cannot be added, removed, or renamed
 	systemColumns = map[string]bool{
 		"id":   true,
 		"ulid": true,
@@ -149,6 +147,9 @@ func (h *CollectionsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Normalize collection name to lowercase for lookup (PRD-047)
+	name = strings.ToLower(name)
+
 	collection, exists := h.registry.Get(name)
 	if !exists {
 		writeError(w, http.StatusNotFound, fmt.Sprintf("collection '%s' not found", name))
@@ -170,6 +171,9 @@ func (h *CollectionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Normalize collection name to lowercase (PRD-047)
+	req.Name = strings.ToLower(req.Name)
+
 	// Validate collection name
 	if err := validateCollectionName(req.Name); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -182,9 +186,22 @@ func (h *CollectionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check collection count limit (PRD-048)
+	if err := validateCollectionCount(h.registry); err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+
 	// Validate columns
 	if len(req.Columns) == 0 {
 		writeError(w, http.StatusBadRequest, "at least one column is required")
+		return
+	}
+
+	// Check column count limit (PRD-048)
+	// Total includes system columns (id, ulid) plus user-defined columns
+	if len(req.Columns)+constants.SystemColumnsCount > constants.MaxColumnsPerCollection {
+		writeError(w, http.StatusConflict, fmt.Sprintf("maximum number of columns (%d) exceeded", constants.MaxColumnsPerCollection))
 		return
 	}
 
@@ -193,8 +210,22 @@ func (h *CollectionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("column %d: name is required", i))
 			return
 		}
-		if !registry.ValidateColumnType(col.Type) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("column '%s': invalid type '%s'", col.Name, col.Type))
+
+		// Validate column name (PRD-048)
+		if err := validateColumnName(col.Name); err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("column '%s': %v", col.Name, err))
+			return
+		}
+
+		// Validate column type with deprecated type checking (PRD-048)
+		if err := validateColumnType(string(col.Type)); err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("column '%s': %v", col.Name, err))
+			return
+		}
+
+		// Validate default value if provided (PRD-048)
+		if err := validateDefaultValue(&req.Columns[i]); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
@@ -235,6 +266,9 @@ func (h *CollectionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+
+	// Normalize collection name to lowercase (PRD-047)
+	req.Name = strings.ToLower(req.Name)
 
 	// Validate collection name
 	if err := validateCollectionName(req.Name); err != nil {
@@ -401,6 +435,9 @@ func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Normalize collection name to lowercase (PRD-047)
+	req.Name = strings.ToLower(req.Name)
+
 	// Validate collection name
 	if err := validateCollectionName(req.Name); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -436,18 +473,248 @@ func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-// validateCollectionName validates a collection name
+// validateCollectionName validates a collection name against all PRD-047 and PRD-048 rules.
+// Rules applied:
+// 1. Name cannot be empty
+// 2. Length must be between 2 and 63 characters
+// 3. Cannot be a reserved endpoint name (case-insensitive)
+// 4. Must match pattern: start with a letter, contain only letters, numbers, and underscores
+// 5. Cannot be a SQL reserved keyword
+// 6. Cannot start with 'moon_' or be 'moon' (system prefix/namespace)
 func validateCollectionName(name string) error {
-	if name == "" {
+	// 1. Empty check
+	if strings.TrimSpace(name) == "" {
 		return fmt.Errorf("collection name cannot be empty")
 	}
 
-	if !collectionNameRegex.MatchString(name) {
-		return fmt.Errorf("collection name must start with a letter and contain only alphanumeric characters and underscores")
+	// 2. Length validation
+	if len(name) < constants.MinCollectionNameLength {
+		return fmt.Errorf("collection name must be at least %d characters", constants.MinCollectionNameLength)
+	}
+	if len(name) > constants.MaxCollectionNameLength {
+		return fmt.Errorf("collection name must not exceed %d characters", constants.MaxCollectionNameLength)
 	}
 
-	if reservedWords[strings.ToLower(name)] {
+	// 3. Reserved endpoint check (case-insensitive)
+	if constants.IsReservedEndpointName(name) {
+		return fmt.Errorf("collection name '%s' is reserved for system endpoints", name)
+	}
+
+	// 4. Pattern validation
+	if !collectionNameRegex.MatchString(name) {
+		return fmt.Errorf("collection name must start with a letter and contain only letters, numbers, and underscores")
+	}
+
+	// 5. Reserved keyword check (case-insensitive)
+	if constants.IsReservedKeyword(name) {
 		return fmt.Errorf("'%s' is a reserved keyword and cannot be used as a collection name", name)
+	}
+
+	// 6. System table/prefix check
+	if constants.IsSystemTableOrPrefix(name) {
+		return fmt.Errorf("collection name cannot start with 'moon_' or be 'moon' (reserved for system tables)")
+	}
+
+	return nil
+}
+
+// validateCollectionCount checks if the collection count limit has been reached.
+func validateCollectionCount(reg *registry.SchemaRegistry) error {
+	count := reg.Count()
+	if count >= constants.MaxCollectionsPerServer {
+		return fmt.Errorf("maximum number of collections (%d) reached", constants.MaxCollectionsPerServer)
+	}
+	return nil
+}
+
+// validateColumnName validates a column name against PRD-048 rules.
+// Rules applied:
+// 1. Name cannot be empty
+// 2. Length must be between 3 and 63 characters
+// 3. Cannot be a system column (id, ulid)
+// 4. Must match pattern: start with lowercase letter, contain only lowercase letters, numbers, and underscores
+// 5. Cannot be a SQL reserved keyword
+func validateColumnName(name string) error {
+	// 1. Empty check
+	if strings.TrimSpace(name) == "" {
+		return fmt.Errorf("column name cannot be empty")
+	}
+
+	// 2. Length validation
+	if len(name) < constants.MinColumnNameLength {
+		return fmt.Errorf("column name must be at least %d characters", constants.MinColumnNameLength)
+	}
+	if len(name) > constants.MaxColumnNameLength {
+		return fmt.Errorf("column name must not exceed %d characters", constants.MaxColumnNameLength)
+	}
+
+	// 3. System column check
+	if systemColumns[name] {
+		return fmt.Errorf("cannot add system column '%s'", name)
+	}
+
+	// 4. Pattern validation (lowercase only)
+	if !columnNameRegex.MatchString(name) {
+		return fmt.Errorf("column name must start with a lowercase letter and contain only lowercase letters, numbers, and underscores")
+	}
+
+	// 5. Reserved keyword check
+	if constants.IsReservedKeyword(name) {
+		return fmt.Errorf("'%s' is a reserved keyword and cannot be used as a column name", name)
+	}
+
+	return nil
+}
+
+// validateColumnCount checks if adding more columns would exceed the limit.
+func validateColumnCount(collection *registry.Collection, addingCount int) error {
+	// collection.Columns does not include system columns, so add SystemColumnsCount
+	totalColumns := len(collection.Columns) + constants.SystemColumnsCount + addingCount
+	if totalColumns > constants.MaxColumnsPerCollection {
+		return fmt.Errorf("maximum number of columns (%d) reached for collection '%s'",
+			constants.MaxColumnsPerCollection, collection.Name)
+	}
+	return nil
+}
+
+// validateColumnType validates a column type with deprecated type checking.
+func validateColumnType(typeStr string) error {
+	// Check for deprecated types first
+	switch strings.ToLower(typeStr) {
+	case "text":
+		return fmt.Errorf("type 'text' is deprecated and no longer supported. Use 'string' instead")
+	case "float":
+		return fmt.Errorf("type 'float' is deprecated and no longer supported. Use 'decimal' or 'integer' instead")
+	}
+
+	// Validate using registry's validation
+	if !registry.ValidateColumnType(registry.ColumnType(typeStr)) {
+		return fmt.Errorf("invalid column type '%s'. Supported types: string, integer, decimal, boolean, datetime, json", typeStr)
+	}
+
+	return nil
+}
+
+// validateDefaultValue validates a default value against column type.
+func validateDefaultValue(column *registry.Column) error {
+	if column.DefaultValue == nil {
+		return nil // No default value specified
+	}
+
+	value := *column.DefaultValue
+
+	// Check nullable constraint for null default
+	if strings.ToLower(value) == "null" {
+		if !column.Nullable {
+			return fmt.Errorf("default value cannot be null for non-nullable column '%s'", column.Name)
+		}
+		return nil
+	}
+
+	// Validate format based on type
+	switch column.Type {
+	case registry.TypeString:
+		// Any string is valid
+		return nil
+
+	case registry.TypeInteger:
+		// Must be parseable as int64
+		for i, c := range value {
+			if i == 0 && c == '-' {
+				continue
+			}
+			if c < '0' || c > '9' {
+				return fmt.Errorf("default value '%s' is invalid for type 'integer'", value)
+			}
+		}
+		return nil
+
+	case registry.TypeDecimal:
+		if err := validateDecimalFormat(value); err != nil {
+			return fmt.Errorf("default value '%s' is invalid for type 'decimal': %v", value, err)
+		}
+		return nil
+
+	case registry.TypeBoolean:
+		lower := strings.ToLower(value)
+		if lower != "true" && lower != "false" {
+			return fmt.Errorf("default value '%s' is invalid for type 'boolean'. Use 'true' or 'false'", value)
+		}
+		return nil
+
+	case registry.TypeDatetime:
+		if _, err := time.Parse(time.RFC3339, value); err != nil {
+			return fmt.Errorf("default value '%s' is invalid for type 'datetime'. Use RFC3339 format (e.g., '2024-01-01T00:00:00Z')", value)
+		}
+		return nil
+
+	case registry.TypeJSON:
+		// Basic JSON validation - check for valid JSON brackets/braces
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "null" || trimmed == "true" || trimmed == "false" {
+			return nil // Valid JSON literals
+		}
+		if len(trimmed) >= 2 {
+			first, last := trimmed[0], trimmed[len(trimmed)-1]
+			if (first == '{' && last == '}') || (first == '[' && last == ']') || (first == '"' && last == '"') {
+				return nil // Basic structure check
+			}
+		}
+		// Check if it's a number
+		if _, err := fmt.Sscanf(trimmed, "%f", new(float64)); err == nil {
+			return nil
+		}
+		return fmt.Errorf("default value '%s' is invalid JSON", value)
+
+	default:
+		return fmt.Errorf("unknown column type '%s'", column.Type)
+	}
+}
+
+// validateDecimalFormat validates a decimal string format.
+func validateDecimalFormat(value string) error {
+	if value == "" {
+		return fmt.Errorf("value cannot be empty")
+	}
+
+	// Check for valid decimal format: optional sign, digits, optional decimal point and digits
+	parts := strings.Split(value, ".")
+	if len(parts) > 2 {
+		return fmt.Errorf("invalid decimal format")
+	}
+
+	// Validate integer part
+	intPart := parts[0]
+	if intPart == "" || intPart == "-" || intPart == "+" {
+		return fmt.Errorf("invalid decimal format")
+	}
+
+	startIdx := 0
+	if intPart[0] == '-' || intPart[0] == '+' {
+		startIdx = 1
+	}
+
+	for i := startIdx; i < len(intPart); i++ {
+		if intPart[i] < '0' || intPart[i] > '9' {
+			return fmt.Errorf("invalid decimal format")
+		}
+	}
+
+	// Validate decimal part if present
+	if len(parts) == 2 {
+		decPart := parts[1]
+		if decPart == "" {
+			return fmt.Errorf("trailing decimal point not allowed")
+		}
+		for _, c := range decPart {
+			if c < '0' || c > '9' {
+				return fmt.Errorf("invalid decimal format")
+			}
+		}
+		// Check scale
+		if len(decPart) > constants.DecimalMaxScale {
+			return fmt.Errorf("decimal scale exceeds maximum (%d)", constants.DecimalMaxScale)
+		}
 	}
 
 	return nil
@@ -455,12 +722,24 @@ func validateCollectionName(name string) error {
 
 // validateAddColumns validates columns to be added
 func (h *CollectionsHandler) validateAddColumns(columns []registry.Column, collection *registry.Collection) error {
+	// Check column count limit
+	if err := validateColumnCount(collection, len(columns)); err != nil {
+		return err
+	}
+
 	for i, col := range columns {
 		if col.Name == "" {
 			return fmt.Errorf("column %d: name is required", i)
 		}
-		if !registry.ValidateColumnType(col.Type) {
-			return fmt.Errorf("column '%s': invalid type '%s'", col.Name, col.Type)
+
+		// Validate column name
+		if err := validateColumnName(col.Name); err != nil {
+			return fmt.Errorf("column '%s': %v", col.Name, err)
+		}
+
+		// Validate column type with deprecated type checking
+		if err := validateColumnType(string(col.Type)); err != nil {
+			return fmt.Errorf("column '%s': %v", col.Name, err)
 		}
 
 		// Check if column already exists
@@ -470,9 +749,9 @@ func (h *CollectionsHandler) validateAddColumns(columns []registry.Column, colle
 			}
 		}
 
-		// System columns cannot be added manually
-		if systemColumns[col.Name] {
-			return fmt.Errorf("cannot add system column '%s'", col.Name)
+		// Validate default value if provided
+		if err := validateDefaultValue(&col); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -517,6 +796,11 @@ func (h *CollectionsHandler) validateRenameColumns(renames []RenameColumn, colle
 			return fmt.Errorf("cannot rename system column '%s'", rename.OldName)
 		}
 
+		// Validate new column name against PRD-048 rules
+		if err := validateColumnName(rename.NewName); err != nil {
+			return fmt.Errorf("new column name '%s': %v", rename.NewName, err)
+		}
+
 		// Check if old column exists
 		found := false
 		for _, existing := range collection.Columns {
@@ -549,8 +833,9 @@ func (h *CollectionsHandler) validateModifyColumns(modifies []ModifyColumn, coll
 			return fmt.Errorf("column name is required for modify")
 		}
 
-		if !registry.ValidateColumnType(modify.Type) {
-			return fmt.Errorf("column '%s': invalid type '%s'", modify.Name, modify.Type)
+		// Validate column type with deprecated type checking (PRD-048)
+		if err := validateColumnType(string(modify.Type)); err != nil {
+			return fmt.Errorf("column '%s': %v", modify.Name, err)
 		}
 
 		// System columns cannot be modified

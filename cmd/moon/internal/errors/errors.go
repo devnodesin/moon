@@ -20,11 +20,23 @@ import (
 type ErrorCode string
 
 const (
-	// Validation errors
-	CodeValidationFailed ErrorCode = "VALIDATION_FAILED"
-	CodeInvalidInput     ErrorCode = "INVALID_INPUT"
-	CodeMissingField     ErrorCode = "MISSING_FIELD"
-	CodeInvalidType      ErrorCode = "INVALID_TYPE"
+	// Validation errors (PRD-049)
+	CodeValidationFailed      ErrorCode = "VALIDATION_ERROR"
+	CodeValidationError       ErrorCode = "VALIDATION_ERROR" // alias
+	CodeInvalidInput          ErrorCode = "INVALID_INPUT"
+	CodeMissingField          ErrorCode = "MISSING_FIELD"
+	CodeRequiredField         ErrorCode = "REQUIRED_FIELD"
+	CodeInvalidType           ErrorCode = "INVALID_TYPE"
+	CodeInvalidJSON           ErrorCode = "INVALID_JSON"
+	CodeInvalidULID           ErrorCode = "INVALID_ULID"
+	CodeInvalidCursor         ErrorCode = "INVALID_CURSOR"
+	CodePageSizeExceeded      ErrorCode = "PAGE_SIZE_EXCEEDED"
+	CodeFiltersExceeded       ErrorCode = "FILTERS_EXCEEDED"
+	CodeSortFieldsExceeded    ErrorCode = "SORT_FIELDS_EXCEEDED"
+	CodeCollectionNameInvalid ErrorCode = "COLLECTION_NAME_INVALID"
+	CodeColumnNameInvalid     ErrorCode = "COLUMN_NAME_INVALID"
+	CodeReservedName          ErrorCode = "RESERVED_NAME"
+	CodeDeprecatedType        ErrorCode = "DEPRECATED_TYPE"
 
 	// Authentication errors
 	CodeUnauthorized  ErrorCode = "UNAUTHORIZED"
@@ -38,21 +50,29 @@ const (
 	CodeForbidden               ErrorCode = "FORBIDDEN"
 	CodeInsufficientPermissions ErrorCode = "INSUFFICIENT_PERMISSIONS"
 
-	// Resource errors
-	CodeNotFound         ErrorCode = "NOT_FOUND"
-	CodeResourceNotFound ErrorCode = "RESOURCE_NOT_FOUND"
-	CodeAlreadyExists    ErrorCode = "ALREADY_EXISTS"
-	CodeConflict         ErrorCode = "CONFLICT"
+	// Resource errors (PRD-049)
+	CodeNotFound              ErrorCode = "NOT_FOUND"
+	CodeResourceNotFound      ErrorCode = "RESOURCE_NOT_FOUND"
+	CodeCollectionNotFound    ErrorCode = "COLLECTION_NOT_FOUND"
+	CodeRecordNotFound        ErrorCode = "RECORD_NOT_FOUND"
+	CodeAlreadyExists         ErrorCode = "ALREADY_EXISTS"
+	CodeConflict              ErrorCode = "CONFLICT"
+	CodeDuplicateCollection   ErrorCode = "DUPLICATE_COLLECTION"
+	CodeUniqueViolation       ErrorCode = "UNIQUE_CONSTRAINT_VIOLATION"
+	CodeMaxCollectionsReached ErrorCode = "MAX_COLLECTIONS_REACHED"
+	CodeMaxColumnsReached     ErrorCode = "MAX_COLUMNS_REACHED"
 
-	// Server errors
+	// Server errors (PRD-049)
 	CodeInternalError      ErrorCode = "INTERNAL_ERROR"
 	CodeDatabaseError      ErrorCode = "DATABASE_ERROR"
 	CodeServiceUnavailable ErrorCode = "SERVICE_UNAVAILABLE"
+	CodeQueryTimeout       ErrorCode = "QUERY_TIMEOUT"
 
 	// Request errors
 	CodeBadRequest       ErrorCode = "BAD_REQUEST"
 	CodeMethodNotAllowed ErrorCode = "METHOD_NOT_ALLOWED"
 	CodeTooManyRequests  ErrorCode = "TOO_MANY_REQUESTS"
+	CodeRateLimitExceeded ErrorCode = "RATE_LIMIT_EXCEEDED"
 )
 
 // ErrorResponse represents the standard error response format
