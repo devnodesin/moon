@@ -130,6 +130,110 @@ The following types are deprecated and will return an error:
 | `text` | `string` | Redundant - both map to TEXT |
 | `float` | `decimal` or `integer` | Precision issues with floating-point |
 
+## API Standards
+
+Moon implements industry-standard API patterns for consistent client experience.
+
+### Rate Limiting Headers
+
+When rate limiting is enabled, all responses include rate limit headers:
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `X-RateLimit-Limit` | Maximum requests per window | `100` |
+| `X-RateLimit-Remaining` | Remaining requests in window | `87` |
+| `X-RateLimit-Reset` | Unix timestamp when window resets | `1704067200` |
+| `Retry-After` | Seconds until retry (429 responses only) | `60` |
+
+### Error Response Format
+
+All error responses follow a consistent JSON structure:
+
+```json
+{
+  "error": "human-readable error message",
+  "code": "ERROR_CODE"
+}
+```
+
+With optional details:
+
+```json
+{
+  "error": "validation failed",
+  "code": "VALIDATION_ERROR",
+  "details": {
+    "field": "email",
+    "expected": "valid email format"
+  }
+}
+```
+
+### Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `VALIDATION_ERROR` | 400 | Input validation failed |
+| `INVALID_JSON` | 400 | Malformed JSON |
+| `INVALID_ULID` | 400 | Invalid ULID format |
+| `PAGE_SIZE_EXCEEDED` | 400 | Page size exceeds maximum |
+| `COLLECTION_NOT_FOUND` | 404 | Collection does not exist |
+| `RECORD_NOT_FOUND` | 404 | Record not found |
+| `DUPLICATE_COLLECTION` | 409 | Collection name already exists |
+| `MAX_COLLECTIONS_REACHED` | 409 | Maximum collections limit reached |
+| `MAX_COLUMNS_REACHED` | 409 | Maximum columns limit reached |
+| `UNAUTHORIZED` | 401 | Authentication required |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
+
+### CORS Support
+
+Cross-Origin Resource Sharing (CORS) can be enabled via configuration:
+
+```yaml
+cors:
+  enabled: true
+  allowed_origins:
+    - "https://app.example.com"
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - Content-Type
+    - Authorization
+    - X-API-KEY
+  allow_credentials: true
+  max_age: 3600
+```
+
+CORS headers exposed to browsers:
+- `X-RateLimit-Limit`
+- `X-RateLimit-Remaining`
+- `X-RateLimit-Reset`
+- `X-Request-ID`
+
+### Sensitive Data Redaction
+
+Moon automatically redacts sensitive fields in logs to prevent credential leakage:
+
+**Default Sensitive Fields:**
+- `password`, `token`, `secret`, `api_key`, `apikey`
+- `authorization`, `jwt`, `refresh_token`, `access_token`
+- `client_secret`, `private_key`, `credential`, `auth`
+
+**Configuration:**
+```yaml
+logging:
+  redact_sensitive: true  # Default: true
+  additional_sensitive_fields:
+    - "ssn"
+    - "credit_card"
+```
+
 ## Configuration Architecture
 
 The system uses YAML-only configuration with centralized defaults:

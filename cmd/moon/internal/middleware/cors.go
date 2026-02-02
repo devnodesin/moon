@@ -12,6 +12,7 @@ type CORSConfig struct {
 	AllowedOrigins   []string
 	AllowedMethods   []string
 	AllowedHeaders   []string
+	ExposedHeaders   []string // Headers exposed to browser (PRD-049)
 	AllowCredentials bool
 	MaxAge           int
 }
@@ -23,6 +24,15 @@ type CORSMiddleware struct {
 
 // NewCORSMiddleware creates a new CORS middleware instance
 func NewCORSMiddleware(config CORSConfig) *CORSMiddleware {
+	// Set default exposed headers if not specified (PRD-049)
+	if len(config.ExposedHeaders) == 0 {
+		config.ExposedHeaders = []string{
+			"X-RateLimit-Limit",
+			"X-RateLimit-Remaining",
+			"X-RateLimit-Reset",
+			"X-Request-ID",
+		}
+	}
 	return &CORSMiddleware{config: config}
 }
 
@@ -45,6 +55,11 @@ func (m *CORSMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			// Set Access-Control-Allow-Credentials
 			if m.config.AllowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			// Set Access-Control-Expose-Headers (PRD-049)
+			if len(m.config.ExposedHeaders) > 0 {
+				w.Header().Set("Access-Control-Expose-Headers", strings.Join(m.config.ExposedHeaders, ", "))
 			}
 
 			// Handle preflight OPTIONS request

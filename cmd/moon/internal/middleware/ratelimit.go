@@ -255,11 +255,17 @@ func (m *RateLimitMiddleware) logRateLimitExceeded(r *http.Request, entityID, en
 
 // writeRateLimitError writes a rate limit error response.
 func (m *RateLimitMiddleware) writeRateLimitError(w http.ResponseWriter, limit int, reset time.Time) {
+	// Add Retry-After header (PRD-049)
+	retryAfter := int(time.Until(reset).Seconds())
+	if retryAfter < 0 {
+		retryAfter = 0
+	}
+	w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(http.StatusTooManyRequests)
 	json.NewEncoder(w).Encode(map[string]any{
 		"error":      "rate limit exceeded",
-		"code":       http.StatusTooManyRequests,
+		"code":       "RATE_LIMIT_EXCEEDED",
 		"error_code": "RATE_LIMIT_EXCEEDED",
 		"limit":      limit,
 		"reset":      reset.Unix(),
