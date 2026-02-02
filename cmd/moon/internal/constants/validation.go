@@ -23,8 +23,10 @@ const (
 	// MaxCollectionNameLength is the maximum length for collection names.
 	// PostgreSQL has 63-char limit, MySQL has 64-char limit.
 	MaxCollectionNameLength = 63
-	// MaxCollectionsPerServer is the maximum number of collections allowed.
-	MaxCollectionsPerServer = 1000
+	// MaxCollections is the maximum number of collections allowed per server.
+	MaxCollections = 1000
+	// MaxCollectionsPerServer is an alias for MaxCollections (deprecated).
+	MaxCollectionsPerServer = MaxCollections
 
 	// Column name constraints (PRD-048)
 	// MinColumnNameLength is the minimum length for column names.
@@ -32,7 +34,11 @@ const (
 	// MaxColumnNameLength is the maximum length for column names.
 	MaxColumnNameLength = 63
 	// MaxColumnsPerCollection is the maximum number of columns per collection.
+	// This includes system columns (id, ulid).
 	MaxColumnsPerCollection = 100
+	// SystemColumnsCount is the number of automatically added system columns.
+	// System columns are: id (auto-increment primary key), ulid (external ID).
+	SystemColumnsCount = 2
 
 	// Data type constraints (PRD-048)
 	// DecimalDefaultScale is the default number of decimal places.

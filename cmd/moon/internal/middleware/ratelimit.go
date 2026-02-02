@@ -263,6 +263,7 @@ func (m *RateLimitMiddleware) writeRateLimitError(w http.ResponseWriter, limit i
 	w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(http.StatusTooManyRequests)
+	// Note: Using string literal instead of errors.CodeRateLimitExceeded to avoid circular import
 	json.NewEncoder(w).Encode(map[string]any{
 		"error":      "rate limit exceeded",
 		"code":       "RATE_LIMIT_EXCEEDED",

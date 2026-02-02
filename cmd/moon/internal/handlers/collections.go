@@ -199,8 +199,8 @@ func (h *CollectionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check column count limit (PRD-048)
-	// We're creating a new collection, so total would be len(req.Columns) + 2 (id, ulid)
-	if len(req.Columns)+2 > constants.MaxColumnsPerCollection {
+	// Total includes system columns (id, ulid) plus user-defined columns
+	if len(req.Columns)+constants.SystemColumnsCount > constants.MaxColumnsPerCollection {
 		writeError(w, http.StatusConflict, fmt.Sprintf("maximum number of columns (%d) exceeded", constants.MaxColumnsPerCollection))
 		return
 	}
@@ -568,9 +568,8 @@ func validateColumnName(name string) error {
 
 // validateColumnCount checks if adding more columns would exceed the limit.
 func validateColumnCount(collection *registry.Collection, addingCount int) error {
-	// Count includes system columns (id, ulid) which are 2 extra columns
-	// collection.Columns does not include system columns, so add 2
-	totalColumns := len(collection.Columns) + 2 + addingCount
+	// collection.Columns does not include system columns, so add SystemColumnsCount
+	totalColumns := len(collection.Columns) + constants.SystemColumnsCount + addingCount
 	if totalColumns > constants.MaxColumnsPerCollection {
 		return fmt.Errorf("maximum number of columns (%d) reached for collection '%s'",
 			constants.MaxColumnsPerCollection, collection.Name)
