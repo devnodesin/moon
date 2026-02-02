@@ -34,14 +34,17 @@ var Defaults = struct {
 		Prefix string
 	}
 	Database struct {
-		Connection string
-		Database   string
-		User       string
-		Password   string
-		Host       string
+		Connection         string
+		Database           string
+		User               string
+		Password           string
+		Host               string
+		QueryTimeout       int
+		SlowQueryThreshold int
 	}
 	Logging struct {
-		Path string
+		Path            string
+		RedactSensitive bool
 	}
 	JWT struct {
 		Expiry        int
@@ -73,6 +76,16 @@ var Defaults = struct {
 		AllowCredentials bool
 		MaxAge           int
 	}
+	Pagination struct {
+		DefaultPageSize int
+		MaxPageSize     int
+	}
+	Limits struct {
+		MaxCollections          int
+		MaxColumnsPerCollection int
+		MaxFiltersPerRequest    int
+		MaxSortFieldsPerRequest int
+	}
 	ConfigPath string
 }{
 	Server: struct {
@@ -85,22 +98,28 @@ var Defaults = struct {
 		Prefix: "",
 	},
 	Database: struct {
-		Connection string
-		Database   string
-		User       string
-		Password   string
-		Host       string
+		Connection         string
+		Database           string
+		User               string
+		Password           string
+		Host               string
+		QueryTimeout       int
+		SlowQueryThreshold int
 	}{
-		Connection: "sqlite",
-		Database:   "/opt/moon/sqlite.db",
-		User:       "",
-		Password:   "",
-		Host:       "0.0.0.0",
+		Connection:         "sqlite",
+		Database:           "/opt/moon/sqlite.db",
+		User:               "",
+		Password:           "",
+		Host:               "0.0.0.0",
+		QueryTimeout:       30,  // 30 seconds
+		SlowQueryThreshold: 500, // 500 milliseconds
 	},
 	Logging: struct {
-		Path string
+		Path            string
+		RedactSensitive bool
 	}{
-		Path: "/var/log/moon",
+		Path:            "/var/log/moon",
+		RedactSensitive: true,
 	},
 	JWT: struct {
 		Expiry        int
@@ -162,20 +181,40 @@ var Defaults = struct {
 		AllowCredentials: true,
 		MaxAge:           3600, // 1 hour
 	},
+	Pagination: struct {
+		DefaultPageSize int
+		MaxPageSize     int
+	}{
+		DefaultPageSize: 15,  // Default page size
+		MaxPageSize:     200, // Maximum page size
+	},
+	Limits: struct {
+		MaxCollections          int
+		MaxColumnsPerCollection int
+		MaxFiltersPerRequest    int
+		MaxSortFieldsPerRequest int
+	}{
+		MaxCollections:          1000,
+		MaxColumnsPerCollection: 100,
+		MaxFiltersPerRequest:    20,
+		MaxSortFieldsPerRequest: 5,
+	},
 	ConfigPath: "/etc/moon.conf",
 }
 
 // AppConfig holds the application configuration.
 // It is designed to be immutable after initialization.
 type AppConfig struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	APIKey   APIKeyConfig   `mapstructure:"apikey"`
-	Auth     AuthConfig     `mapstructure:"auth"`
-	Recovery RecoveryConfig `mapstructure:"recovery"`
-	CORS     CORSConfig     `mapstructure:"cors"`
+	Server     ServerConfig     `mapstructure:"server"`
+	Database   DatabaseConfig   `mapstructure:"database"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
+	JWT        JWTConfig        `mapstructure:"jwt"`
+	APIKey     APIKeyConfig     `mapstructure:"apikey"`
+	Auth       AuthConfig       `mapstructure:"auth"`
+	Recovery   RecoveryConfig   `mapstructure:"recovery"`
+	CORS       CORSConfig       `mapstructure:"cors"`
+	Pagination PaginationConfig `mapstructure:"pagination"`
+	Limits     LimitsConfig     `mapstructure:"limits"`
 }
 
 // ServerConfig holds server-related configuration.
@@ -187,16 +226,20 @@ type ServerConfig struct {
 
 // DatabaseConfig holds database connection configuration.
 type DatabaseConfig struct {
-	Connection string `mapstructure:"connection"` // database type: sqlite, postgres, mysql
-	Database   string `mapstructure:"database"`   // database file/name
-	User       string `mapstructure:"user"`
-	Password   string `mapstructure:"password"`
-	Host       string `mapstructure:"host"`
+	Connection         string `mapstructure:"connection"`           // database type: sqlite, postgres, mysql
+	Database           string `mapstructure:"database"`             // database file/name
+	User               string `mapstructure:"user"`                 // database user
+	Password           string `mapstructure:"password"`             // database password
+	Host               string `mapstructure:"host"`                 // database host
+	QueryTimeout       int    `mapstructure:"query_timeout"`        // query timeout in seconds
+	SlowQueryThreshold int    `mapstructure:"slow_query_threshold"` // slow query threshold in milliseconds
 }
 
 // LoggingConfig holds logging configuration.
 type LoggingConfig struct {
-	Path string `mapstructure:"path"` // log directory path
+	Path                      string   `mapstructure:"path"`                        // log directory path
+	RedactSensitive           bool     `mapstructure:"redact_sensitive"`            // redact sensitive data in logs
+	AdditionalSensitiveFields []string `mapstructure:"additional_sensitive_fields"` // additional fields to redact
 }
 
 // JWTConfig holds JWT authentication configuration.
@@ -251,6 +294,20 @@ type CORSConfig struct {
 	MaxAge           int      `mapstructure:"max_age"`           // preflight cache duration in seconds
 }
 
+// PaginationConfig holds pagination settings for list endpoints.
+type PaginationConfig struct {
+	DefaultPageSize int `mapstructure:"default_page_size"` // default number of records per page
+	MaxPageSize     int `mapstructure:"max_page_size"`     // maximum allowed page size
+}
+
+// LimitsConfig holds system limits for schema and query constraints.
+type LimitsConfig struct {
+	MaxCollections          int `mapstructure:"max_collections"`            // maximum number of collections
+	MaxColumnsPerCollection int `mapstructure:"max_columns_per_collection"` // maximum columns per collection
+	MaxFiltersPerRequest    int `mapstructure:"max_filters_per_request"`    // maximum filter parameters per request
+	MaxSortFieldsPerRequest int `mapstructure:"max_sort_fields_per_request"` // maximum sort fields per request
+}
+
 var globalConfig *AppConfig
 
 // Load initializes and loads the application configuration.
@@ -268,7 +325,10 @@ func Load(configPath string) (*AppConfig, error) {
 	v.SetDefault("database.user", Defaults.Database.User)
 	v.SetDefault("database.password", Defaults.Database.Password)
 	v.SetDefault("database.host", Defaults.Database.Host)
+	v.SetDefault("database.query_timeout", Defaults.Database.QueryTimeout)
+	v.SetDefault("database.slow_query_threshold", Defaults.Database.SlowQueryThreshold)
 	v.SetDefault("logging.path", Defaults.Logging.Path)
+	v.SetDefault("logging.redact_sensitive", Defaults.Logging.RedactSensitive)
 	v.SetDefault("jwt.expiry", Defaults.JWT.Expiry)
 	v.SetDefault("jwt.access_expiry", Defaults.JWT.AccessExpiry)
 	v.SetDefault("jwt.refresh_expiry", Defaults.JWT.RefreshExpiry)
@@ -287,6 +347,12 @@ func Load(configPath string) (*AppConfig, error) {
 	v.SetDefault("cors.allowed_headers", Defaults.CORS.AllowedHeaders)
 	v.SetDefault("cors.allow_credentials", Defaults.CORS.AllowCredentials)
 	v.SetDefault("cors.max_age", Defaults.CORS.MaxAge)
+	v.SetDefault("pagination.default_page_size", Defaults.Pagination.DefaultPageSize)
+	v.SetDefault("pagination.max_page_size", Defaults.Pagination.MaxPageSize)
+	v.SetDefault("limits.max_collections", Defaults.Limits.MaxCollections)
+	v.SetDefault("limits.max_columns_per_collection", Defaults.Limits.MaxColumnsPerCollection)
+	v.SetDefault("limits.max_filters_per_request", Defaults.Limits.MaxFiltersPerRequest)
+	v.SetDefault("limits.max_sort_fields_per_request", Defaults.Limits.MaxSortFieldsPerRequest)
 
 	// Configure Viper to read from YAML config file only
 	// Explicitly disable TOML support
@@ -349,6 +415,13 @@ func validate(cfg *AppConfig) error {
 	if cfg.Database.Database == "" {
 		cfg.Database.Database = Defaults.Database.Database
 	}
+	// Apply database defaults for new fields
+	if cfg.Database.QueryTimeout <= 0 {
+		cfg.Database.QueryTimeout = Defaults.Database.QueryTimeout
+	}
+	if cfg.Database.SlowQueryThreshold <= 0 {
+		cfg.Database.SlowQueryThreshold = Defaults.Database.SlowQueryThreshold
+	}
 
 	// For SQLite, normalize database path to absolute
 	if cfg.Database.Connection == Defaults.Database.Connection && !filepath.IsAbs(cfg.Database.Database) {
@@ -367,6 +440,33 @@ func validate(cfg *AppConfig) error {
 	// JWT secret is required for authentication
 	if cfg.JWT.Secret == "" {
 		return fmt.Errorf("JWT secret is required (set in config file under jwt.secret)")
+	}
+
+	// Validate pagination configuration (PRD-046)
+	if cfg.Pagination.DefaultPageSize <= 0 {
+		cfg.Pagination.DefaultPageSize = Defaults.Pagination.DefaultPageSize
+	}
+	if cfg.Pagination.MaxPageSize <= 0 {
+		cfg.Pagination.MaxPageSize = Defaults.Pagination.MaxPageSize
+	}
+	// Ensure default_page_size <= max_page_size
+	if cfg.Pagination.DefaultPageSize > cfg.Pagination.MaxPageSize {
+		return fmt.Errorf("pagination.default_page_size (%d) cannot exceed pagination.max_page_size (%d)",
+			cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
+	}
+
+	// Validate limits configuration (PRD-048)
+	if cfg.Limits.MaxCollections <= 0 {
+		cfg.Limits.MaxCollections = Defaults.Limits.MaxCollections
+	}
+	if cfg.Limits.MaxColumnsPerCollection <= 0 {
+		cfg.Limits.MaxColumnsPerCollection = Defaults.Limits.MaxColumnsPerCollection
+	}
+	if cfg.Limits.MaxFiltersPerRequest <= 0 {
+		cfg.Limits.MaxFiltersPerRequest = Defaults.Limits.MaxFiltersPerRequest
+	}
+	if cfg.Limits.MaxSortFieldsPerRequest <= 0 {
+		cfg.Limits.MaxSortFieldsPerRequest = Defaults.Limits.MaxSortFieldsPerRequest
 	}
 
 	return nil
