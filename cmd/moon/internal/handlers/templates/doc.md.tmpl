@@ -354,7 +354,7 @@ curl -X POST "{{$ApiURL}}/apikeys:update?id=$API_KEY_ID" \
 **Delete API Key**
 
 ```bash
-curl -X POST "{{$ApiURL}}/apikeys:destroy?id=$API_KEY" \
+curl -X POST "{{$ApiURL}}/apikeys:destroy?id=$API_KEY_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
