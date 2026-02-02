@@ -235,3 +235,35 @@ All implemented features align with SPEC.md requirements. No significant extra o
 **Extra:** 0
 
 The implementation is nearly complete and demonstrates excellent adherence to SPEC.md. The authentication middleware is implemented, tested, and ready to use—it simply needs to be integrated into the HTTP server routing layer.
+
+
+### 4.8 Bulk Operations ⚠️ **NOT SUPPORTED**
+
+**Status:** No batch insert/update/delete endpoints
+
+**Consideration:** Should SPEC.md explicitly state:
+- One record per request for `create`, `update`, `destroy`
+- No bulk operations in current version
+- Future consideration for `batch:create`, etc.
+
+
+### 4.9 Soft Delete Implementation ⚠️ **PARTIALLY DOCUMENTED**
+
+**Status:** PRD mentions soft deletes (prd/026-soft-deletes.md), but not in SPEC.md
+
+**Missing:**
+- Whether soft delete is implemented
+- If implemented, column name convention (`deleted_at`?)
+- Filter behavior (exclude soft-deleted by default?)
+- Hard delete endpoint
+
+
+### 4.10 Index Management ⚠️ **NOT DOCUMENTED**
+
+**Status:** System creates indexes for `ulid`, but custom indexes not mentioned
+
+**Missing:**
+- Can users create custom indexes?
+- Automatic index creation for `unique` columns?
+- Index naming convention
+- Performance recommendations for large collections

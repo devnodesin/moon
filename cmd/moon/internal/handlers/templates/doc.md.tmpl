@@ -1,8 +1,15 @@
 {{- $ApiURL := .BaseURL -}}
 {{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
-# Moon API Documentation
+# Moon – Instructions and API Documentation for AI Coding Agents
+
+- Moon is a schema-on-demand backend.
+- Always create collections before inserting data.
+- Prefer API keys for server-side apps.
+- Use JWT only for user-facing authentication.
+- Do not assume foreign keys; model relations manually.
 
 Moon is a dynamic headless engine that provides a RESTful API for managing database tables and records without manual migrations. All endpoints follow the AIP-136 custom actions pattern using a colon separator between the resource and action.
+
 
 | Property    | Value                                               |
 |-------------|-----------------------------------------------------|
@@ -16,18 +23,21 @@ Moon is a dynamic headless engine that provides a RESTful API for managing datab
 
 ## Table of Contents
 
-- [Introduction](#introduction)
+- [Intro](#intro)
 - [Authentication](#authentication)
 - [Response Format](#response-format)
 - [Data Types](#data-types)
 - [Health Check](#health-check)
+- [Auth Endpoints](#auth-endpoints)
+- [User Management Endpoints](#user-management-endpoints)
+- [API Key Management Endpoints](#api-key-management-endpoints)
 - [Collection Management](#collection-management)
 - [Data Access](#data-access)
 - [Query Options](#query-options)
 - [Aggregation Operations](#aggregation-operations)
 - [Documentation](#documentation)
 
-## Introduction
+## Intro
 
 Moon stores data in the format: Collection, Field, and Record.
 
@@ -45,6 +55,13 @@ For example, consider the table `products` below.
 - **Collection:** `products` (the table)
 - **Field:** `id`, `name`, `price`, `in_stock` (the columns)
 - **Record:** Each row, e.g., `{ "id": "01H1...", "name": "Wireless Mouse", "price": "29.99", "in_stock": true }`
+
+### Design Constraints
+
+- Collection names must be lowercase, snake_case
+- Field names must be unique per collection
+- No joins are supported
+- Relations must be handled at application layer
 
 ## Authentication 
 
