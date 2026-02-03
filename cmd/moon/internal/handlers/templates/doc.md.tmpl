@@ -17,7 +17,7 @@ Moon is a dynamic headless engine that provides a RESTful API for managing datab
 | Service     | moon                                                |
 | Base URL    | `{{.BaseURL}}`                                      |
 | URL Prefix  | {{if .Prefix}}`{{.Prefix}}`{{else}}N/A{{end}}       |
-| Documentation Version     | 1.1.0                                 |
+| Documentation Version     | 1.2.0                                 |
 | Github URL  | https://github.com/thalib/moon                      |
 
 {{if .Prefix}} All endpoints are prefixed with `{{.Prefix}}`. {{end}}
@@ -37,7 +37,11 @@ Moon is a dynamic headless engine that provides a RESTful API for managing datab
 - [Data Access](#data-access)
 - [Query Options](#query-options)
 - [Aggregation Operations](#aggregation-operations)
+- [Rate Limiting](#rate-limiting)
+- [CORS Configuration](#cors-configuration)
+- [Security Best Practices](#security-best-practices)
 - [Documentation](#documentation)
+- [JSON Appendix](#json-appendix)
 
 ## Intro
 
@@ -64,6 +68,15 @@ For example, consider the table `products` below.
 - Field names must be unique per collection
 - No joins are supported
 - Relations must be handled at application layer
+
+### What Moon Does NOT Do
+
+Moon is designed as a lightweight, dynamic backend. It intentionally does **not** support:
+
+- **Transactions:** No multi-statement atomic operations. Each request is independent.
+- **Joins:** No SQL joins between collections. Model relationships at the application layer.
+- **Triggers/Hooks:** No database-level triggers or event hooks.
+- **Background Jobs:** No built-in job queue or async task processing.
 
 ## Authentication 
 
@@ -168,6 +181,14 @@ All errors follow a consistent JSON structure:
 {
   "error": "Invalid filter operator: invalid",
   "code": 400
+}
+```
+
+429 Too Many Requests (rate limit exceeded):
+```json
+{
+  "error": "Rate limit exceeded. Try again later.",
+  "code": 429
 }
 ```
 
@@ -324,6 +345,31 @@ curl -X POST "{{$ApiURL}}/users:update?id=<USER_ID>" \
     "email": "updateduser@example.com",
     "role": "admin"
   }' | jq .
+```
+
+**Admin Actions: Reset User Password**
+
+Admins can reset a user's password using the `reset_password` action:
+
+```bash
+curl -X POST "{{$ApiURL}}/users:update?id=<USER_ID>" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "reset_password",
+    "password": "NewSecurePassword123#"
+  }' | jq .
+```
+
+**Admin Actions: Revoke All User Sessions**
+
+Admins can invalidate all refresh tokens for a user using the `revoke_sessions` action:
+
+```bash
+curl -X POST "{{$ApiURL}}/users:update?id=<USER_ID>" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "revoke_sessions"}' | jq .
 ```
 
 **Delete User Account**
@@ -813,6 +859,135 @@ curl "{{$ApiURL}}/products:max?field=quantity" \
 
 ---
 
+## Rate Limiting
+
+Moon enforces rate limiting to protect server resources and ensure fair usage. Rate limits differ based on authentication method:
+
+- **JWT Authentication:** 100 requests per minute per user
+- **API Key Authentication:** 1,000 requests per minute per API key
+
+### Rate Limit Headers
+
+Every response includes rate limit information in the headers:
+
+- `X-RateLimit-Limit`: Maximum requests allowed in the time window
+- `X-RateLimit-Remaining`: Number of requests remaining in current window
+- `X-RateLimit-Reset`: Unix timestamp when the rate limit resets
+
+**Example Response Headers:**
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1706875200
+```
+
+**Rate Limit Exceeded Response (429):**
+
+When you exceed the rate limit, you'll receive:
+
+```json
+{
+  "error": "Rate limit exceeded. Try again later.",
+  "code": 429
+}
+```
+
+Wait until the time specified in `X-RateLimit-Reset` before retrying.
+
+---
+
+## CORS Configuration
+
+Moon supports Cross-Origin Resource Sharing (CORS) for browser-based clients.
+
+### Supported Methods
+
+The server accepts the following HTTP methods via CORS:
+
+- `GET`, `POST`, `OPTIONS`
+
+### OPTIONS Requests
+
+Use OPTIONS to check allowed methods and headers for any endpoint:
+
+```bash
+curl -s -X OPTIONS "{{$ApiURL}}/collections:list" \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: GET" | jq .
+```
+
+**Response Headers:**
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type, X-API-Key
+Access-Control-Max-Age: 3600
+```
+
+### CORS Configuration
+
+- **Allowed Origins:** Configurable via `cors.allowed_origins` in `moon.conf`
+- **Allowed Headers:** `Authorization`, `Content-Type`, `X-API-Key`
+- **Credentials:** Supported when origin is explicitly allowed (not `*`)
+
+---
+
+## Security Best Practices
+
+### Authentication
+
+1. **Use JWT for User-Facing Apps:**
+   - Short-lived access tokens (15 minutes default)
+   - Refresh tokens for session management
+   - Store tokens securely (HttpOnly cookies recommended)
+
+2. **Use API Keys for Server-to-Server:**
+   - Long-lived, high-rate-limit keys
+   - Store keys in environment variables or secret managers
+   - Never commit keys to version control
+   - Rotate keys regularly using the `:update` action with `"action": "rotate"`
+
+### Authorization
+
+1. **Principle of Least Privilege:**
+   - Use `role: "user"` for read-only or limited-write access
+   - Reserve `role: "admin"` for trusted users/services only
+   - Set `can_write: false` on API keys when read-only access is sufficient
+
+2. **Admin Endpoints:**
+   - All user, API key, and collection management endpoints require admin role
+   - Regular users can only access data endpoints within their permissions
+
+### Input Validation
+
+1. **Always Validate Input:**
+   - Moon validates data types and column constraints
+   - Application layer should validate business logic rules
+   - Sanitize user input before querying
+
+2. **Query Safety:**
+   - Use parameterized filters (e.g., `?field[eq]=value`)
+   - Avoid constructing raw SQL queries
+   - Moon prevents SQL injection via prepared statements
+
+### Network Security
+
+1. **Use HTTPS in Production:**
+   - Always use TLS/SSL for production deployments
+   - Never transmit tokens or API keys over unencrypted connections
+
+2. **Rate Limiting:**
+   - Monitor rate limit headers to avoid hitting limits
+   - Implement exponential backoff for retries
+
+3. **CORS:**
+   - Configure specific allowed origins in production
+   - Avoid using `*` wildcard for sensitive applications
+
+---
+
 ## Documentation
 
 View HTML documentation in your browser: [{{$ApiURL}}/doc/]({{$ApiURL}}/doc/)
@@ -832,4 +1007,413 @@ curl -X POST "{{$ApiURL}}/doc:refresh" \
 ---
 
 **[Moon](https://github.com/thalib/moon)** made by [Devnodes.in](https://devnodes.in)
+
+---
+
+## JSON Appendix
+
+This machine-readable appendix enables automated client generation and reduces ambiguity for AI coding agents.
+
+```json
+{
+  "service": "moon",
+  "version": "{{.Version}}",
+  "document_version": "1.2.0",
+  "base_url": "{{.BaseURL}}",
+  {{if .Prefix}}"url_prefix": "{{.Prefix}}",{{else}}"url_prefix": null,{{end}}
+
+  "authentication": {
+    "modes": [{{if .JWTEnabled}}"jwt"{{if .APIKeyEnabled}}, {{end}}{{end}}{{if .APIKeyEnabled}}"api_key"{{end}}],
+    "headers": {
+      {{if .JWTEnabled}}"jwt": "Authorization: Bearer <token>"{{if .APIKeyEnabled}},{{end}}{{end}}
+      {{if .APIKeyEnabled}}"api_key": "{{.APIKeyHeader}}: <key>"{{end}}
+    },
+    "rate_limits": {
+      "jwt": "100 requests per minute per user",
+      "api_key": "1000 requests per minute per key"
+    },
+    "rules": {
+      "jwt_for": "user-facing apps with session management",
+      "api_key_for": "server-to-server or backend services"
+    }
+  },
+
+  "collections": {
+    "terminology": {
+      "collection": "table/database collection",
+      "field": "column/table column",
+      "record": "row/table row"
+    },
+    "naming": {
+      "case": "snake_case",
+      "lowercase": true,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "constraints": {
+      "joins_supported": false,
+      "foreign_keys": false,
+      "transactions": false,
+      "triggers": false,
+      "background_jobs": false
+    }
+  },
+
+  "data_types": [
+    {
+      "name": "string",
+      "description": "Text values of any length",
+      "sql_mapping": "TEXT",
+      "example": "Wireless Mouse"
+    },
+    {
+      "name": "integer",
+      "description": "64-bit whole numbers",
+      "sql_mapping": "INTEGER",
+      "example": 42
+    },
+    {
+      "name": "boolean",
+      "description": "true/false values",
+      "sql_mapping": "BOOLEAN",
+      "example": true,
+      "note": "SQLite may represent as 1 (true) or 0 (false)"
+    },
+    {
+      "name": "datetime",
+      "description": "Date/time in RFC3339 or ISO 8601 format",
+      "sql_mapping": "DATETIME",
+      "example": "2023-01-31T13:45:00Z"
+    },
+    {
+      "name": "json",
+      "description": "Arbitrary JSON object or array",
+      "sql_mapping": "JSON",
+      "example": {"key": "value"}
+    },
+    {
+      "name": "decimal",
+      "description": "Decimal values with precision",
+      "sql_mapping": "DECIMAL",
+      "format": "string",
+      "example": "199.99",
+      "note": "API input/output uses strings, default 2 decimal places"
+    }
+  ],
+
+  "endpoints": {
+    "health": {
+      "path": "/health",
+      "method": "GET",
+      "auth_required": false,
+      "description": "Health check endpoint"
+    },
+    "authentication": {
+      "login": {
+        "path": "/auth:login",
+        "method": "POST",
+        "auth_required": false,
+        "description": "Authenticate user, receive JWT tokens"
+      },
+      "logout": {
+        "path": "/auth:logout",
+        "method": "POST",
+        "auth_required": true,
+        "description": "Invalidate current session's refresh token"
+      },
+      "refresh": {
+        "path": "/auth:refresh",
+        "method": "POST",
+        "auth_required": false,
+        "description": "Exchange refresh token for new access token"
+      },
+      "me": {
+        "path": "/auth:me",
+        "methods": ["GET", "POST"],
+        "auth_required": true,
+        "description": "Get or update current user profile"
+      }
+    },
+    "user_management": {
+      "list": {
+        "path": "/users:list",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "get": {
+        "path": "/users:get",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"]
+      },
+      "create": {
+        "path": "/users:create",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "update": {
+        "path": "/users:update",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"],
+        "actions": ["reset_password", "revoke_sessions"]
+      },
+      "destroy": {
+        "path": "/users:destroy",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"]
+      }
+    },
+    "apikey_management": {
+      "list": {
+        "path": "/apikeys:list",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "get": {
+        "path": "/apikeys:get",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"]
+      },
+      "create": {
+        "path": "/apikeys:create",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "update": {
+        "path": "/apikeys:update",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"],
+        "actions": ["rotate"]
+      },
+      "destroy": {
+        "path": "/apikeys:destroy",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["id"]
+      }
+    },
+    "collection_management": {
+      "list": {
+        "path": "/collections:list",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "get": {
+        "path": "/collections:get",
+        "method": "GET",
+        "auth_required": true,
+        "role_required": "admin",
+        "params": ["name"]
+      },
+      "create": {
+        "path": "/collections:create",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin"
+      },
+      "update": {
+        "path": "/collections:update",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "operations": ["add_columns", "rename_columns", "modify_columns", "remove_columns"]
+      },
+      "destroy": {
+        "path": "/collections:destroy",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin"
+      }
+    },
+    "data_access": {
+      "list": {
+        "path": "/{collection}:list",
+        "method": "GET",
+        "auth_required": true,
+        "description": "List records in collection"
+      },
+      "get": {
+        "path": "/{collection}:get",
+        "method": "GET",
+        "auth_required": true,
+        "params": ["id"],
+        "description": "Get single record by ID"
+      },
+      "create": {
+        "path": "/{collection}:create",
+        "method": "POST",
+        "auth_required": true,
+        "description": "Create new record"
+      },
+      "update": {
+        "path": "/{collection}:update",
+        "method": "POST",
+        "auth_required": true,
+        "description": "Update existing record"
+      },
+      "destroy": {
+        "path": "/{collection}:destroy",
+        "method": "POST",
+        "auth_required": true,
+        "description": "Delete record"
+      }
+    },
+    "aggregation": {
+      "count": {
+        "path": "/{collection}:count",
+        "method": "GET",
+        "auth_required": true,
+        "description": "Count records"
+      },
+      "sum": {
+        "path": "/{collection}:sum",
+        "method": "GET",
+        "auth_required": true,
+        "params": ["field"],
+        "description": "Sum numeric field"
+      },
+      "avg": {
+        "path": "/{collection}:avg",
+        "method": "GET",
+        "auth_required": true,
+        "params": ["field"],
+        "description": "Average numeric field"
+      },
+      "min": {
+        "path": "/{collection}:min",
+        "method": "GET",
+        "auth_required": true,
+        "params": ["field"],
+        "description": "Minimum value"
+      },
+      "max": {
+        "path": "/{collection}:max",
+        "method": "GET",
+        "auth_required": true,
+        "params": ["field"],
+        "description": "Maximum value"
+      }
+    },
+    "documentation": {
+      "html": {
+        "path": "/doc/",
+        "method": "GET",
+        "auth_required": false,
+        "description": "HTML documentation"
+      },
+      "markdown": {
+        "path": "/doc/md",
+        "method": "GET",
+        "auth_required": false,
+        "description": "Markdown documentation"
+      },
+      "refresh": {
+        "path": "/doc:refresh",
+        "method": "POST",
+        "auth_required": true,
+        "role_required": "admin",
+        "description": "Refresh documentation cache"
+      }
+    }
+  },
+
+  "query": {
+    "operators": ["eq", "ne", "gt", "lt", "gte", "lte", "like", "in"],
+    "syntax": {
+      "filter": "?column[operator]=value",
+      "examples": [
+        "?price[gte]=100",
+        "?category[eq]=electronics",
+        "?name[like]=%mouse%"
+      ]
+    },
+    "sorting": {
+      "syntax": "?sort={field1,-field2}",
+      "ascending": "field",
+      "descending": "-field",
+      "example": "?sort=-price,name"
+    },
+    "pagination": {
+      "cursor_param": "after",
+      "limit_param": "limit",
+      "example": "?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FBX"
+    },
+    "search": {
+      "full_text_param": "q",
+      "description": "Searches across all text/string columns",
+      "example": "?q=wireless"
+    },
+    "field_selection": {
+      "param": "fields",
+      "description": "Return only specified fields (id always included)",
+      "example": "?fields=name,price"
+    }
+  },
+
+  "aggregation": {
+    "supported": ["count", "sum", "avg", "min", "max"],
+    "numeric_types": ["integer", "decimal"],
+    "note": "Aggregation functions work on integer and decimal field types only"
+  },
+
+  "http_status_codes": {
+    "200": "OK - Successful GET request",
+    "201": "Created - Successful POST request creating resource",
+    "400": "Bad Request - Invalid input or parameters",
+    "401": "Unauthorized - Missing or invalid authentication",
+    "403": "Forbidden - Insufficient permissions",
+    "404": "Not Found - Resource not found",
+    "409": "Conflict - Resource already exists",
+    "429": "Too Many Requests - Rate limit exceeded",
+    "500": "Internal Server Error - Server error"
+  },
+
+  "rate_limiting": {
+    "headers": {
+      "limit": "X-RateLimit-Limit",
+      "remaining": "X-RateLimit-Remaining",
+      "reset": "X-RateLimit-Reset"
+    }
+  },
+
+  "cors": {
+    "allowed_methods": ["GET", "POST", "OPTIONS"],
+    "allowed_headers": ["Authorization", "Content-Type", "X-API-Key"],
+    "configurable": true,
+    "config_file": "samples/moon.conf",
+    "config_key": "cors.allowed_origins"
+  },
+
+  "guarantees": {
+    "transactions": false,
+    "joins": false,
+    "foreign_keys": false,
+    "triggers": false,
+    "background_jobs": false
+  },
+
+  "aip_standards": {
+    "custom_actions": "AIP-136",
+    "pattern": "resource:action",
+    "separator": ":",
+    "description": "APIs use colon separator between resource and action for predictable interface"
+  }
+}
+```
+
+---
 
