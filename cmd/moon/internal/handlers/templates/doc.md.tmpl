@@ -1,5 +1,18 @@
 {{- $ApiURL := .BaseURL -}}
 {{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
+<!-- 
+Doc Version: 1.1.0
+Date: 2026-02-03
+Changes:
+- Verified all curl examples against live server
+- Fixed response field path examples (data.id instead of record.id)
+- Added clarifications for API key rotation vs metadata update
+- Enhanced query options section with combined examples
+- Added more error response examples
+- Clarified boolean representation in responses
+- Added full-text search examples
+- Enhanced aggregation section with decimal field clarification
+-->
 # Moon – Instructions and API Documentation for AI Coding Agents
 
 - Moon is a schema-on-demand backend.
@@ -135,6 +148,40 @@ All errors follow a consistent JSON structure:
 }
 ```
 
+**Common Error Examples:**
+
+401 Unauthorized (invalid or missing token):
+```json
+{
+  "error": "Unauthorized",
+  "code": 401
+}
+```
+
+403 Forbidden (insufficient permissions):
+```json
+{
+  "error": "Forbidden: admin role required",
+  "code": 403
+}
+```
+
+404 Not Found (collection or record not found):
+```json
+{
+  "error": "Collection not found: products",
+  "code": 404
+}
+```
+
+400 Bad Request (invalid input):
+```json
+{
+  "error": "Invalid filter operator: invalid",
+  "code": 400
+}
+```
+
 ## Data Types
 
 Supported column data types:
@@ -146,7 +193,7 @@ Supported column data types:
 - `json` - Arbitrary JSON object or array
 - `decimal` - For decimal values. API input/output uses strings (e.g., `"199.99"`), with a default of 2 decimal places.
 
-***Note:*** Aggregation functions are supported only on `integer` and `decimal` types.
+***Note:*** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types. SQLite may represent boolean values as `1` (true) or `0` (false) in some responses.
 
 ## Health Check
 
@@ -263,6 +310,21 @@ curl -X POST "{{$ApiURL}}/users:create" \
   }' | jq .
 ```
 
+Response includes the new user with `user.id`:
+
+```json
+{
+  "message": "User created successfully",
+  "user": {
+    "id": "01KGF1ABCDEFGH123456789",
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "role": "user",
+    "created_at": "2026-02-03T10:30:00Z"
+  }
+}
+```
+
 **Update User Properties**
 
 ```bash
@@ -346,6 +408,8 @@ Example Response
 
 **Update API Key Metadata**
 
+Update metadata such as name, description, or can_write permissions **without** regenerating the key:
+
 ```bash
 curl -X POST "{{$ApiURL}}/apikeys:update?id=$API_KEY_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -357,15 +421,33 @@ curl -X POST "{{$ApiURL}}/apikeys:update?id=$API_KEY_ID" \
   }' | jq .
 ```
 
-- This step will regenerate the API key, and the new key will be returned in the response.
+***Note:*** This operation updates metadata only. The API key itself remains unchanged and valid. To regenerate the key, use the explicit rotation action below.
 
 **Rotate API Key**
+
+To generate a new key and invalidate the old one, use the explicit `action: "rotate"`:
 
 ```bash
 curl -X POST "{{$ApiURL}}/apikeys:update?id=$API_KEY_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"action":"rotate"}' | jq .
+```
+
+Response includes the new key and a warning:
+
+```json
+{
+  "message": "API key rotated successfully",
+  "warning": "Old key is now invalid. Store this new key securely.",
+  "apikey": {
+    "id": "01KGF0NGEHYKJR8PV5KHQBDHKB",
+    "name": "Integration Service",
+    "role": "user",
+    "can_write": false
+  },
+  "key": "moon_live_NewKeyValueHere..."
+}
 ```
 
 **Delete API Key**
@@ -568,6 +650,24 @@ curl -s -X POST "{{$ApiURL}}/products:create" \
   }' | jq .
 ```
 
+Response includes the created record with `data.id`:
+
+```json
+{
+  "message": "Record created successfully",
+  "data": {
+    "id": "01KGD5E74RYS0WTNARQC92S1P7",
+    "title": "Wireless Mouse",
+    "price": "29.99",
+    "details": "Ergonomic wireless mouse",
+    "quantity": 10,
+    "brand": "Wow",
+    "created_at": "2026-02-03T10:45:00Z",
+    "updated_at": "2026-02-03T10:45:00Z"
+  }
+}
+```
+
 **Get a Single Record**
 
 ```bash
@@ -625,12 +725,16 @@ curl "{{$ApiURL}}/products:list?q=mouse" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
+Searches across all string/text fields in the collection.
+
 **Field Selection:** `?fields={field1,field2}`
 
 ```bash
 curl "{{$ApiURL}}/products:list?fields=quantity,title" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
+
+Returns only the specified fields (plus `id` which is always included).
 
 **Limit:** `?limit={limit}`
 
@@ -643,6 +747,26 @@ curl "{{$ApiURL}}/products:list?limit=2" \
 
 ```bash
 curl "{{$ApiURL}}/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+**Combined Query Examples:**
+
+Filter, sort, and limit:
+```bash
+curl -g "{{$ApiURL}}/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+Search with category filter and field selection:
+```bash
+curl -g "{{$ApiURL}}/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+Multiple filters with pagination:
+```bash
+curl -g "{{$ApiURL}}/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEK" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -696,7 +820,7 @@ curl "{{$ApiURL}}/products:max?field=quantity" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-***Note:*** Aggregation functions (sum, avg, min, max) only work on numeric fields (`integer` and `decimal` types). In the examples above, `price` was changed to `string` type during schema updates, so we use `quantity` for min/max demonstrations.
+***Note:*** Aggregation functions (sum, avg, min, max) work on both `integer` and `decimal` field types. In the examples above, `price` was changed to `string` type during schema updates, so we use `quantity` for demonstrations. For decimal fields, aggregation results are returned as strings (e.g., `"1234.56"`).
 
 ---
 
