@@ -8,6 +8,8 @@
 - Use JWT only for user-facing authentication.
 - Do not assume foreign keys; model relations manually.
 - Endpoints use AIP-136 custom actions (colon separator).
+- Moon enforces rate limits: JWT 100/min/user, API Key 1,000/min/key.
+
 
 | Property    | Value                                               |
 |-------------|-----------------------------------------------------|
@@ -37,7 +39,6 @@
 - [Aggregation Operations](#aggregation-operations)
 - [Rate Limiting](#rate-limiting)
 - [CORS Configuration](#cors-configuration)
-- [Security Best Practices](#security-best-practices)
 - [Documentation](#documentation)
 - [JSON Appendix](#json-appendix)
 
@@ -45,7 +46,7 @@
 
 Moon enables rapid, migrationless management of database tables and records through a dynamic RESTful API.
 
-### Moon Terminology
+**Moon Terminology**
 
 Moon stores data in the format: Collection, Field, and Record.
 
@@ -64,14 +65,14 @@ For example, consider the table `products` below.
 - **Field:** `id`, `name`, `price`, `in_stock` (the columns)
 - **Record:** Each row, e.g., `{ "id": "01H1...", "name": "Wireless Mouse", "price": "29.99", "in_stock": true }`
 
-### Design Constraints
+**Design Constraints**
 
 - Collection names must be lowercase, snake_case
 - Field names must be unique per collection
 - No joins are supported
 - Relations must be handled at application layer
 
-### What Moon Does NOT Do
+**What Moon Does NOT Do**
 
 Moon is designed as a lightweight, dynamic backend. It intentionally does **not** support:
 
@@ -80,6 +81,23 @@ Moon is designed as a lightweight, dynamic backend. It intentionally does **not*
 - **Triggers/Hooks:** No database-level triggers or event hooks.
 - **Background Jobs:** No built-in job queue or async task processing.
 - Supported HTTP Methods: GET, POST and OPTIONS only
+- Public endpoints: `/health`, `/doc`, `/doc/md`. 
+
+**Rules: Do's**
+
+- Authentication: JWT for user-facing apps, API keys for server-to-server.
+- User Roles: `user`: limited access, `admin`: full control.
+- Input Validation: Moon validates types and constraints; always sanitize input.
+- Network Security
+- Use HTTPS in production.
+- Set specific allowed origins for CORS.
+
+**Rules: Don'ts**
+
+- No Joins: Model relationships at application layer.
+- No Transactions: Each request is independent.
+- No Triggers/Hooks: Handle logic at application layer.
+- No Background Jobs: Use external job queues for async tasks.
 
 ---
 
@@ -810,6 +828,41 @@ curl "{{$ApiURL}}/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
+**Schema:** ``?schema``
+
+All GET endpoints support the  query parameter: `?schema` works with filters, pagination, sorting, field selection, and search.
+
+- `?schema` or `?schema=true`: Returns both data and schema.
+- `?schema=only`: Returns only schema, omits data.
+
+Example Return only schema:
+```bash
+curl "{{$ApiURL}}/products:list?schema=only" -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+Response with schema:
+
+```json
+{
+  "data": [
+    { "id": "01...", "title": "Wireless Mouse", "price": "29.99" }
+  ],
+  "schema": {
+    "collection": "products",
+    "fields": [
+      { "name": "id", "type": "string", "nullable": false, "primary_key": true },
+      { "name": "title", "type": "string", "nullable": false },
+      { "name": "price", "type": "decimal", "nullable": false }
+    ],
+    "primary_key": "id",
+    "metadata": {
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    }
+  }
+}
+```
+
 **Combined Query Examples:**
 
 Filter, sort, and limit:
@@ -886,13 +939,6 @@ curl "{{$ApiURL}}/products:max?field=quantity" \
 
 ## Rate Limiting
 
-Moon enforces rate limiting to protect server resources and ensure fair usage. Rate limits differ based on authentication method:
-
-- **JWT Authentication:** 100 requests per minute per user
-- **API Key Authentication:** 1,000 requests per minute per API key
-
-### Rate Limit Headers
-
 Every response includes rate limit information in the headers:
 
 - `X-RateLimit-Limit`: Maximum requests allowed in the time window
@@ -926,56 +972,24 @@ Wait until the time specified in `X-RateLimit-Reset` before retrying.
 
 Moon supports Cross-Origin Resource Sharing (CORS) for browser-based clients.
 
-### Supported Methods
-
-The server accepts the following HTTP methods via CORS:
-
-- `GET`, `POST`
-
-### OPTIONS Requests
-
-Use OPTIONS to check allowed methods and headers for any endpoint:
-
-```bash
-curl -s -X OPTIONS "{{$ApiURL}}/collections:list" \
-  -H "Origin: http://localhost:3000" \
-  -H "Access-Control-Request-Method: GET" | jq .
-```
-
-**Response Headers:**
-
-```
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: GET, POST, OPTIONS
-Access-Control-Allow-Headers: Authorization, Content-Type, X-API-Key
-Access-Control-Max-Age: 3600
-```
-
-### CORS Configuration
-
-- **Allowed Origins:** Configurable via `cors.allowed_origins` in config file
+- **Methods:** `GET`, `POST`
+- **OPTIONS:** Check allowed methods/headers for any endpoint:
+  ```bash
+  curl -s -X OPTIONS "{{$ApiURL}}/collections:list" \
+    -H "Origin: http://localhost:3000" \
+    -H "Access-Control-Request-Method: GET" | jq .
+  ```
+- **Response Headers:**
+  ```
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Authorization, Content-Type, X-API-Key
+  Access-Control-Max-Age: 3600
+  ```
+- **Configurable:** Origins via `cors.allowed_origins` in config file
 - **Allowed Headers:** `Authorization`, `Content-Type`, `X-API-Key`
 - **Credentials:** Supported when origin is explicitly allowed (not `*`)
-
 ---
-
-## Rule
-
-### Do's
-
-- Authentication: JWT for user-facing apps, API keys for server-to-server.
-- User Roles: `user`: limited access, `admin`: full control.
-- Input Validation: Moon validates types and constraints; always sanitize input.
-- Network Security
-- Use HTTPS in production.
-- Set specific allowed origins for CORS.
-
-### Don'ts
-
-- No Joins: Model relationships at application layer.
-- No Transactions: Each request is independent.
-- No Triggers/Hooks: Handle logic at application layer.
-- No Background Jobs: Use external job queues for async tasks.
 
 ---
 
