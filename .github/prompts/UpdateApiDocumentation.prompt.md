@@ -20,6 +20,7 @@ You are a Senior Technical Writer specializing in API documentation. Your missio
      - All data types and validation constraints
      - API standards (error formats, rate limiting, CORS)
      - All endpoint specifications under "API Endpoint Specification"
+     - All endpoints, options, query parameters, aggregator, request/response formats, and error codes
    - Read `SPEC_AUTH.md` completely to understand:
      - Authentication and authorization flows
      - User and API key management endpoints
@@ -154,6 +155,7 @@ The `doc.md.tmpl` file MUST include these sections in this order:
   - No joins
   - No triggers/hooks
   - No background jobs
+  - No OpenAPI support, to keep the server lightweight and simple
 
 ### 4. Authentication
 
