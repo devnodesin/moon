@@ -40,10 +40,10 @@ type DataListRequest struct {
 
 // DataListResponse represents response for list operation
 type DataListResponse struct {
-	Data       []map[string]any          `json:"data,omitempty"` // Omit when schema=only (PRD-053)
-	Schema     *schema.Schema            `json:"schema,omitempty"`
-	NextCursor *string                   `json:"next_cursor,omitempty"` // Next ULID cursor, null if no more data
-	Limit      int                       `json:"limit,omitempty"`
+	Data       []map[string]any `json:"data,omitempty"` // Omit when schema=only (PRD-053)
+	Schema     *schema.Schema   `json:"schema,omitempty"`
+	NextCursor *string          `json:"next_cursor,omitempty"` // Next ULID cursor, null if no more data
+	Limit      int              `json:"limit,omitempty"`
 }
 
 // DataGetResponse represents response for get operation
@@ -206,11 +206,11 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 
 	// Parse schema query parameter (PRD-053)
 	schemaMode := schema.ParseQueryParameter(r.URL.Query())
-	
+
 	// Skip data query if schema=only mode
 	var data []map[string]any
 	var nextCursor *string
-	
+
 	if schemaMode != schema.ModeOnly {
 		// Execute query
 		ctx := r.Context()
@@ -246,12 +246,12 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		NextCursor: nextCursor,
 		Limit:      limit,
 	}
-	
+
 	// Add data if not schema-only mode
 	if schemaMode != schema.ModeOnly {
 		response.Data = data
 	}
-	
+
 	// Add schema if requested
 	if schemaMode == schema.ModeBoth || schemaMode == schema.ModeOnly {
 		schemaBuilder := schema.NewBuilder()
@@ -294,10 +294,10 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 
 	// Parse schema query parameter (PRD-053)
 	schemaMode := schema.ParseQueryParameter(r.URL.Query())
-	
+
 	// Build response with optional schema (PRD-053)
 	response := DataGetResponse{}
-	
+
 	// Add data if not schema-only mode
 	if schemaMode != schema.ModeOnly {
 		// Execute query only if we need data
@@ -320,10 +320,10 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 			writeError(w, http.StatusNotFound, fmt.Sprintf("record with id %s not found", idStr))
 			return
 		}
-		
+
 		response.Data = data[0]
 	}
-	
+
 	// Add schema if requested
 	if schemaMode == schema.ModeBoth || schemaMode == schema.ModeOnly {
 		schemaBuilder := schema.NewBuilder()
