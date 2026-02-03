@@ -224,6 +224,8 @@ cors:
 
 **Note:** Only GET, POST, and OPTIONS methods are supported by the Moon server. Including other methods (PUT, DELETE, PATCH) in the `allowed_methods` configuration will not enable them on the server.
 
+**Public Endpoints:** The `/health` and `/doc/*` endpoints always have CORS enabled with `Access-Control-Allow-Origin: *` regardless of the CORS configuration. This ensures these endpoints are accessible from any origin for health checks and documentation.
+
 CORS headers exposed to browsers:
 - `X-RateLimit-Limit`
 - `X-RateLimit-Remaining`
@@ -322,16 +324,26 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 
 **Health Endpoint:**
 
-- The `/health` endpoint provides minimal, non-sensitive information for liveness checks
-- Returns a simple JSON response with three fields:
-  - `status`: Service liveness (`live` or `down`)
-  - `name`: Service name (always `moon`)
-  - `version`: Service version in format `{major}.{minor}` (e.g., `1.99`)
-- Always returns HTTP 200, even when the service is down
+- The `/health` endpoint provides health check information for liveness and readiness checks
+- Returns a JSON response with four fields:
+  - `status`: Service health status (`ok` or `degraded`)
+  - `database`: Database connectivity status (`ok` or `error`)
+  - `version`: Service version string (e.g., `1.0.0`)
+  - `timestamp`: ISO 8601 timestamp of the health check
+- Always returns HTTP 200, even when the service is degraded
 - Clients must check the `status` field to determine service health
 - Does not expose internal details like database type, collection count, or consistency status
 
 **Example health response:**
+
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "version": "1.0.0",
+  "timestamp": "2026-02-03T13:58:53Z"
+}
+```
 
 ```json
 {
@@ -436,14 +448,19 @@ The list endpoint supports powerful query parameters for filtering, sorting, sea
 **Filtering:**
 
 - Syntax: `?column[operator]=value`
-- Operators: `eq` (equal), `ne` (not equal), `gt` (greater than), `lt` (less than), `gte` (greater/equal), `lte` (less/equal), `like` (pattern match), `in` (in list)
-- Example: `?price[gt]=100&category[eq]=electronics`
+- Operators:
+  - Comparison: `eq` (equal), `ne` (not equal), `gt` (greater than), `lt` (less than), `gte` (greater/equal), `lte` (less/equal)
+  - Pattern matching: `like` (SQL LIKE pattern with %), `contains` (substring, case-sensitive), `icontains` (substring, case-insensitive), `startswith`, `endswith`
+  - List: `in` (comma-separated values, e.g., `?status[in]=active,pending`)
+  - Null checks: `null` (is NULL), `notnull` (is NOT NULL)
+- Example: `?price[gt]=100&category[eq]=electronics&title[contains]=widget`
 - Multiple filters are combined with AND logic
+- Maximum 20 filters per request
 
 **Sorting:**
 
 - Syntax: `?sort=field` (ascending) or `?sort=-field` (descending)
-- Multiple fields: `?sort=-created_at,name` (comma-separated)
+- Multiple fields: `?sort=-created_at,name` (comma-separated, max 5 fields)
 - Example: `?sort=-price,name`
 
 **Full-Text Search:**
@@ -466,10 +483,20 @@ The list endpoint supports powerful query parameters for filtering, sorting, sea
 - Returns `next_cursor` in the response when more results are available
 - Example: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX`
 
+**Schema Parameter:**
+
+- Syntax: `?schema=true|only`
+- Controls schema inclusion in response:
+  - No parameter (default): Returns data only
+  - `schema=true`: Returns both data AND schema metadata
+  - `schema=only`: Returns ONLY schema (no data query, useful for validation)
+- Example: `?schema=true&limit=10`
+- Schema includes column names, types, constraints for the collection
+
 **Combined Example:**
 
 ```
-GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10
+GET /products:list?q=laptop&price[gt]=500&title[contains]=pro&sort=-price&fields=name,price&limit=10&schema=true
 ```
 
 ### C. Aggregation Operations (`/{collectionName}`)
@@ -534,11 +561,11 @@ Moon provides human- and AI-readable documentation endpoints that automatically 
 
 **Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
 
-| Endpoint            | Method | Purpose                                                              |
-| ------------------- | ------ | -------------------------------------------------------------------- |
-| `GET /doc/`         | `GET`  | Retrieve HTML documentation (single-page, styled)                    |
-| `GET /doc/md`       | `GET`  | Retrieve Markdown documentation (for AI agents and markdown readers) |
-| `POST /doc:refresh` | `POST` | Clear cached documentation and force regeneration                    |
+| Endpoint                | Method | Purpose                                                              |
+| ----------------------- | ------ | -------------------------------------------------------------------- |
+| `GET /doc/`             | `GET`  | Retrieve HTML documentation (single-page, styled)                    |
+| `GET /doc/markdown`     | `GET`  | Retrieve Markdown documentation (for AI agents and markdown readers) |
+| `POST /doc:refresh`     | `POST` | Clear cached documentation and force regeneration                    |
 
 **Features:**
 
@@ -710,15 +737,17 @@ Moon requires authentication for all API endpoints except `/health`. Two authent
 
 ### Roles and Permissions
 
-Moon supports two roles with configurable write permissions:
+Moon supports three roles with configurable write permissions:
 
 | Role | Manage Users/Keys | Manage Collections | Read Data | Write Data |
 |------|-------------------|-------------------|-----------|------------|
 | **admin** | ✓ | ✓ | ✓ | ✓ |
 | **user** | ✗ | ✗ | ✓ | if `can_write: true` |
+| **readonly** | ✗ | ✗ | ✓ | ✗ |
 
-- **admin**: Full system access including user management, collection schema changes, and all data operations
-- **user**: Read access to all collections; write access controlled by `can_write` flag (default: false)
+- **admin**: Full system access including user management, collection schema changes, and all data operations. The `can_write` flag is ignored for admin role (always has write access).
+- **user**: Read access to all collections; write access controlled by `can_write` flag (default: true for user role)
+- **readonly**: Read-only access to all collections; cannot write data even if `can_write` flag is set to true
 
 ### Protected Endpoints
 

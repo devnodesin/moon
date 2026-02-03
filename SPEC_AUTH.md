@@ -16,7 +16,7 @@ Moon's authentication system provides two authentication methods:
 1. **JWT-based authentication** for interactive users (web/mobile applications)
 2. **API Key authentication** for machine-to-machine integrations
 
-Both methods support role-based access control (RBAC) with two roles: `admin` and `user`.
+Both methods support role-based access control (RBAC) with three roles: `admin`, `user`, and `readonly`.
 
 ## Access Types
 
@@ -47,10 +47,22 @@ Authorization: Bearer <access_token>
 
 **Token Properties:**
 
+- **JWT Algorithm:** HS256 (HMAC with SHA-256)
 - Access tokens are stateless (JWT claims validated cryptographically)
 - Refresh tokens are single-use and invalidated after use
 - Multiple concurrent sessions supported (each gets separate refresh token)
 - Logout only invalidates current session's refresh token
+- **Token Blacklist:** In-database blacklist for revoked tokens (logout, password changes)
+
+**JWT Claims Structure:**
+
+Access tokens contain the following claims:
+- `user_id`: Internal user ID (integer)
+- `username`: User's username (string)
+- `email`: User's email address (string)
+- `role`: User's role (`admin`, `user`, or `readonly`)
+- `can_write`: Write permission flag (boolean)
+- Standard JWT claims: `iss`, `exp`, `iat`, `sub`
 
 **Rate Limits:**
 
@@ -63,11 +75,14 @@ Authorization: Bearer <access_token>
 
 **Key Properties:**
 
+- **Prefix:** All keys start with `moon_live_` for easy identification
 - Long-lived credentials with no expiration
 - Must be manually rotated or revoked
-- Minimum 64 characters (base62: alphanumeric + `-` + `_`)
+- Minimum 64 characters after prefix (base62: alphanumeric + `-` + `_`)
+- Total length: ~74 characters (`moon_live_` + 64 chars)
 - Stored as SHA-256 hashes in database
-- Each key assigned a role (`admin` or `user`)
+- Each key assigned a role (`admin`, `user`, or `readonly`)
+- **Usage Tracking:** `last_used_at` timestamp updated on each request
 
 **Authentication Header:**
 
@@ -118,29 +133,40 @@ X-API-Key: <api_key>
 - Can create, read, update, and delete all collections
 - Can create, read, update, and delete all data in any collection
 - Can access all aggregation and query endpoints
+- **Admin Override:** The `can_write` flag is ignored for admin role (always has write access)
 
 **user Role:**
 
-- **Read-only by default**
+- **Write-enabled by default** (`can_write: true`)
 - Can read collections metadata
 - Can read data from all collections
 - Can use query, filter, and aggregation endpoints
-- **Write access can be enabled per-user via `can_write` flag:**
-  - When `can_write: true`, user can create, update, and delete data
-  - When `can_write: false` (default), user can only read data
+- **Write access controlled per-user via `can_write` flag:**
+  - When `can_write: true` (default), user can create, update, and delete data
+  - When `can_write: false`, user can only read data
 - **Cannot** manage collections schema (create/update/destroy collections)
+- **Cannot** manage users or API keys
+
+**readonly Role:**
+
+- **Read-only access** (enforced regardless of `can_write` flag)
+- Can read collections metadata
+- Can read data from all collections
+- Can use query, filter, and aggregation endpoints
+- **Cannot** write data even if `can_write` flag is set to true
+- **Cannot** manage collections schema
 - **Cannot** manage users or API keys
 
 ### Permission Matrix
 
-| Action | Admin | User (can_write: false) | User (can_write: true) |
-|--------|-------|-------------------------|------------------------|
-| Manage users/apikeys | ✓ | ✗ | ✗ |
-| Create/update/delete collections | ✓ | ✗ | ✗ |
-| Read collections metadata | ✓ | ✓ | ✓ |
-| Read data from collections | ✓ | ✓ | ✓ |
-| Create/update/delete data | ✓ | ✗ | ✓ |
-| Query/filter/aggregate data | ✓ | ✓ | ✓ |
+| Action | Admin | User (can_write: false) | User (can_write: true) | Readonly |
+|--------|-------|-------------------------|------------------------|----------|
+| Manage users/apikeys | ✓ | ✗ | ✗ | ✗ |
+| Create/update/delete collections | ✓ | ✗ | ✗ | ✗ |
+| Read collections metadata | ✓ | ✓ | ✓ | ✓ |
+| Read data from collections | ✓ | ✓ | ✓ | ✓ |
+| Create/update/delete data | ✓ | ✗ | ✓ | ✗ |
+| Query/filter/aggregate data | ✓ | ✓ | ✓ | ✓ |
 
 ## Security Configuration
 
@@ -150,8 +176,18 @@ X-API-Key: <api_key>
 
 - Minimum 8 characters (configurable per deployment)
 - Must include: uppercase letter, lowercase letter, number
-- Optionally require special characters (configurable)
+- Optionally require special characters (configurable, default: not required)
+- **Supported special characters:** 30+ standard special characters including `!@#$%^&*()_+-=[]{}|;:,.<>?`
 - No common passwords or dictionary words (implementation recommended)
+
+**Enforcement Contexts:**
+
+The password policy is applied and validated in the following scenarios:
+- User creation (via `POST /users:create`)
+- Password change (via `POST /auth:me` with `password` field)
+- Password reset (via `POST /users:update` with `action: reset_password`)
+
+**Validation:** All password policy violations return detailed error messages indicating which requirements were not met (e.g., "Password must contain at least one uppercase letter").
 
 **Storage:**
 
@@ -180,6 +216,35 @@ X-API-Key: <api_key>
 - No "forgot password" self-service (reduces attack surface)
 - Admins must authenticate before resetting passwords
 - All password reset actions logged for audit trail
+
+### Validation Constraints
+
+**User Constraints:**
+
+- **Email:** Must be valid RFC-compliant email format
+- **Username:** Unique across all users
+- **Role:** Must be one of: `admin`, `user`, `readonly`
+- **Default can_write:** `true` for user role, `false` for readonly role
+
+**API Key Constraints:**
+
+- **Name:** 3-100 characters, must be unique
+- **Description:** Maximum 500 characters (optional)
+- **Role:** Must be one of: `admin`, `user`, `readonly`
+- **Default can_write:** `false` for all roles
+- **Key Format:** `moon_live_` prefix + 64 base62 characters
+
+**Last Admin Protection:**
+
+- System prevents deleting or demoting the last admin user
+- Ensures at least one admin always exists for system management
+- Admin cannot modify their own role to prevent self-lockout
+
+**Cascade Delete Behavior:**
+
+- Deleting a user automatically removes all associated refresh tokens
+- Ensures no orphaned sessions remain after user deletion
+- Implemented at application level, not database foreign key cascade
 
 ### Rate Limiting
 
@@ -220,7 +285,7 @@ X-API-Key: <api_key>
 - Stored in database with: user_id, token_hash, expires_at, created_at, last_used_at
 - Tokens are single-use: invalidated immediately after successful refresh
 - New refresh token issued with each successful refresh
-- Expired tokens automatically purged from database (cleanup job recommended)
+- **Expired Token Cleanup:** Expired tokens should be purged from the database periodically via a scheduled cleanup job (implementation recommended but not automatic)
 
 **Token Invalidation:**
 
