@@ -150,6 +150,11 @@ The `doc.md.tmpl` file MUST include these sections in this order:
 - System overview and philosophy
 - Key concepts (Collections, Fields, Records)
 - Design constraints and limitations
+- Explicit "What Moon Does NOT Do" section:
+  - No transactions
+  - No joins
+  - No triggers/hooks
+  - No background jobs
 
 ### 4. Authentication
 
@@ -221,6 +226,95 @@ Group endpoints logically with clear headers similar to below format:
 - Aggregation examples
 - User management workflow
 - API key management workflow
+
+### 11. JSON Appendix
+
+Add a machine-readable appendix for AI agents to enable automated client generation and reduce ambiguity.
+
+Example structure:
+
+```json
+{
+  "service": "moon",
+  "version": "1.99",
+  "document_version": "1.0",
+  "base_url": "http://localhost:6006",
+
+  "authentication": {
+    "modes": ["jwt", "api_key"],
+    "headers": {
+      "jwt": "Authorization: Bearer <token>",
+      "api_key": "X-API-Key: <key>"
+    },
+    "rules": {
+      "jwt_for": "user-facing apps",
+      "api_key_for": "server-to-server or backend services"
+    }
+  },
+
+  "collections": {
+    "naming": {
+      "case": "snake_case",
+      "lowercase": true
+    },
+    "constraints": {
+      "joins_supported": false,
+      "foreign_keys": false
+    }
+  },
+
+  "data_types": [
+    "string",
+    "integer",
+    "boolean",
+    "datetime",
+    "json",
+    "decimal"
+  ],
+
+  "endpoints": {
+    "collection_management": {
+      "list": "GET /collections:list",
+      "get": "GET /collections:get?name={collection}",
+      "create": "POST /collections:create",
+      "update": "POST /collections:update",
+      "destroy": "POST /collections:destroy"
+    },
+    "data_access": {
+      "list": "GET /{collection}:list",
+      "get": "GET /{collection}:get?id={id}",
+      "create": "POST /{collection}:create",
+      "update": "POST /{collection}:update",
+      "destroy": "POST /{collection}:destroy"
+    }
+  },
+
+  "query": {
+    "operators": ["eq", "ne", "gt", "lt", "gte", "lte", "like", "in"],
+    "sorting": {
+      "syntax": "sort={-field,field}"
+    },
+    "pagination": {
+      "cursor_param": "after",
+      "limit_param": "limit"
+    },
+    "search": {
+      "full_text_param": "q"
+    }
+  },
+
+  "aggregation": {
+    "supported": ["count", "sum", "avg", "min", "max"],
+    "numeric_types_only": true
+  },
+
+  "guarantees": {
+    "transactions": false,
+    "joins": false,
+    "background_jobs": false
+  }
+}
+```
 
 ## Curl Example Standards
 
