@@ -71,7 +71,7 @@ Moon provides comprehensive, auto-generated API documentation:
 
 - **HTML Documentation**: Visit `http://localhost:6006/doc/` in your browser for a complete, interactive API reference
 - **Markdown Documentation**: Access `http://localhost:6006/doc/md` for terminal-friendly or AI-agent documentation
-- Configuration: See `samples/moon.conf` and `samples/moon-full.conf`
+- Configuration: See `samples/moon.conf` for comprehensive, spec-compliant configuration
 - Testing: See `scripts/test-runner.sh`
 
 ### Authentication Test Suite
