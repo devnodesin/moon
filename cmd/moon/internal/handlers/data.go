@@ -13,6 +13,7 @@ import (
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/query"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
+	"github.com/thalib/moon/cmd/moon/internal/schema"
 	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
 )
 
@@ -39,14 +40,16 @@ type DataListRequest struct {
 
 // DataListResponse represents response for list operation
 type DataListResponse struct {
-	Data       []map[string]any `json:"data"`
-	NextCursor *string          `json:"next_cursor"` // Next ULID cursor, null if no more data
-	Limit      int              `json:"limit"`
+	Data       []map[string]any          `json:"data,omitempty"` // Omit when schema=only (PRD-053)
+	Schema     *schema.Schema            `json:"schema,omitempty"`
+	NextCursor *string                   `json:"next_cursor,omitempty"` // Next ULID cursor, null if no more data
+	Limit      int                       `json:"limit,omitempty"`
 }
 
 // DataGetResponse represents response for get operation
 type DataGetResponse struct {
-	Data map[string]any `json:"data"`
+	Data   map[string]any `json:"data,omitempty"` // Omit when schema=only (PRD-053)
+	Schema *schema.Schema `json:"schema,omitempty"`
 }
 
 // CreateDataRequest represents request for create operation
@@ -201,39 +204,58 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		)
 	}
 
-	// Execute query
-	ctx := r.Context()
-	rows, err := h.db.Query(ctx, sql, args...)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
-		return
-	}
-	defer rows.Close()
-
-	// Parse results
-	data, err := parseRows(rows, collection)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse results: %v", err))
-		return
-	}
-
-	// Determine next cursor
+	// Parse schema query parameter (PRD-053)
+	schemaMode := schema.ParseQueryParameter(r.URL.Query())
+	
+	// Skip data query if schema=only mode
+	var data []map[string]any
 	var nextCursor *string
-	if len(data) > limit {
-		// More data available, use the ULID of the last returned record as cursor
-		// Truncate to limit first
-		data = data[:limit]
-		// Now get the last item from the returned data
-		lastItem := data[len(data)-1]
-		if ulidVal, ok := lastItem["id"].(string); ok {
-			nextCursor = &ulidVal
+	
+	if schemaMode != schema.ModeOnly {
+		// Execute query
+		ctx := r.Context()
+		rows, err := h.db.Query(ctx, sql, args...)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
+			return
+		}
+		defer rows.Close()
+
+		// Parse results
+		data, err = parseRows(rows, collection)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse results: %v", err))
+			return
+		}
+
+		// Determine next cursor
+		if len(data) > limit {
+			// More data available, use the ULID of the last returned record as cursor
+			// Truncate to limit first
+			data = data[:limit]
+			// Now get the last item from the returned data
+			lastItem := data[len(data)-1]
+			if ulidVal, ok := lastItem["id"].(string); ok {
+				nextCursor = &ulidVal
+			}
 		}
 	}
 
+	// Build response with optional schema (PRD-053)
 	response := DataListResponse{
-		Data:       data,
 		NextCursor: nextCursor,
 		Limit:      limit,
+	}
+	
+	// Add data if not schema-only mode
+	if schemaMode != schema.ModeOnly {
+		response.Data = data
+	}
+	
+	// Add schema if requested
+	if schemaMode == schema.ModeBoth || schemaMode == schema.ModeOnly {
+		schemaBuilder := schema.NewBuilder()
+		response.Schema = schemaBuilder.FromCollection(collection)
 	}
 
 	writeJSON(w, http.StatusOK, response)
@@ -270,29 +292,42 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 		query = fmt.Sprintf("SELECT * FROM %s WHERE ulid = $1", collectionName)
 	}
 
-	// Execute query
-	ctx := r.Context()
-	rows, err := h.db.Query(ctx, query, args...)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
-		return
-	}
-	defer rows.Close()
+	// Parse schema query parameter (PRD-053)
+	schemaMode := schema.ParseQueryParameter(r.URL.Query())
+	
+	// Build response with optional schema (PRD-053)
+	response := DataGetResponse{}
+	
+	// Add data if not schema-only mode
+	if schemaMode != schema.ModeOnly {
+		// Execute query only if we need data
+		ctx := r.Context()
+		rows, err := h.db.Query(ctx, query, args...)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query data: %v", err))
+			return
+		}
+		defer rows.Close()
 
-	// Parse results
-	data, err := parseRows(rows, collection)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse results: %v", err))
-		return
-	}
+		// Parse results
+		data, err := parseRows(rows, collection)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse results: %v", err))
+			return
+		}
 
-	if len(data) == 0 {
-		writeError(w, http.StatusNotFound, fmt.Sprintf("record with id %s not found", idStr))
-		return
+		if len(data) == 0 {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("record with id %s not found", idStr))
+			return
+		}
+		
+		response.Data = data[0]
 	}
-
-	response := DataGetResponse{
-		Data: data[0],
+	
+	// Add schema if requested
+	if schemaMode == schema.ModeBoth || schemaMode == schema.ModeOnly {
+		schemaBuilder := schema.NewBuilder()
+		response.Schema = schemaBuilder.FromCollection(collection)
 	}
 
 	writeJSON(w, http.StatusOK, response)
