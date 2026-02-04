@@ -583,6 +583,34 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	writeJSON(w, http.StatusOK, response)
 }
 
+// SchemaResponse represents the response for the schema endpoint (PRD-054)
+type SchemaResponse struct {
+	Collection string               `json:"collection"`
+	Fields     []schema.FieldSchema `json:"fields"`
+}
+
+// Schema handles GET /{name}:schema (PRD-054)
+func (h *DataHandler) Schema(w http.ResponseWriter, r *http.Request, collectionName string) {
+	// Validate collection exists in registry
+	collection, exists := h.registry.Get(collectionName)
+	if !exists {
+		writeError(w, http.StatusNotFound, "Collection not found")
+		return
+	}
+
+	// Build schema response
+	schemaBuilder := schema.NewBuilder()
+	fullSchema := schemaBuilder.FromCollection(collection)
+
+	// Create response matching PRD-054 specification
+	response := SchemaResponse{
+		Collection: fullSchema.Collection,
+		Fields:     fullSchema.Fields,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // filterParam represents a parsed filter from query string
 type filterParam struct {
 	column   string
