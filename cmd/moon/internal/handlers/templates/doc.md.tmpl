@@ -109,6 +109,19 @@ Moon is intentionally minimal. It does **not** support:
 - Don’t use joins, transactions, triggers, or background jobs—handle these in your app.
 - Don’t assume foreign keys; manage relations manually.
 
+**Data Types**
+
+Supported column data types:
+
+- `string` - Text values of any length (maps to TEXT in SQL)
+- `integer` - 64-bit whole numbers
+- `decimal` - For decimal values. API input/output uses strings (e.g., `"199.99"`), with a default of 2 decimal places.
+- `boolean` - true/false values
+- `datetime` - Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z)
+- `json` - Arbitrary JSON object or array
+
+***Note:*** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
+
 ---
 
 ## Documentation
@@ -243,19 +256,7 @@ All errors follow a consistent JSON structure:
   "code": 429
 }
 ```
-
-## Data Types
-
-Supported column data types:
-
-- `string` - Text values of any length (maps to TEXT in SQL)
-- `integer` - 64-bit whole numbers
-- `boolean` - true/false values
-- `datetime` - Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z)
-- `json` - Arbitrary JSON object or array
-- `decimal` - For decimal values. API input/output uses strings (e.g., `"199.99"`), with a default of 2 decimal places.
-
-***Note:*** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types. SQLite may represent boolean values as `1` (true) or `0` (false) in some responses.
+---
 
 ## Health Check
 
@@ -272,6 +273,8 @@ Response: `status: live|down`
   "version": "1.99"
 }
 ```
+
+---
 
 ## Auth Endpoints
 
@@ -335,6 +338,8 @@ curl -X POST "{{$ApiURL}}/auth:me" \
   -H "Content-Type: application/json" \
   -d '{"old_password":"moonadmin12#","password":"NewSecurePass456"}' | jq .
 ```
+
+---
 
 ## User Management Endpoints (Admin Only)
 
@@ -432,6 +437,8 @@ curl -X POST "{{$ApiURL}}/users:update?id=<USER_ID>" \
 curl -X POST "{{$ApiURL}}/users:destroy?id=<USER_ID>" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
+
+---
 
 ## API Key Management Endpoints (Admin Only)
 
@@ -568,6 +575,8 @@ curl -X GET "http://localhost:6006/collections:list" \
   -H "X-API-Key: $API_KEY" | jq .
 ```
 
+---
+
 ## Collection Management
 
 These endpoints manage database tables (collections) and their schemas.
@@ -702,6 +711,8 @@ curl -X POST "{{$ApiURL}}/collections:destroy" \
   -H "Content-Type: application/json" \
   -d '{"name": "products"}' | jq .
 ```
+
+---
 
 ## Data Access
 
@@ -1067,7 +1078,6 @@ This machine-readable appendix enables automated client generation and reduces a
       "description": "true/false values",
       "sql_mapping": "BOOLEAN",
       "example": true,
-      "note": "SQLite may represent as 1 (true) or 0 (false)"
     },
     {
       "name": "datetime",
