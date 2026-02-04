@@ -1,15 +1,14 @@
 {{- $ApiURL := .BaseURL -}}
 {{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
+
 # Moon – Instructions and API Documentation for AI Coding Agents
 
-- Moon is a schema-on-demand backend.
-- Always create collections before inserting data.
-- Prefer API keys for server-side apps.
-- Use JWT only for user-facing authentication.
-- Do not assume foreign keys; model relations manually.
-- Endpoints use AIP-136 custom actions (colon separator).
-- Moon enforces rate limits: JWT 100/min/user, API Key 1,000/min/key.
-
+> **Quick Start:**
+> 1. [View HTML docs]({{$ApiURL}}/doc/) or [Markdown docs]({{$ApiURL}}/doc/md)
+> 2. [Authenticate](#authentication) (see below)
+> 3. [Try a sample request](#collection-management)
+> 4. [See JSON Appendix](#json-appendix) for machine-readable spec
+> 5. For help or to report issues, visit [GitHub Issues](https://github.com/thalib/moon/issues)
 
 | Property    | Value                                               |
 |-------------|-----------------------------------------------------|
@@ -65,39 +64,50 @@ For example, consider the table `products` below.
 - **Field:** `id`, `name`, `price`, `in_stock` (the columns)
 - **Record:** Each row, e.g., `{ "id": "01H1...", "name": "Wireless Mouse", "price": "29.99", "in_stock": true }`
 
-**Design Constraints**
-
-- Collection names must be lowercase, snake_case
-- Field names must be unique per collection
-- No joins are supported
-- Relations must be handled at application layer
 
 **What Moon Does NOT Do**
 
-Moon is designed as a lightweight, dynamic backend. It intentionally does **not** support:
+Moon is intentionally minimal. It does **not** support:
 
-- **Transactions:** No multi-statement atomic operations. Each request is independent.
-- **Joins:** No SQL joins between collections. Model relationships at the application layer.
+- **Transactions:** No multi-statement atomicity; each request is independent.
+- **Joins:** No SQL joins; model relationships in your application.
 - **Triggers/Hooks:** No database-level triggers or event hooks.
-- **Background Jobs:** No built-in job queue or async task processing.
-- Supported HTTP Methods: GET, POST and OPTIONS only
-- Public endpoints: `/health`, `/doc`, `/doc/md`. 
+- **Background Jobs:** No built-in job queue or async processing.
+- **Foreign Keys:** Relations must be managed manually.
+- **Migrations/Schema Versioning:** No built-in migration or schema versioning system.
+- **Backup/Restore:** No built-in backup or restore; handle externally.
+- **Fine-grained ACLs:** Only `user` and `admin` roles; no per-collection/field ACL.
+- **WebSocket/Realtime:** No realtime or WebSocket support.
+- **File/Binary Storage:** No file uploads or binary/blob storage.
+- **Scheduled Tasks:** No cron or scheduled task support.
+- **Encryption at Rest:** No built-in data encryption at rest.
+- **Admin UI:** API-only; no built-in web UI or dashboard.
+- **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
+- **Public endpoints:** `/health`, `/doc`, `/doc/md`.
+
+**Design Constraints**
+
+- Collection names: lowercase, snake_case.
+- Field names: unique per collection.
+- No joins; handle relations at the application layer.
+
 
 **Rules: Do's**
 
-- Authentication: JWT for user-facing apps, API keys for server-to-server.
-- User Roles: `user`: limited access, `admin`: full control.
-- Input Validation: Moon validates types and constraints; always sanitize input.
-- Network Security
-- Use HTTPS in production.
-- Set specific allowed origins for CORS.
+- Moon is schema-on-demand.
+- Always check or create collections before inserting data.
+- Use API keys for server-side apps; JWT for user-facing auth.
+- Endpoints follow AIP-136 custom actions (colon separator).
+- Rate limits: JWT 100/min/user, API Key 1,000/min/key.
+- User roles: `user` (limited), `admin` (full).
+- Input validation: types and constraints enforced; always sanitize input.
+- **Always use HTTPS in production.** (All curl examples assume HTTPS for production use.)
+- Set explicit allowed origins for CORS.
 
 **Rules: Don'ts**
 
-- No Joins: Model relationships at application layer.
-- No Transactions: Each request is independent.
-- No Triggers/Hooks: Handle logic at application layer.
-- No Background Jobs: Use external job queues for async tasks.
+- Don’t use joins, transactions, triggers, or background jobs—handle these in your app.
+- Don’t assume foreign keys; manage relations manually.
 
 ---
 
@@ -145,7 +155,8 @@ curl -s "{{$ApiURL}}/collections:list" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-{{end}}{{if .APIKeyEnabled}}**API Key Authentication:** Include your API key in the {{.APIKeyHeader}} header:
+
+{{end}}{{if .APIKeyEnabled}}**API Key Authentication:** Include your API key in the `{{.APIKeyHeader}}` header (e.g., `X-API-Key`):
 
 ```
 {{.APIKeyHeader}}: <your-api-key>
@@ -482,7 +493,7 @@ Example Response
   - `id` => `$API_KEY_ID` (e.g: 01KGF0NGEHYKJR8PV5KHQBDHKB)
   - `key` => `$API_KEY` (e.g: moon_live_ArPaQDdyh4gp9EKF42Xrq7AOAAJZmKiCtTCv1m2rj931QxmPkiXuSV8Un0qllMiN).
 - Copy and store `key` securely now. It will not be shown again.
-- Use this key in the header specified by `$API_KEY` for requests using `X-API-Key`.
+- Use this key in the `{{.APIKeyHeader}}` header (e.g., `X-API-Key: $API_KEY`) for all API requests.
 
 **Update API Key Metadata**
 
@@ -550,7 +561,7 @@ response=$(curl -X POST "{{$ApiURL}}/apikeys:create" \
 API_KEY=$(echo $response | jq -r '.key')
 ```
 
-then you can use like below 
+then you can use it as shown below:
 
 ```bash
 curl -X GET "http://localhost:6006/collections:list" \
@@ -699,8 +710,8 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `{{.Prefix}}/{collection}:list` | GET | List all records |
-| `{{.Prefix}}/{collection}:get` | GET | Get a single record (requires `?id=...`) |
 | `{{.Prefix}}/{collection}:schema` | GET | Get collection schema |
+| `{{.Prefix}}/{collection}:get` | GET | Get a single record (requires `?id=...`) |
 | `{{.Prefix}}/{collection}:create` | POST | Create a new record |
 | `{{.Prefix}}/{collection}:update` | POST | Update an existing record |
 | `{{.Prefix}}/{collection}:destroy` | POST | Delete a record |
@@ -711,6 +722,32 @@ These endpoints manage records within a specific collection. Replace `{collectio
 curl -s "{{$ApiURL}}/products:list" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
+
+**Schema Retrieval**
+
+To retrieve the schema for a collection, use the dedicated schema endpoint:
+
+```bash
+curl "{{$ApiURL}}/products:schema" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+Response format:
+
+```json
+{
+  "collection": "products",
+  "fields": [
+    { "name": "id", "type": "string", "nullable": false },
+    { "name": "title", "type": "string", "nullable": false },
+    { "name": "price", "type": "integer", "nullable": false },
+    { "name": "description", "type": "string", "nullable": true }
+  ]
+}
+```
+
+The schema endpoint requires authentication and returns `404` if the collection does not exist.
+
 
 **Create a New Record**
 
@@ -829,31 +866,6 @@ curl "{{$ApiURL}}/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX&limit=10" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-**Schema Retrieval**
-
-To retrieve the schema for a collection, use the dedicated schema endpoint:
-
-```bash
-curl "{{$ApiURL}}/products:schema" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-Response format:
-
-```json
-{
-  "collection": "products",
-  "fields": [
-    { "name": "id", "type": "string", "nullable": false },
-    { "name": "title", "type": "string", "nullable": false },
-    { "name": "price", "type": "integer", "nullable": false },
-    { "name": "description", "type": "string", "nullable": true }
-  ]
-}
-```
-
-The schema endpoint requires authentication and returns `404` if the collection does not exist.
-
 **Combined Query Examples:**
 
 Filter, sort, and limit:
@@ -944,9 +956,10 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1706875200
 ```
 
+
 **Rate Limit Exceeded Response (429):**
 
-When you exceed the rate limit, you'll receive:
+When you exceed the rate limit (100/min/user for JWT, 1000/min/key for API Key), you'll receive:
 
 ```json
 {
@@ -979,8 +992,8 @@ Moon supports Cross-Origin Resource Sharing (CORS) for browser-based clients.
   ```
 - **Configurable:** Origins via `cors.allowed_origins` in config file
 - **Allowed Headers:** `Authorization`, `Content-Type`, `X-API-Key`
-- **Credentials:** Supported when origin is explicitly allowed (not `*`)
----
+  - **Credentials:** Supported when origin is explicitly allowed (not `*`).
+  - **Note:** If you need to send cookies or credentials, set a specific allowed origin in your config (not `*`).
 
 ---
 
@@ -1394,4 +1407,3 @@ This machine-readable appendix enables automated client generation and reduces a
 ```
 
 ---
-
