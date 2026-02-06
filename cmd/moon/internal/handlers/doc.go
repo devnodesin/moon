@@ -383,11 +383,11 @@ func (h *DocHandler) buildJSONAppendix() string {
 	authHeaders := map[string]string{}
 	if h.config.JWT.Secret != "" {
 		authModes = append(authModes, "jwt")
-		authHeaders["jwt"] = "Authorization: Bearer <token>"
+		authHeaders["jwt"] = "Authorization: Bearer token"
 	}
 	if h.config.APIKey.Enabled {
 		authModes = append(authModes, "api_key")
-		authHeaders["api_key"] = fmt.Sprintf("%s: <key>", h.config.APIKey.Header)
+		authHeaders["api_key"] = fmt.Sprintf("%s: key", h.config.APIKey.Header)
 	}
 
 	// Prepare URL prefix (null if empty)
