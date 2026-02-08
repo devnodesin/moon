@@ -98,6 +98,22 @@ func TestSchemaEndpoint(t *testing.T) {
 			}
 		}
 
+		// Verify internal 'ulid' column is NOT exposed
+		if fieldNames["ulid"] {
+			t.Error("Internal 'ulid' column should not be exposed in schema")
+		}
+
+		// Verify there is exactly one 'id' field (no duplicates)
+		idCount := 0
+		for _, field := range resp.Fields {
+			if field.Name == "id" {
+				idCount++
+			}
+		}
+		if idCount != 1 {
+			t.Errorf("Expected exactly 1 'id' field, got %d", idCount)
+		}
+
 		// Verify field properties
 		for _, field := range resp.Fields {
 			if field.Name == "id" {
@@ -191,6 +207,75 @@ func TestSchemaEndpoint(t *testing.T) {
 					t.Errorf("Expected field to have '%s' property", prop)
 				}
 			}
+		}
+	})
+
+	// Test 4: Verify internal id and ulid columns are never exposed (bug fix test)
+	t.Run("internal_columns_not_exposed", func(t *testing.T) {
+		// Create a collection where registry accidentally includes id/ulid columns
+		// This simulates the bug scenario from the issue
+		badCollection := &registry.Collection{
+			Name: "bad_collection",
+			Columns: []registry.Column{
+				{Name: "id", Type: registry.TypeInteger, Nullable: true},
+				{Name: "ulid", Type: registry.TypeString, Nullable: false},
+				{Name: "title", Type: registry.TypeString, Nullable: false},
+			},
+		}
+		reg.Set(badCollection)
+
+		req := httptest.NewRequest(http.MethodGet, "/bad_collection:schema", nil)
+		w := httptest.NewRecorder()
+		handler.Schema(w, req, "bad_collection")
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp SchemaResponse
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("Failed to decode response: %v", err)
+		}
+
+		// Count how many times 'id' appears
+		idCount := 0
+		for _, field := range resp.Fields {
+			if field.Name == "id" {
+				idCount++
+				// The one 'id' field should be string type (the external identifier)
+				if field.Type != "string" {
+					t.Errorf("The 'id' field should be type 'string', got '%s'", field.Type)
+				}
+				if field.Nullable {
+					t.Error("The 'id' field should be non-nullable")
+				}
+			}
+		}
+
+		if idCount != 1 {
+			t.Errorf("Expected exactly 1 'id' field in schema, got %d", idCount)
+		}
+
+		// Verify 'ulid' is NOT exposed
+		for _, field := range resp.Fields {
+			if field.Name == "ulid" {
+				t.Error("Internal 'ulid' column must not be exposed in schema response")
+			}
+		}
+
+		// Verify user-defined columns are still present
+		fieldNames := make(map[string]bool)
+		for _, field := range resp.Fields {
+			fieldNames[field.Name] = true
+		}
+
+		if !fieldNames["title"] {
+			t.Error("Expected user-defined 'title' field in schema")
+		}
+
+		// Expected fields: id (external), title
+		if len(resp.Fields) != 2 {
+			t.Errorf("Expected 2 fields (id, title), got %d fields", len(resp.Fields))
 		}
 	})
 }
