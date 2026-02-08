@@ -87,14 +87,14 @@ Access tokens contain the following claims:
 **Authentication Header:**
 
 ```
-X-API-Key: <api_key>
+Authorization: Bearer <api_key>
 ```
 
 **Flow:**
 
 1. Admin creates API key via `POST /apikeys:create` (specifying name, role, and optional description)
-2. Server generates cryptographically secure key, returns it once
-3. Service stores key securely and includes it in `X-API-Key` header for all requests
+2. Server generates cryptographically secure key with `moon_live_` prefix, returns it once
+3. Service stores key securely and includes it in `Authorization: Bearer` header for all requests
 4. Keys can be rotated via `POST /apikeys:update` or destroyed via `POST /apikeys:destroy`
 
 **Key Management:**
@@ -108,11 +108,67 @@ X-API-Key: <api_key>
 
 - 1000 requests/minute per API key
 
+### Unified Authentication Header
+
+**Standard:**
+
+Both JWT tokens and API keys use the same `Authorization: Bearer` header format:
+
+```
+Authorization: Bearer <TOKEN>
+```
+
+**Token Type Detection:**
+
+The server automatically detects the token type:
+- **JWT tokens:** Three base64-encoded segments separated by dots (e.g., `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
+- **API keys:** Start with `moon_live_` prefix (e.g., `moon_live_abc123...`)
+
+**Examples:**
+
+```bash
+# JWT authentication
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  https://api.moon.example.com/data/users:list
+
+# API key authentication (same header format)
+curl -H "Authorization: Bearer moon_live_abc123..." \
+  https://api.moon.example.com/data/users:list
+```
+
+### Legacy Authentication Support (Transitional)
+
+**Deprecated Header:**
+
+During the transitional period, the legacy `X-API-Key` header is still supported for API keys:
+
+```
+X-API-Key: <api_key>
+```
+
+**Deprecation Notice:**
+
+- The `X-API-Key` header is **deprecated** and will be removed in a future version
+- Use `Authorization: Bearer <api_key>` instead
+- When using the legacy header, the server returns deprecation headers:
+  - `Deprecation: true`
+  - `Sunset: <date>` (when legacy support will end)
+  - `Link: </doc>; rel="deprecation"` (link to migration guide)
+
+**Configuration:**
+
+```yaml
+apikey:
+  enabled: true
+  legacy_header_support: true  # Enable legacy X-API-Key support (default: true)
+  legacy_header_sunset: "2026-05-08T00:00:00Z"  # Sunset date for legacy header
+```
+
 ### Authentication Priority
 
 **Precedence Rules:**
 
-- If both `Authorization: Bearer` and `X-API-Key` headers present, JWT takes precedence
+- `Authorization: Bearer` takes precedence over `X-API-Key` if both headers present
 - If neither header is present on protected endpoint, return `401 Unauthorized`
 - If invalid/expired credentials provided, return `401 Unauthorized`
 - If valid credentials but insufficient permissions, return `403 Forbidden`

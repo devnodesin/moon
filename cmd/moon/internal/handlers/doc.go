@@ -340,10 +340,11 @@ type JSONAppendixData struct {
 
 // AuthInfo holds authentication configuration
 type AuthInfo struct {
-	Modes      []string          `json:"modes"`
-	Headers    map[string]string `json:"headers"`
-	RateLimits map[string]string `json:"rate_limits"`
-	Rules      map[string]string `json:"rules"`
+	Modes        []string          `json:"modes"`
+	Header       string            `json:"header"`
+	TokenFormats map[string]string `json:"token_formats"`
+	RateLimits   map[string]string `json:"rate_limits"`
+	Rules        map[string]string `json:"rules"`
 }
 
 // CollectionsInfo holds collection metadata and constraints
@@ -380,14 +381,14 @@ type FieldInfo struct {
 func (h *DocHandler) buildJSONAppendix() string {
 	// Prepare authentication modes
 	authModes := []string{}
-	authHeaders := map[string]string{}
+	tokenFormats := map[string]string{}
 	if h.config.JWT.Secret != "" {
 		authModes = append(authModes, "jwt")
-		authHeaders["jwt"] = "Authorization: Bearer token"
+		tokenFormats["jwt"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 	}
 	if h.config.APIKey.Enabled {
 		authModes = append(authModes, "api_key")
-		authHeaders["api_key"] = fmt.Sprintf("%s: key", h.config.APIKey.Header)
+		tokenFormats["api_key"] = "moon_live_<64_chars>"
 	}
 
 	// Prepare URL prefix (null if empty)
@@ -437,8 +438,9 @@ func (h *DocHandler) buildJSONAppendix() string {
 		BaseURL:         fmt.Sprintf("http://localhost:%d", h.config.Server.Port),
 		URLPrefix:       urlPrefix,
 		Authentication: AuthInfo{
-			Modes:   authModes,
-			Headers: authHeaders,
+			Modes:        authModes,
+			Header:       "Authorization: Bearer <token>",
+			TokenFormats: tokenFormats,
 			RateLimits: map[string]string{
 				"jwt":     "100 requests per minute per user",
 				"api_key": "1000 requests per minute per key",

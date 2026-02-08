@@ -159,18 +159,17 @@ curl -X POST "{{$ApiURL}}/doc:refresh" \
 
 ## Authentication 
 
-{{if or .JWTEnabled .APIKeyEnabled}}This API requires authentication for all endpoints except `/health`.
-
-{{if .JWTEnabled}}**JWT Authentication:** Include a bearer token in the Authorization header:
+{{if or .JWTEnabled .APIKeyEnabled}}All requests to protected endpoints require authentication via the `Authorization` header:
 
 ```
-Authorization: Bearer <your-jwt-token>
+Authorization: Bearer <TOKEN>
 ```
 
-To use the examples below, first login and store your token:
+### JWT Token Example
+
+JWT tokens are obtained from `POST /auth:login` and are used for interactive users:
 
 ```bash
-
 # Login and save tokens to environment variables
 response=$(curl -s -X POST "{{$ApiURL}}/auth:login" \
   -H "Content-Type: application/json" \
@@ -183,13 +182,28 @@ curl -s "{{$ApiURL}}/collections:list" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-{{end}}{{if .APIKeyEnabled}}**API Key Authentication:** Include your API key in the `{{.APIKeyHeader}}` header (e.g., `X-API-Key`):
+{{if .APIKeyEnabled}}### API Key Example
 
-```
-{{.APIKeyHeader}}: <your-api-key>
+API keys are obtained from `POST /apikeys:create` and are used for service integrations:
+
+```bash
+# Create an API key (requires admin role)
+curl -X POST "{{$ApiURL}}/apikeys:create" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My Service Key","role":"user"}' | jq .
+
+# Use the API key in requests (same Authorization header format)
+curl -s "{{$ApiURL}}/collections:list" \
+  -H "Authorization: Bearer moon_live_abc123..." | jq .
 ```
 
-{{end}}{{else}}Authentication is currently disabled for this instance.
+{{end}}**Token Types:**
+- **JWT tokens** (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`) - for interactive users
+{{if .APIKeyEnabled}}- **API keys** (`moon_live_<64_chars>`) - for service integrations{{end}}
+- Both use the same `Authorization: Bearer` header format
+
+{{else}}Authentication is currently disabled for this instance.
 
 {{- end}}
 
