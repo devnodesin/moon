@@ -55,8 +55,13 @@ func (b *Builder) FromCollection(collection *registry.Collection) *Schema {
 		Nullable: false,
 	})
 
-	// Add all other fields
+	// Add all other fields, excluding internal system columns (id, ulid)
 	for _, col := range collection.Columns {
+		// Skip internal system columns - they should never be exposed
+		if col.Name == "id" || col.Name == "ulid" {
+			continue
+		}
+
 		fieldSchema := FieldSchema{
 			Name:     col.Name,
 			Type:     string(col.Type),
