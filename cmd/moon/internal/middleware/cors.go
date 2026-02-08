@@ -209,8 +209,14 @@ func (m *CORSMiddleware) HandleDynamic(next http.HandlerFunc) http.HandlerFunc {
 		endpointConfig := m.MatchEndpoint(r.URL.Path)
 
 		if endpointConfig != nil {
+			// Use endpoint origins, or fall back to global origins if endpoint origins are empty
+			origins := endpointConfig.AllowedOrigins
+			if len(origins) == 0 {
+				origins = m.config.AllowedOrigins
+			}
+
 			// Apply endpoint-specific CORS
-			m.applyCORSHeaders(w, r, endpointConfig.AllowedOrigins,
+			m.applyCORSHeaders(w, r, origins,
 				endpointConfig.AllowedMethods,
 				endpointConfig.AllowedHeaders,
 				endpointConfig.AllowCredentials)
