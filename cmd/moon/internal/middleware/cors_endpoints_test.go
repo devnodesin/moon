@@ -512,3 +512,307 @@ func TestCORSMiddleware_HandleDynamic_FallbackToGlobal(t *testing.T) {
 		t.Errorf("HandleDynamic() Access-Control-Allow-Origin = %v, want https://global.example.com (global config)", gotAllowOrigin)
 	}
 }
+
+// TestCORSMiddleware_HandleDynamic_EndpointOriginFallbackToGlobal tests endpoint with empty origins uses global origins
+func TestCORSMiddleware_HandleDynamic_EndpointOriginFallbackToGlobal(t *testing.T) {
+	tests := []struct {
+		name             string
+		globalOrigins    []string
+		endpointOrigins  []string
+		requestOrigin    string
+		wantAllowOrigin  string
+		wantAllowMethods string
+		description      string
+	}{
+		{
+			name:             "empty_endpoint_origins_uses_global",
+			globalOrigins:    []string{"https://app.example.com", "https://admin.example.com"},
+			endpointOrigins:  []string{}, // Empty, should fall back to global
+			requestOrigin:    "https://app.example.com",
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			description:      "Endpoint with empty origins should use global allowed origins",
+		},
+		{
+			name:             "explicit_endpoint_origins_override_global",
+			globalOrigins:    []string{"https://app.example.com"},
+			endpointOrigins:  []string{"https://special.example.com"},
+			requestOrigin:    "https://special.example.com",
+			wantAllowOrigin:  "https://special.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			description:      "Endpoint with explicit origins should override global",
+		},
+		{
+			name:             "wildcard_global_with_empty_endpoint",
+			globalOrigins:    []string{"*"},
+			endpointOrigins:  []string{}, // Empty, should fall back to global wildcard
+			requestOrigin:    "https://any-origin.com",
+			wantAllowOrigin:  "*",
+			wantAllowMethods: "POST, OPTIONS",
+			description:      "Endpoint with empty origins should inherit global wildcard",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewCORSMiddleware(CORSConfig{
+				Enabled:        true,
+				AllowedOrigins: tt.globalOrigins,
+				AllowedMethods: []string{"GET", "POST"},
+				MaxAge:         3600,
+				Endpoints: []CORSEndpointConfig{
+					{
+						Path:           "*:create",
+						PatternType:    "suffix",
+						AllowedOrigins: tt.endpointOrigins,
+						AllowedMethods: []string{"POST", "OPTIONS"},
+						AllowedHeaders: []string{"Content-Type", "Authorization"},
+					},
+				},
+			})
+
+			handler := m.HandleDynamic(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+
+			req := httptest.NewRequest("POST", "/users:create", nil)
+			req.Header.Set("Origin", tt.requestOrigin)
+			w := httptest.NewRecorder()
+
+			handler(w, req)
+
+			gotAllowOrigin := w.Header().Get("Access-Control-Allow-Origin")
+			if gotAllowOrigin != tt.wantAllowOrigin {
+				t.Errorf("HandleDynamic() Access-Control-Allow-Origin = %v, want %v for %s",
+					gotAllowOrigin, tt.wantAllowOrigin, tt.description)
+			}
+
+			if tt.wantAllowMethods != "" {
+				gotAllowMethods := w.Header().Get("Access-Control-Allow-Methods")
+				if gotAllowMethods != tt.wantAllowMethods {
+					t.Errorf("HandleDynamic() Access-Control-Allow-Methods = %v, want %v for %s",
+						gotAllowMethods, tt.wantAllowMethods, tt.description)
+				}
+			}
+		})
+	}
+}
+
+// TestCORSMiddleware_HandleDynamic_DataEndpoints tests CORS for dynamic data endpoints
+func TestCORSMiddleware_HandleDynamic_DataEndpoints(t *testing.T) {
+	tests := []struct {
+		name             string
+		endpoints        []CORSEndpointConfig
+		path             string
+		origin           string
+		method           string
+		wantStatus       int
+		wantAllowOrigin  string
+		wantAllowMethods string
+		wantAllowHeaders string
+		description      string
+	}{
+		{
+			name: "list_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:list",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"GET", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/users:list",
+			origin:           "https://app.example.com",
+			method:           "GET",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "GET, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "GET /users:list should match *:list suffix pattern",
+		},
+		{
+			name: "create_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:create",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"POST", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/users:create",
+			origin:           "https://app.example.com",
+			method:           "POST",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "POST /users:create should match *:create suffix pattern",
+		},
+		{
+			name: "create_endpoint_preflight_options",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:create",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"POST", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/products:create",
+			origin:           "https://app.example.com",
+			method:           "OPTIONS",
+			wantStatus:       204,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "OPTIONS /products:create should return 204 with CORS headers",
+		},
+		{
+			name: "update_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:update",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"POST", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/orders:update",
+			origin:           "https://app.example.com",
+			method:           "POST",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "POST /orders:update should match *:update suffix pattern",
+		},
+		{
+			name: "destroy_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:destroy",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"POST", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/items:destroy",
+			origin:           "https://app.example.com",
+			method:           "POST",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "POST, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "POST /items:destroy should match *:destroy suffix pattern",
+		},
+		{
+			name: "get_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:get",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"GET", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/customers:get",
+			origin:           "https://app.example.com",
+			method:           "GET",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "GET, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "GET /customers:get should match *:get suffix pattern",
+		},
+		{
+			name: "schema_endpoint_with_suffix_pattern",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:schema",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"https://app.example.com"},
+					AllowedMethods: []string{"GET", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type", "Authorization"},
+				},
+			},
+			path:             "/products:schema",
+			origin:           "https://app.example.com",
+			method:           "GET",
+			wantStatus:       200,
+			wantAllowOrigin:  "https://app.example.com",
+			wantAllowMethods: "GET, OPTIONS",
+			wantAllowHeaders: "Content-Type, Authorization",
+			description:      "GET /products:schema should match *:schema suffix pattern",
+		},
+		{
+			name: "wildcard_origin_for_data_endpoints",
+			endpoints: []CORSEndpointConfig{
+				{
+					Path:           "*:list",
+					PatternType:    "suffix",
+					AllowedOrigins: []string{"*"},
+					AllowedMethods: []string{"GET", "OPTIONS"},
+					AllowedHeaders: []string{"Content-Type"},
+				},
+			},
+			path:             "/any-collection:list",
+			origin:           "https://any-origin.com",
+			method:           "GET",
+			wantStatus:       200,
+			wantAllowOrigin:  "*",
+			wantAllowMethods: "GET, OPTIONS",
+			wantAllowHeaders: "Content-Type",
+			description:      "Wildcard origin should work for data endpoints",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewCORSMiddleware(CORSConfig{
+				MaxAge:    3600,
+				Endpoints: tt.endpoints,
+			})
+
+			handler := m.HandleDynamic(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			req.Header.Set("Origin", tt.origin)
+			w := httptest.NewRecorder()
+
+			handler(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("HandleDynamic() status = %v, want %v for %s", w.Code, tt.wantStatus, tt.description)
+			}
+
+			gotAllowOrigin := w.Header().Get("Access-Control-Allow-Origin")
+			if gotAllowOrigin != tt.wantAllowOrigin {
+				t.Errorf("HandleDynamic() Access-Control-Allow-Origin = %v, want %v for %s", gotAllowOrigin, tt.wantAllowOrigin, tt.description)
+			}
+
+			if tt.wantAllowMethods != "" {
+				gotAllowMethods := w.Header().Get("Access-Control-Allow-Methods")
+				if gotAllowMethods != tt.wantAllowMethods {
+					t.Errorf("HandleDynamic() Access-Control-Allow-Methods = %v, want %v for %s", gotAllowMethods, tt.wantAllowMethods, tt.description)
+				}
+			}
+
+			if tt.wantAllowHeaders != "" {
+				gotAllowHeaders := w.Header().Get("Access-Control-Allow-Headers")
+				if gotAllowHeaders != tt.wantAllowHeaders {
+					t.Errorf("HandleDynamic() Access-Control-Allow-Headers = %v, want %v for %s", gotAllowHeaders, tt.wantAllowHeaders, tt.description)
+				}
+			}
+		})
+	}
+}
