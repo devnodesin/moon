@@ -52,8 +52,10 @@ var Defaults = struct {
 		RefreshExpiry int
 	}
 	APIKey struct {
-		Enabled bool
-		Header  string
+		Enabled             bool
+		Header              string
+		LegacyHeaderSupport bool
+		LegacyHeaderSunset  string
 	}
 	Auth struct {
 		RateLimit struct {
@@ -131,11 +133,15 @@ var Defaults = struct {
 		RefreshExpiry: 604800, // 7 days
 	},
 	APIKey: struct {
-		Enabled bool
-		Header  string
+		Enabled             bool
+		Header              string
+		LegacyHeaderSupport bool
+		LegacyHeaderSunset  string
 	}{
-		Enabled: false,
-		Header:  "X-API-KEY",
+		Enabled:             false,
+		Header:              "X-API-KEY", // Deprecated, now always uses Authorization: Bearer
+		LegacyHeaderSupport: true,        // Support legacy X-API-Key header during transition
+		LegacyHeaderSunset:  "",          // Default: empty, set in config if needed
 	},
 	Auth: struct {
 		RateLimit struct {
@@ -252,8 +258,10 @@ type JWTConfig struct {
 
 // APIKeyConfig holds API key configuration.
 type APIKeyConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Header  string `mapstructure:"header"`
+	Enabled             bool   `mapstructure:"enabled"`
+	Header              string `mapstructure:"header"` // Deprecated: Now always uses Authorization Bearer
+	LegacyHeaderSupport bool   `mapstructure:"legacy_header_support"`
+	LegacyHeaderSunset  string `mapstructure:"legacy_header_sunset"` // ISO 8601 date
 }
 
 // AuthConfig holds authentication and rate limiting configuration.
@@ -334,6 +342,8 @@ func Load(configPath string) (*AppConfig, error) {
 	v.SetDefault("jwt.refresh_expiry", Defaults.JWT.RefreshExpiry)
 	v.SetDefault("apikey.enabled", Defaults.APIKey.Enabled)
 	v.SetDefault("apikey.header", Defaults.APIKey.Header)
+	v.SetDefault("apikey.legacy_header_support", Defaults.APIKey.LegacyHeaderSupport)
+	v.SetDefault("apikey.legacy_header_sunset", Defaults.APIKey.LegacyHeaderSunset)
 	v.SetDefault("auth.rate_limit.user_rpm", Defaults.Auth.RateLimit.UserRPM)
 	v.SetDefault("auth.rate_limit.apikey_rpm", Defaults.Auth.RateLimit.APIKeyRPM)
 	v.SetDefault("auth.rate_limit.login_attempts", Defaults.Auth.RateLimit.LoginAttempts)
