@@ -594,8 +594,13 @@ func validateCORSEndpoints(cors *CORSConfig) error {
 
 		// allowed_origins can be empty - it will fall back to global allowed_origins
 		// This allows for flexible endpoint-specific configurations
+		// Note: We skip all origin-specific validations for empty origins since
+		// the global configuration will be used at runtime and validated separately
 		if len(endpoint.AllowedOrigins) == 0 {
-			// Empty origins will use global configuration - this is valid
+			// Still log bypass_auth for audit trail even without explicit origins
+			if endpoint.BypassAuth {
+				log.Printf("INFO: CORS endpoint registered with authentication bypass: %s (%s pattern)", endpoint.Path, endpoint.PatternType)
+			}
 			continue
 		}
 
