@@ -26,6 +26,21 @@ const (
 	// Used in: multiple handlers and middleware
 	// Purpose: Specifies the media type of the request/response body
 	HeaderContentType = "Content-Type"
+
+	// HeaderDeprecation indicates that a feature is deprecated.
+	// Used in: middleware for legacy authentication header support
+	// Purpose: Signals clients that they're using deprecated functionality
+	HeaderDeprecation = "Deprecation"
+
+	// HeaderSunset indicates when a deprecated feature will be removed.
+	// Used in: middleware for legacy authentication header support
+	// Purpose: Provides sunset date for deprecated features (RFC 8594)
+	HeaderSunset = "Sunset"
+
+	// HeaderLink provides links to related resources.
+	// Used in: middleware for deprecation documentation links
+	// Purpose: Points to migration guides and deprecation info (RFC 8288)
+	HeaderLink = "Link"
 )
 
 // MIME types used in HTTP responses.
@@ -45,4 +60,15 @@ const (
 	// Used in: middleware/auth.go
 	// Format: "Bearer <token>" in Authorization header
 	AuthSchemeBearer = "Bearer"
+
+	// APIKeyPrefix is the required prefix for all API keys.
+	// Used in: middleware/auth.go, handlers/apikeys.go
+	// Format: "moon_live_<64_chars>" for production keys
+	// Purpose: Allows easy identification and validation of API keys
+	APIKeyPrefix = "moon_live_"
+
+	// MinAPIKeyLengthWithPrefix is the minimum total length of an API key including prefix.
+	// Used in: validation logic for API key format
+	// Value: 74 characters (10 char prefix + 64 char key)
+	MinAPIKeyLengthWithPrefix = 74
 )
