@@ -7,20 +7,18 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
 
 // UnifiedAuthConfig holds configuration for unified authentication middleware
 type UnifiedAuthConfig struct {
-	JWTMiddleware          *JWTMiddleware
-	APIKeyMiddleware       *APIKeyMiddleware
-	LegacyHeaderSupport    bool
-	LegacyHeaderSunsetDate string
-	ProtectedPaths         []string
-	UnprotectedPaths       []string
-	ProtectByDefault       bool
+	JWTMiddleware    *JWTMiddleware
+	APIKeyMiddleware *APIKeyMiddleware
+	ProtectedPaths   []string
+	UnprotectedPaths []string
+	ProtectByDefault bool
+	CORSMiddleware   *CORSMiddleware // Used to check for auth bypass (PRD-058)
 }
 
 // UnifiedAuthMiddleware provides unified authentication supporting both JWT and API keys
@@ -36,10 +34,29 @@ func NewUnifiedAuthMiddleware(config UnifiedAuthConfig) *UnifiedAuthMiddleware {
 	}
 }
 
+// ShouldBypassAuth checks if the request path should bypass authentication (PRD-058)
+func (m *UnifiedAuthMiddleware) ShouldBypassAuth(path string) bool {
+	// Check CORS endpoint registration
+	if m.config.CORSMiddleware != nil {
+		endpointConfig := m.config.CORSMiddleware.MatchEndpoint(path)
+		if endpointConfig != nil && endpointConfig.BypassAuth {
+			log.Printf("INFO: Authentication bypassed for %s (CORS endpoint configuration)", path)
+			return true
+		}
+	}
+	return false
+}
+
 // Authenticate is the main unified authentication middleware
 func (m *UnifiedAuthMiddleware) Authenticate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+
+		// Check if this endpoint should bypass authentication (PRD-058)
+		if m.ShouldBypassAuth(path) {
+			next(w, r)
+			return
+		}
 
 		// Check if path is explicitly unprotected
 		if m.isUnprotected(path) {
@@ -53,24 +70,11 @@ func (m *UnifiedAuthMiddleware) Authenticate(next http.HandlerFunc) http.Handler
 			return
 		}
 
-		// Track if we're using legacy authentication
-		usedLegacyAuth := false
-
 		// Extract token from Authorization: Bearer header
 		token, err := m.extractBearerToken(r)
 
-		// If no Bearer token found, check for legacy X-API-Key header
-		if err != nil && m.config.LegacyHeaderSupport {
-			legacyKey := r.Header.Get(constants.HeaderAPIKey)
-			if legacyKey != "" {
-				token = legacyKey
-				usedLegacyAuth = true
-				m.logDeprecationWarning(r)
-			}
-		}
-
-		// If still no token, return authentication required error
-		if token == "" {
+		// If no token, return authentication required error
+		if err != nil || token == "" {
 			m.writeAuthError(w, http.StatusUnauthorized, "authentication_required",
 				"Authorization header required. Use: Authorization: Bearer <token>")
 			return
@@ -109,11 +113,6 @@ func (m *UnifiedAuthMiddleware) Authenticate(next http.HandlerFunc) http.Handler
 
 			// Log API key usage
 			log.Printf("APIKEY_USAGE: %s %s - key_id=%s key_name=%s", r.Method, r.URL.Path, keyInfo.ID, keyInfo.Name)
-
-			// Add deprecation headers if using legacy authentication
-			if usedLegacyAuth {
-				m.addDeprecationHeaders(w)
-			}
 
 			// Add key info to context
 			ctx := context.WithValue(r.Context(), APIKeyContextKey, keyInfo)
@@ -331,25 +330,6 @@ func (m *UnifiedAuthMiddleware) logAuthFailure(r *http.Request, reason string, e
 	} else {
 		log.Printf("AUTH_FAILURE: %s %s - %s", r.Method, r.URL.Path, reason)
 	}
-}
-
-// logDeprecationWarning logs when legacy X-API-Key header is used
-func (m *UnifiedAuthMiddleware) logDeprecationWarning(r *http.Request) {
-	log.Printf("WARN: X-API-Key header is deprecated and will be removed. Use Authorization: Bearer <token> instead. Path: %s %s", r.Method, r.URL.Path)
-}
-
-// addDeprecationHeaders adds deprecation headers to response
-func (m *UnifiedAuthMiddleware) addDeprecationHeaders(w http.ResponseWriter) {
-	w.Header().Set(constants.HeaderDeprecation, "true")
-
-	if m.config.LegacyHeaderSunsetDate != "" {
-		// Parse and format sunset date to HTTP date format if provided
-		if t, err := time.Parse(time.RFC3339, m.config.LegacyHeaderSunsetDate); err == nil {
-			w.Header().Set(constants.HeaderSunset, t.Format(time.RFC1123))
-		}
-	}
-
-	w.Header().Set(constants.HeaderLink, `</doc>; rel="deprecation"`)
 }
 
 // writeAuthError writes a standardized authentication error response
