@@ -164,18 +164,35 @@ def extract_record_id_from_response(response_obj):
 
 def replace_record_in_test(test, record_id):
 	"""
-	Replaces $ULID placeholder in a single test with the actual record ID.
+	Replaces $ULID and $NEXT_CURSOR placeholders in a single test with the actual record ID.
+	Returns the placeholder type that was used ('$ULID', '$NEXT_CURSOR', or None).
 	"""
 	if not record_id:
-		return
+		return None
+	
+	placeholder_used = None
 	
 	# Replace in endpoint
-	if "endpoint" in test and "$ULID" in test["endpoint"]:
-		test["endpoint"] = test["endpoint"].replace("$ULID", record_id)
+	if "endpoint" in test:
+		if "$NEXT_CURSOR" in test["endpoint"]:
+			test["endpoint"] = test["endpoint"].replace("$NEXT_CURSOR", record_id)
+			placeholder_used = "$NEXT_CURSOR"
+		elif "$ULID" in test["endpoint"]:
+			test["endpoint"] = test["endpoint"].replace("$ULID", record_id)
+			placeholder_used = "$ULID"
 	
 	# Replace in data (recursive)
 	if "data" in test and test["data"]:
-		test["data"] = json.loads(json.dumps(test["data"]).replace("$ULID", record_id))
+		data_str = json.dumps(test["data"])
+		if "$NEXT_CURSOR" in data_str:
+			data_str = data_str.replace("$NEXT_CURSOR", record_id)
+			placeholder_used = "$NEXT_CURSOR"
+		elif "$ULID" in data_str:
+			data_str = data_str.replace("$ULID", record_id)
+			placeholder_used = "$ULID"
+		test["data"] = json.loads(data_str)
+	
+	return placeholder_used
 
 def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 	"""
@@ -190,9 +207,10 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 	captured_record_id = None
 	
 	for test in tests["tests"]:
-		# Replace $ULID in current test if we have a captured ID
+		# Replace $ULID or $NEXT_CURSOR in current test if we have a captured ID
+		placeholder_type = None
 		if captured_record_id:
-			replace_record_in_test(test, captured_record_id)
+			placeholder_type = replace_record_in_test(test, captured_record_id)
 		
 		curl_cmd, status, body, response_obj = run_test(serverURL, prefix, test)
 		
@@ -208,9 +226,9 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 		# Replace actual access token with placeholder for documentation
 		if access_token:
 			curl_cmd_doc = curl_cmd_doc.replace(access_token, "$ACCESS_TOKEN")
-		# Replace actual record ID with placeholder for documentation
-		if captured_record_id:
-			curl_cmd_doc = curl_cmd_doc.replace(captured_record_id, "$ULID")
+		# Replace actual record ID with appropriate placeholder for documentation
+		if captured_record_id and placeholder_type:
+			curl_cmd_doc = curl_cmd_doc.replace(captured_record_id, placeholder_type)
 		
 		test_name = test.get("name", "").strip()
 		

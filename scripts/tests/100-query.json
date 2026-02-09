@@ -1,0 +1,167 @@
+{
+	"docURL": "http://localhost:6006",
+	"serverURL":  "https://moon.asensar.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/collections:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "products",
+				"columns": [
+					{"name": "title", "type": "string", "nullable": false},
+					{"name": "price", "type": "decimal", "nullable": false},
+					{"name": "details", "type": "string", "nullable": true},
+					{"name": "quantity", "type": "integer", "nullable": true},
+					{"name": "brand", "type": "string", "nullable": true}
+				]
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/products:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"title": "Wireless Mouse",
+					"price": "29.99",
+					"details": "Ergonomic wireless mouse",
+					"quantity": 10,
+					"brand": "Wow"
+				}
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/products:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"title": "USB Keyboard",
+					"price": "19.99",
+					"details": "Gaming keyboard",
+					"quantity": 55,
+					"brand": "Orange"
+				}
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/products:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"title": "Monitor 21 inch",
+					"price": "199.99",
+					"details": "Full HD monitor",
+					"quantity": 20,
+					"brand": "Wow"
+				}
+			}
+		},
+		{
+			"name": "Filtering",
+			"cmd": "GET",
+			"endpoint": "/products:list?quantity[gt]=5&brand[eq]=Wow",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Sorting",
+			"cmd": "GET",
+			"endpoint": "/products:list?sort=-quantity,title",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Full-Text Search",
+			"cmd": "GET",
+			"endpoint": "/products:list?q=mouse",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Field Selection",
+			"cmd": "GET",
+			"endpoint": "/products:list?fields=quantity,title",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Limit",
+			"cmd": "GET",
+			"endpoint": "/products:list?limit=2",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Pagination",
+			"cmd": "GET",
+			"endpoint": "/products:list?after=$NEXT_CURSOR&limit=1",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Combined Query - Filter, sort, and limit",
+			"cmd": "GET",
+			"endpoint": "/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Combined Query - Search with category filter and field selection",
+			"cmd": "GET",
+			"endpoint": "/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Combined Query - Multiple filters with pagination",
+			"cmd": "GET",
+			"endpoint": "/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=1&after=$NEXT_CURSOR",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/collections:destroy",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "products"
+			}
+		}
+	]
+}
