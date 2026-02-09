@@ -1,0 +1,87 @@
+{
+	"docURL": "http://localhost:6006",
+	"serverURL":  "https://moon.asensar.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "Create New User",
+			"cmd": "POST",
+			"endpoint": "/users:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"username": "newuser",
+				"email": "newuser@example.com",
+				"password": "UserPass123#",
+				"role": "user"
+			}
+		},
+		{
+			"name": "List All Users",
+			"cmd": "GET",
+			"endpoint": "/users:list",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Get Specific User by ID",
+			"cmd": "GET",
+			"endpoint": "/users:get?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Update User",
+			"cmd": "POST",
+			"endpoint": "/users:update?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"email": "updateduser@example.com",
+				"role": "admin"
+			}
+		},
+		{
+			"name": "Reset User Password",
+			"cmd": "POST",
+			"endpoint": "/users:update?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"action": "reset_password",
+				"password": "NewSecurePassword123#"
+			}
+		},
+		{
+			"name": "Revoke All User Sessions",
+			"cmd": "POST",
+			"endpoint": "/users:update?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"action": "revoke_sessions"
+			}
+		},
+		{
+			"name": "Delete User Account",
+			"cmd": "POST",
+			"endpoint": "/users:destroy?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		}
+	]
+}

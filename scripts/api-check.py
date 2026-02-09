@@ -158,9 +158,14 @@ def extract_record_id_from_response(response_obj):
 	# Try arrays in apikeys, users, data, records, items
 	for array_key in ["apikeys", "users", "data", "records", "items"]:
 		if array_key in response_obj and isinstance(response_obj[array_key], list) and len(response_obj[array_key]) > 0:
-			first_item = response_obj[array_key][0]
-			if isinstance(first_item, dict) and "id" in first_item:
-				return first_item["id"]
+			# For users array, select second record if available, otherwise first
+			if array_key == "users" and len(response_obj[array_key]) > 1:
+				selected_item = response_obj[array_key][1]
+			else:
+				selected_item = response_obj[array_key][0]
+			
+			if isinstance(selected_item, dict) and "id" in selected_item:
+				return selected_item["id"]
 	
 	# Try other common patterns
 	for key in ["_id", "ulid", "uuid"]:
