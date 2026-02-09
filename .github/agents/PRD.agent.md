@@ -99,14 +99,15 @@ You **must**:
 
 ### Output Rules
 
-- Output **only** the final PRD content
-- Do not include explanations, commentary, or meta text
-- Maintain a professional, neutral, and precise tone
-- Optimize for engineer and QA readability
 - Optimize for AI Coding
-- Use markdown formatting as per the PRD template
-- Ensure all sections are complete and well-structured
-- Name the file according to the PRD naming conventions
+- Output **only** the final PRD content.
+- Do not include explanations, commentary, or meta text.
+- Maintain a professional, neutral, and precise tone.
+- Optimize for engineer and QA readability.
+- Format using markdown as per the PRD template.
+- Ensure all sections are complete, well-structured, and follow the PRD template.
+- Name the file according to PRD naming conventions.
+- Keep the PRD focused, concise, and clear, while including all necessary details.
 
 ### Add Below checklist to each PRD:
 
