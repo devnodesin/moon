@@ -4,7 +4,7 @@ package handlers
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -26,6 +26,9 @@ import (
 
 //go:embed templates/doc.md.tmpl
 var docTemplateContent string
+
+//go:embed templates/md/*.md
+var mdFiles embed.FS
 
 // DocData holds the data passed to the documentation template
 type DocData struct {
@@ -57,8 +60,21 @@ type DocHandler struct {
 
 // NewDocHandler creates a new documentation handler
 func NewDocHandler(reg *registry.SchemaRegistry, cfg *config.AppConfig, version string) *DocHandler {
-	// Parse the markdown template
-	tmpl, err := template.New("doc").Parse(docTemplateContent)
+	// Create custom template function to include markdown files
+	funcMap := template.FuncMap{
+		"include": func(filename string) (string, error) {
+			// Read the markdown file from the embedded filesystem
+			content, err := mdFiles.ReadFile("templates/md/" + filename)
+			if err != nil {
+				log.Printf("WARNING: Failed to read markdown file %s: %v", filename, err)
+				return fmt.Sprintf("<!-- Error: Failed to include %s -->", filename), nil
+			}
+			return string(content), nil
+		},
+	}
+
+	// Parse the markdown template with custom functions
+	tmpl, err := template.New("doc").Funcs(funcMap).Parse(docTemplateContent)
 	if err != nil {
 		log.Printf("ERROR: Failed to parse documentation template: %v", err)
 		// Create an empty template as fallback
