@@ -522,6 +522,24 @@ The list endpoint supports powerful query parameters for filtering, sorting, sea
 - Returns `next_cursor` in the response when more results are available
 - Example: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX`
 
+**List Response Format:**
+
+The list endpoint returns a JSON object with the following fields:
+
+```json
+{
+  "data": [...],
+  "total": 42,
+  "next_cursor": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
+  "limit": 15
+}
+```
+
+- `data`: Array of records matching the query
+- `total`: Total count of records matching all filters (independent of limit/cursor)
+- `next_cursor`: ULID cursor for next page, or null if no more data
+- `limit`: Current page size
+
 **Combined Example:**
 
 ```
@@ -543,9 +561,12 @@ To retrieve the schema (field names, types, and constraints) for a specific coll
     { "name": "title", "type": "string", "nullable": false },
     { "name": "price", "type": "integer", "nullable": false },
     { "name": "description", "type": "string", "nullable": true }
-  ]
+  ],
+  "total": 42
 }
 ```
+
+The `total` field contains the total number of records currently in the collection. It is always included in the schema response.
 
 **Authentication:** Required (Bearer token or API key)
 
