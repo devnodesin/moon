@@ -1,0 +1,39 @@
+{
+	"docURL": "http://localhost:6006",
+	"serverURL":  "https://moon.asensar.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "Collections Create",
+			"cmd": "POST",
+			"endpoint": "/collections:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "products",
+				"columns": [
+					{"name": "title", "type": "string", "nullable": false},
+					{"name": "price", "type": "integer", "nullable": false},
+					{"name": "description", "type": "string", "nullable": true}
+				]
+			}
+		},
+		{
+			"name": "Collections Destroy",
+			"cmd": "POST",
+			"endpoint": "/collections:destroy",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "products"
+			}
+		}
+	]
+}
