@@ -7,6 +7,21 @@
 	"health": "/health",
 	"tests": [
 		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/users:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"username": "newuser",
+				"email": "newuser@example.com",
+				"password": "UserPass123#",
+				"role": "user"
+			}
+		},
+		{
 			"name": "Login",
 			"cmd": "POST",
 			"endpoint": "/auth:login",
@@ -14,20 +29,8 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"username": "admin",
-				"password": "moonadmin12#"
-			}
-		},
-		{
-			"name": "Logout",
-			"cmd": "POST",
-			"endpoint": "/auth:logout",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"refresh_token": "$REFRESH_TOKEN"
+				"username": "newuser",
+				"password": "UserPass123#"
 			}
 		},
 		{
@@ -70,8 +73,20 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"old_password": "moonadmin12#",
+				"old_password": "UserPass123#",
 				"password": "NewSecurePass456"
+			}
+		},
+		{
+			"name": "Logout",
+			"cmd": "POST",
+			"endpoint": "/auth:logout",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"refresh_token": "$REFRESH_TOKEN"
 			}
 		}
 	]

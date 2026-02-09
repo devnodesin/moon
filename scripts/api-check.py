@@ -219,6 +219,11 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 	prefix = tests.get("prefix", "")
 	all_ok = True
 	captured_record_id = None
+	refresh_token = None
+	all_access_tokens = []  # Track all access tokens used
+	all_refresh_tokens = []  # Track all refresh tokens used
+	if access_token:
+		all_access_tokens.append(access_token)
 	
 	for test in tests["tests"]:
 		# Replace $ULID or $NEXT_CURSOR in current test if we have a captured ID
@@ -226,10 +231,36 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 		if captured_record_id:
 			placeholder_type = replace_record_in_test(test, captured_record_id)
 		
+		# Replace $ACCESS_TOKEN in current test headers
+		if access_token and 'headers' in test and 'Authorization' in test['headers']:
+			test['headers']['Authorization'] = test['headers']['Authorization'].replace('$ACCESS_TOKEN', access_token)
+		
+		# Replace $REFRESH_TOKEN in current test data
+		if refresh_token and 'data' in test and test['data']:
+			data_str = json.dumps(test['data'])
+			if '$REFRESH_TOKEN' in data_str:
+				data_str = data_str.replace('$REFRESH_TOKEN', refresh_token)
+				test['data'] = json.loads(data_str)
+		
 		curl_cmd, status, body, response_obj = run_test(serverURL, prefix, test)
 		
-		# Check if this test created/listed a record and capture the ID
+		# Check if this test is a login or refresh and capture tokens
 		endpoint = test.get("endpoint", "")
+		method = test.get("cmd", "GET").upper()
+		if response_obj and status.startswith("2") and method == "POST":
+			if "auth:login" in endpoint or "auth:refresh" in endpoint:
+				new_access_token = response_obj.get("access_token")
+				if new_access_token:
+					access_token = new_access_token
+					if new_access_token not in all_access_tokens:
+						all_access_tokens.append(new_access_token)
+				new_refresh_token = response_obj.get("refresh_token")
+				if new_refresh_token:
+					refresh_token = new_refresh_token
+					if new_refresh_token not in all_refresh_tokens:
+						all_refresh_tokens.append(new_refresh_token)
+		
+		# Check if this test created/listed a record and capture the ID
 		if response_obj and status.startswith("2") and not captured_record_id:
 			# Try to capture ID from :create or :list endpoints
 			if ":create" in endpoint or ":list" in endpoint:
@@ -239,9 +270,14 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 		
 		# Replace actual server URL with doc URL for display
 		curl_cmd_doc = curl_cmd.replace(serverURL, docURL)
-		# Replace actual access token with placeholder for documentation
-		if access_token:
-			curl_cmd_doc = curl_cmd_doc.replace(access_token, "$ACCESS_TOKEN")
+		# Replace all access tokens with placeholder for documentation
+		for token in all_access_tokens:
+			if token:
+				curl_cmd_doc = curl_cmd_doc.replace(token, "$ACCESS_TOKEN")
+		# Replace all refresh tokens with placeholder for documentation
+		for token in all_refresh_tokens:
+			if token:
+				curl_cmd_doc = curl_cmd_doc.replace(token, "$REFRESH_TOKEN")
 		# Replace actual record ID with appropriate placeholder for documentation
 		if captured_record_id and placeholder_type:
 			curl_cmd_doc = curl_cmd_doc.replace(captured_record_id, placeholder_type)
