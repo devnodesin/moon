@@ -4,11 +4,12 @@ package handlers
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -26,6 +27,9 @@ import (
 
 //go:embed templates/doc.md.tmpl
 var docTemplateContent string
+
+//go:embed templates/md/*.md
+var mdFiles embed.FS
 
 // DocData holds the data passed to the documentation template
 type DocData struct {
@@ -57,8 +61,41 @@ type DocHandler struct {
 
 // NewDocHandler creates a new documentation handler
 func NewDocHandler(reg *registry.SchemaRegistry, cfg *config.AppConfig, version string) *DocHandler {
-	// Parse the markdown template
-	tmpl, err := template.New("doc").Parse(docTemplateContent)
+	// Create custom template function to include markdown files
+	funcMap := template.FuncMap{
+		"include": func(filename string) (string, error) {
+			// Validate filename to prevent directory traversal attacks
+			// Must end with .md extension and contain no path separators
+			if !strings.HasSuffix(filename, ".md") {
+				log.Printf("WARNING: Invalid file extension for %s, must be .md", filename)
+				return fmt.Sprintf("<!-- Error: Invalid file extension for %s -->", filename), nil
+			}
+
+			// Check for directory traversal patterns
+			if strings.Contains(filename, "..") || strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
+				log.Printf("WARNING: Path traversal attempt detected in filename: %s", filename)
+				return fmt.Sprintf("<!-- Error: Invalid filename %s -->", filename), nil
+			}
+
+			// Clean the filename to remove any potential malicious content
+			cleanFilename := filepath.Base(filename)
+			if cleanFilename != filename {
+				log.Printf("WARNING: Filename contains path components: %s", filename)
+				return fmt.Sprintf("<!-- Error: Invalid filename %s -->", filename), nil
+			}
+
+			// Read the markdown file from the embedded filesystem
+			content, err := mdFiles.ReadFile("templates/md/" + cleanFilename)
+			if err != nil {
+				log.Printf("WARNING: Failed to read markdown file %s: %v", cleanFilename, err)
+				return fmt.Sprintf("<!-- Error: Failed to include %s -->", cleanFilename), nil
+			}
+			return string(content), nil
+		},
+	}
+
+	// Parse the markdown template with custom functions
+	tmpl, err := template.New("doc").Funcs(funcMap).Parse(docTemplateContent)
 	if err != nil {
 		log.Printf("ERROR: Failed to parse documentation template: %v", err)
 		// Create an empty template as fallback
