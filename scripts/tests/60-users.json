@@ -7,6 +7,14 @@
 	"health": "/health",
 	"tests": [
 		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/users:destroy?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
 			"name": "Create New User",
 			"cmd": "POST",
 			"endpoint": "/users:create",
