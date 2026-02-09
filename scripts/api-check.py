@@ -122,11 +122,12 @@ def fetch_record_id(base_url, prefix, collection_name, headers):
 		if resp.status_code == 200:
 			data = resp.json()
 			# Try to find records in common response structures
-			records = data.get("data", data.get("records", data.get("items", [])))
-			if records and len(records) > 0:
-				# Try common ID field names
-				first_record = records[0]
-				return first_record.get("id", first_record.get("_id", first_record.get("ulid")))
+			for array_key in ["data", "records", "items", "apikeys", "users"]:
+				records = data.get(array_key, [])
+				if records and len(records) > 0:
+					# Try common ID field names
+					first_record = records[0]
+					return first_record.get("id", first_record.get("_id", first_record.get("ulid")))
 	except Exception as e:
 		pass
 	return None
@@ -135,6 +136,7 @@ def extract_record_id_from_response(response_obj):
 	"""
 	Extracts record ID from a create response.
 	Checks common patterns like data.id, record.id, id, etc.
+	Also checks for arrays in apikeys, users, data, records, items fields.
 	"""
 	if not response_obj or not isinstance(response_obj, dict):
 		return None
@@ -152,6 +154,13 @@ def extract_record_id_from_response(response_obj):
 	if "record" in response_obj and isinstance(response_obj["record"], dict):
 		if "id" in response_obj["record"]:
 			return response_obj["record"]["id"]
+	
+	# Try arrays in apikeys, users, data, records, items
+	for array_key in ["apikeys", "users", "data", "records", "items"]:
+		if array_key in response_obj and isinstance(response_obj[array_key], list) and len(response_obj[array_key]) > 0:
+			first_item = response_obj[array_key][0]
+			if isinstance(first_item, dict) and "id" in first_item:
+				return first_item["id"]
 	
 	# Try other common patterns
 	for key in ["_id", "ulid", "uuid"]:
@@ -214,12 +223,14 @@ def run_all_tests(tests, outdir, access_token=None, outfilename=None):
 		
 		curl_cmd, status, body, response_obj = run_test(serverURL, prefix, test)
 		
-		# Check if this test created a record and capture the ID
+		# Check if this test created/listed a record and capture the ID
 		endpoint = test.get("endpoint", "")
-		if ":create" in endpoint and response_obj and status.startswith("2"):
-			record_id = extract_record_id_from_response(response_obj)
-			if record_id and not captured_record_id:
-				captured_record_id = record_id
+		if response_obj and status.startswith("2") and not captured_record_id:
+			# Try to capture ID from :create or :list endpoints
+			if ":create" in endpoint or ":list" in endpoint:
+				record_id = extract_record_id_from_response(response_obj)
+				if record_id:
+					captured_record_id = record_id
 		
 		# Replace actual server URL with doc URL for display
 		curl_cmd_doc = curl_cmd.replace(serverURL, docURL)

@@ -1,0 +1,98 @@
+{
+	"docURL": "http://localhost:6006",
+	"serverURL":  "https://moon.asensar.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "Create API Key",
+			"cmd": "POST",
+			"endpoint": "/apikeys:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "Integration Service",
+				"description": "Key for integration",
+				"role": "user",
+				"can_write": false
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/apikeys:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "Another Service",
+				"description": "Another key for testing",
+				"role": "user",
+				"can_write": false
+			}
+		},
+		{
+			"name": "List API Keys",
+			"cmd": "GET",
+			"endpoint": "/apikeys:list",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Get API Key",
+			"cmd": "GET",
+			"endpoint": "/apikeys:get?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Update API Key Metadata",
+			"cmd": "POST",
+			"endpoint": "/apikeys:update?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"name": "Updated Service Name",
+				"description": "Updated description",
+				"can_write": true
+			}
+		},
+		{
+			"name": "Rotate API Key",
+			"cmd": "POST",
+			"endpoint": "/apikeys:update?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"action": "rotate"
+			}
+		},
+		{
+			"name": "Delete API Key",
+			"cmd": "POST",
+			"endpoint": "/apikeys:destroy?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/apikeys:destroy?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		}
+	]
+}
