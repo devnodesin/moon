@@ -79,14 +79,13 @@ Supported column data types:
 
 Except for documentation and health endpoints, all other endpoints require authentication. To access protected endpoints, include the ```Authorization: Bearer <TOKEN>``` header in your requests
 
-Moon supports the following authentication types:
+Supported authentication types:
 
-- JWT tokens (for interactive users)
-- API keys (for service integrations)
+- **JWT tokens** (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`) – for interactive users
+- **API keys** (`moon_live_<64_chars>`) – for service integrations
+- Both use the same `Authorization: Bearer` header format
 
-***JWT Token Example***
-
-JWT tokens are used for interactive users and are obtained from `POST /auth:login`:
+**JWT Token Example :** JWT tokens are used for interactive users and are obtained from `POST /auth:login`:
 
 ```bash
 # Login and save tokens to environment variables
@@ -101,9 +100,7 @@ curl -s "{{$ApiURL}}/collections:list" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-***API Key Example***
-
-API keys are used for service integrations and are obtained from `POST /apikeys:create`:
+**API Key Example :** API keys are used for service integrations and are obtained from `POST /apikeys:create`:
 
 ```bash
 # Create an API key (requires admin role)
@@ -116,12 +113,6 @@ curl -X POST "{{$ApiURL}}/apikeys:create" \
 curl -s "{{$ApiURL}}/collections:list" \
   -H "Authorization: Bearer moon_live_abc123..." | jq .
 ```
-
-**Token Types:**
-
-- **JWT tokens** (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`) – for interactive users
-- **API keys** (`moon_live_<64_chars>`) – for service integrations
-- Both use the same `Authorization: Bearer` header format
 
 ---
 
