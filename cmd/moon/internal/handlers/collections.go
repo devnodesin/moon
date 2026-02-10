@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -155,12 +156,18 @@ func (h *CollectionsHandler) List(w http.ResponseWriter, r *http.Request) {
 // getRecordCount returns the number of records in a collection
 // Returns -1 if count cannot be retrieved (with warning log)
 func (h *CollectionsHandler) getRecordCount(ctx context.Context, collectionName string) int {
+	// Verify collection exists in registry (extra safety check)
+	if !h.registry.Exists(collectionName) {
+		log.Printf("WARNING: Attempted to count records for non-existent collection '%s'", collectionName)
+		return -1
+	}
+
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", collectionName)
 	var count int
 	err := h.db.QueryRow(ctx, query).Scan(&count)
 	if err != nil {
 		// Log warning but continue with -1 as per PRD requirement
-		fmt.Printf("Warning: failed to count records for collection '%s': %v\n", collectionName, err)
+		log.Printf("WARNING: Failed to count records for collection '%s': %v", collectionName, err)
 		return -1
 	}
 	return count
