@@ -1,12 +1,17 @@
 # api-check.py
 
-A compact automated API test runner for Moon API endpoints.
+A modular, type-safe automated API test runner for Moon API endpoints.
 
 ## Features
 
-- Runs API tests from JSON files
-- Outputs Markdown-formatted results
-- Supports token auth, placeholder replacement, and health checks
+- **Modular Architecture**: Split into focused modules under `lib/` for easy maintenance
+- **Type Safety**: Full type hints throughout for better IDE support and fewer errors
+- **Smart Authentication**: Automatic token management and renewal
+- **Password Change Detection**: Automatically re-logins after password changes
+- **Token Refresh Handling**: Updates tokens immediately after refresh operations
+- **Placeholder Replacement**: Dynamic $ACCESS_TOKEN, $REFRESH_TOKEN, $ULID, $NEXT_CURSOR
+- **Health Checks**: Validates server health before running tests
+- **Documentation Generation**: Clean Markdown output with sanitized commands
 
 ## Usage
 
@@ -84,3 +89,58 @@ Test files are JSON files describing a sequence of API requests and expected beh
 ```
 
 You can add placeholders like `$ACCESS_TOKEN`, `$ULID`, and `$NEXT_CURSOR` in endpoints, headers, or data. These will be replaced automatically during test execution.
+
+## Advanced Features
+
+### Smart Token Management
+
+The framework automatically handles authentication complexities:
+
+#### Password Change Detection
+When a test changes a password:
+```json
+{
+  "name": "Change Password",
+  "endpoint": "/auth:me",
+  "data": {
+    "old_password": "OldPass123#",
+    "password": "NewPass456#"
+  }
+}
+```
+The framework:
+1. Detects the password change (by `old_password` + `password` fields)
+2. Executes the test
+3. Automatically re-logins with the new password
+4. Updates tokens for all subsequent tests
+
+#### Token Refresh Handling
+When a test refreshes tokens:
+```json
+{
+  "name": "Refresh Token",
+  "endpoint": "/auth:refresh",
+  "data": {
+    "refresh_token": "$REFRESH_TOKEN"
+  }
+}
+```
+The framework:
+1. Detects the token refresh operation
+2. Extracts new tokens from the response
+3. Immediately updates tokens for subsequent tests
+
+This ensures tests never fail due to stale tokens after password changes or token refreshes.
+
+## Architecture
+
+The codebase is organized into focused modules:
+
+- **`lib/types.py`** - Type definitions and data classes
+- **`lib/http_client.py`** - HTTP request execution
+- **`lib/auth.py`** - Authentication and token management
+- **`lib/placeholders.py`** - Placeholder replacement logic
+- **`lib/formatters.py`** - Output formatting utilities
+- **`lib/test_runner.py`** - Test execution orchestration
+
+See [`lib/README.md`](lib/README.md) for detailed module documentation.

@@ -7,6 +7,14 @@
 	"health": "/health",
 	"tests": [
 		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/users:destroy?id=$ULID",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
 			"name": "Create New User",
 			"cmd": "POST",
 			"endpoint": "/users:create",
@@ -15,8 +23,8 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"username": "newuser",
-				"email": "newuser@example.com",
+				"username": "moonuser",
+				"email": "moonuser@example.com",
 				"password": "UserPass123#",
 				"role": "user"
 			}

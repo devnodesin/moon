@@ -52,18 +52,6 @@
 			}
 		},
 		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/auth:login",
-			"headers": {
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"username": "newuser",
-				"password": "UserPass123#"
-			}
-		},
-		{
 			"name": "Refresh Token",
 			"cmd": "POST",
 			"endpoint": "/auth:refresh",
