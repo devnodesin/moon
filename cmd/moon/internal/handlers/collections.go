@@ -4,8 +4,10 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -51,10 +53,16 @@ type ListRequest struct {
 	// Optional filters can be added here
 }
 
+// CollectionItem represents a collection with its metadata
+type CollectionItem struct {
+	Name    string `json:"name"`
+	Records int    `json:"records"`
+}
+
 // ListResponse represents the response for listing collections
 type ListResponse struct {
-	Collections []string `json:"collections"`
-	Count       int      `json:"count"`
+	Collections []CollectionItem `json:"collections"`
+	Count       int              `json:"count"`
 }
 
 // GetRequest represents the request for getting a collection schema
@@ -121,13 +129,19 @@ type DestroyResponse struct {
 
 // List handles GET /collections:list
 func (h *CollectionsHandler) List(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	allCollections := h.registry.List()
 
-	// Filter out system tables
-	collections := make([]string, 0, len(allCollections))
+	// Filter out system tables and build collection items with record counts
+	collections := make([]CollectionItem, 0, len(allCollections))
 	for _, col := range allCollections {
 		if !constants.IsSystemTable(col) {
-			collections = append(collections, col)
+			// Count records in this collection
+			recordCount := h.getRecordCount(ctx, col)
+			collections = append(collections, CollectionItem{
+				Name:    col,
+				Records: recordCount,
+			})
 		}
 	}
 
@@ -137,6 +151,46 @@ func (h *CollectionsHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// getRecordCount returns the number of records in a collection
+// Returns -1 if count cannot be retrieved (with warning log)
+func (h *CollectionsHandler) getRecordCount(ctx context.Context, collectionName string) int {
+	// Verify collection exists in registry (extra safety check)
+	if !h.registry.Exists(collectionName) {
+		log.Printf("WARNING: Attempted to count records for non-existent collection '%s'", collectionName)
+		return -1
+	}
+
+	// Quote identifier based on dialect for defense-in-depth
+	quotedName := h.quoteIdentifier(collectionName)
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", quotedName)
+	var count int
+	err := h.db.QueryRow(ctx, query).Scan(&count)
+	if err != nil {
+		// Log warning but continue with -1 as per PRD requirement
+		log.Printf("WARNING: Failed to count records for collection '%s': %v", collectionName, err)
+		return -1
+	}
+	return count
+}
+
+// quoteIdentifier quotes an identifier (table/column name) based on database dialect
+func (h *CollectionsHandler) quoteIdentifier(name string) string {
+	switch h.db.Dialect() {
+	case database.DialectPostgres:
+		// PostgreSQL uses double quotes
+		return fmt.Sprintf(`"%s"`, name)
+	case database.DialectMySQL:
+		// MySQL uses backticks
+		return fmt.Sprintf("`%s`", name)
+	case database.DialectSQLite:
+		// SQLite supports double quotes and backticks, prefer double quotes
+		return fmt.Sprintf(`"%s"`, name)
+	default:
+		// Fallback: double quotes (SQL standard)
+		return fmt.Sprintf(`"%s"`, name)
+	}
 }
 
 // Get handles GET /collections:get
