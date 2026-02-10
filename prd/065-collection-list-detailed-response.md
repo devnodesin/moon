@@ -65,5 +65,5 @@
 
 ---
 
-- [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
-- [ ] Ensure all unit tests and integration tests in `tests/*` are passing successfully.
+- [x] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] Ensure all unit tests and integration tests in `tests/*` are passing successfully.
