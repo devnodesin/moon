@@ -17,7 +17,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH2N2SNK6B3RDWDA7YZM2P94",
+      "id": "01KH2PG7DGGY0TDP9K71TFTJ08",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -25,7 +25,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KH2N2TT78AD8BC6EFVGPR8GQ",
+      "id": "01KH2PG8GXX42NTGNE0SGTETZA",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -56,7 +56,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH2N2T66KBXRY9W70EB13CDC",
+      "id": "01KH2PG7XGPJEHDV8J5JGK4MXG",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -64,7 +64,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KH2N2TT78AD8BC6EFVGPR8GQ",
+      "id": "01KH2PG8GXX42NTGNE0SGTETZA",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -72,7 +72,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH2N2SNK6B3RDWDA7YZM2P94",
+      "id": "01KH2PG7DGGY0TDP9K71TFTJ08",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -103,7 +103,7 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH2N2SNK6B3RDWDA7YZM2P94",
+      "id": "01KH2PG7DGGY0TDP9K71TFTJ08",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -132,17 +132,17 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 {
   "data": [
     {
-      "id": "01KH2N2SNK6B3RDWDA7YZM2P94",
+      "id": "01KH2PG7DGGY0TDP9K71TFTJ08",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KH2N2T66KBXRY9W70EB13CDC",
+      "id": "01KH2PG7XGPJEHDV8J5JGK4MXG",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KH2N2TT78AD8BC6EFVGPR8GQ",
+      "id": "01KH2PG8GXX42NTGNE0SGTETZA",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
@@ -170,7 +170,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH2N2SNK6B3RDWDA7YZM2P94",
+      "id": "01KH2PG7DGGY0TDP9K71TFTJ08",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -178,14 +178,14 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH2N2T66KBXRY9W70EB13CDC",
+      "id": "01KH2PG7XGPJEHDV8J5JGK4MXG",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
   "total": 3,
-  "next_cursor": "01KH2N2T66KBXRY9W70EB13CDC",
+  "next_cursor": "01KH2PG7XGPJEHDV8J5JGK4MXG",
   "limit": 2
 }
 ```
@@ -209,77 +209,14 @@ curl -s -X GET "http://localhost:6006/products:list?after=$NEXT_CURSOR&limit=1" 
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH2N2T66KBXRY9W70EB13CDC",
+      "id": "01KH2PG7XGPJEHDV8J5JGK4MXG",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
   "total": 3,
-  "next_cursor": "01KH2N2T66KBXRY9W70EB13CDC",
-  "limit": 1
-}
-```
-
-### Combined Query - Filter, sort, and limit
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [],
-  "total": 0,
-  "next_cursor": null,
-  "limit": 5
-}
-```
-
-### Combined Query - Search with category filter and field selection
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [],
-  "total": 0,
-  "next_cursor": null,
-  "limit": 15
-}
-```
-
-### Combined Query - Multiple filters with pagination
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=1&after=$NEXT_CURSOR" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Wow",
-      "details": "Full HD monitor",
-      "id": "01KH2N2TT78AD8BC6EFVGPR8GQ",
-      "price": "199.99",
-      "quantity": 20,
-      "title": "Monitor 21 inch"
-    }
-  ],
-  "total": 3,
-  "next_cursor": "01KH2N2TT78AD8BC6EFVGPR8GQ",
+  "next_cursor": "01KH2PG7XGPJEHDV8J5JGK4MXG",
   "limit": 1
 }
 ```

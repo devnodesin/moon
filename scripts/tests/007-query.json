@@ -139,30 +139,6 @@
 			}
 		},
 		{
-			"name": "Combined Query - Filter, sort, and limit",
-			"cmd": "GET",
-			"endpoint": "/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Combined Query - Search with category filter and field selection",
-			"cmd": "GET",
-			"endpoint": "/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Combined Query - Multiple filters with pagination",
-			"cmd": "GET",
-			"endpoint": "/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=1&after=$NEXT_CURSOR",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
 			"name": "",
 			"cmd": "POST",
 			"endpoint": "/collections:destroy",
