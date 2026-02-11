@@ -61,8 +61,8 @@ def sanitize_curl_for_documentation(
         server_url: Actual server URL to replace
         doc_url: Documentation URL to use
         auth_state: Authentication state with tokens to replace
-        record_id: Actual record ID to replace (if any)
-        placeholder_type: Placeholder type to use for record ID
+        record_id: Actual record ID (kept for backward compatibility, not used)
+        placeholder_type: Placeholder type (kept for backward compatibility, not used)
         
     Returns:
         Sanitized curl command suitable for documentation
@@ -82,9 +82,7 @@ def sanitize_curl_for_documentation(
         if token:
             sanitized = sanitized.replace(token, "$REFRESH_TOKEN")
     
-    # Replace actual record ID with placeholder
-    if record_id and placeholder_type:
-        sanitized = sanitized.replace(record_id, placeholder_type)
+    # Keep actual record IDs in the output (don't replace with placeholders)
     
     return sanitized
 

@@ -70,11 +70,16 @@ class PlaceholderContext:
     """Context for placeholder replacements during test execution."""
     captured_record_id: Optional[str] = None
     placeholder_type: Optional[str] = None  # '$ULID' or '$NEXT_CURSOR'
+    captured_record_ids: List[str] = field(default_factory=list)
     
     def set_record_id(self, record_id: str, placeholder_type: str) -> None:
         """Set the captured record ID and its placeholder type."""
         self.captured_record_id = record_id
         self.placeholder_type = placeholder_type
+    
+    def set_record_ids(self, record_ids: List[str]) -> None:
+        """Set multiple captured record IDs for numbered placeholders."""
+        self.captured_record_ids = record_ids
 
 
 @dataclass

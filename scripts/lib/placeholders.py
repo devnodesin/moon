@@ -1,8 +1,9 @@
 """Placeholder replacement utilities for API testing."""
 
 import json
+import re
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from .types import TestDefinition, PlaceholderContext, AuthState
 
@@ -38,19 +39,39 @@ def replace_record_placeholders(
     context: PlaceholderContext
 ) -> Optional[str]:
     """
-    Replace $ULID and $NEXT_CURSOR placeholders in test definition.
+    Replace $ULID, $ULID1, $ULID2, etc., and $NEXT_CURSOR placeholders in test definition.
     
     Args:
         test: Test definition to modify in-place
-        context: Placeholder context with captured record ID
+        context: Placeholder context with captured record ID(s)
         
     Returns:
         The placeholder type that was used ('$ULID', '$NEXT_CURSOR', or None)
     """
-    if not context.captured_record_id:
-        return None
-    
     placeholder_used = None
+    
+    # Handle numbered ULID placeholders (e.g., $ULID1, $ULID2)
+    if context.captured_record_ids:
+        # Replace in endpoint
+        if test.endpoint:
+            test.endpoint = _replace_numbered_placeholders(
+                test.endpoint, context.captured_record_ids
+            )
+        
+        # Replace in data
+        if test.data:
+            data_str = json.dumps(test.data)
+            data_str = _replace_numbered_placeholders(
+                data_str, context.captured_record_ids
+            )
+            test.data = json.loads(data_str)
+            if "$ULID" in json.dumps(context.captured_record_ids):
+                placeholder_used = "$ULID"
+    
+    # Handle single record ID placeholders
+    if not context.captured_record_id:
+        return placeholder_used
+    
     record_id = context.captured_record_id
     
     # Replace in endpoint
@@ -74,6 +95,31 @@ def replace_record_placeholders(
         test.data = json.loads(data_str)
     
     return placeholder_used
+
+
+def _replace_numbered_placeholders(text: str, record_ids: List[str]) -> str:
+    """
+    Replace numbered placeholders like $ULID1, $ULID2 with actual record IDs.
+    
+    Args:
+        text: Text containing placeholders
+        record_ids: List of record IDs to use for replacement
+        
+    Returns:
+        Text with placeholders replaced
+    """
+    # Find all numbered ULID placeholders
+    pattern = r'\$ULID(\d+)'
+    matches = re.findall(pattern, text)
+    
+    # Replace each numbered placeholder with corresponding record ID
+    for match in matches:
+        index = int(match) - 1  # Convert to 0-based index
+        if 0 <= index < len(record_ids):
+            placeholder = f"$ULID{match}"
+            text = text.replace(placeholder, record_ids[index])
+    
+    return text
 
 
 def extract_record_id_from_response(
@@ -129,6 +175,44 @@ def extract_record_id_from_response(
                 return response_obj["data"][key]
     
     return None
+
+
+def extract_record_ids_from_response(
+    response_obj: Optional[Dict[str, Any]],
+    max_count: int = 10
+) -> List[str]:
+    """
+    Extract multiple record IDs from a list response.
+    
+    Args:
+        response_obj: Response JSON object
+        max_count: Maximum number of IDs to extract
+        
+    Returns:
+        List of extracted record IDs (may be empty)
+    """
+    if not response_obj or not isinstance(response_obj, dict):
+        return []
+    
+    record_ids = []
+    
+    # Try arrays in common field names
+    for array_key in ["data", "records", "items", "apikeys", "users"]:
+        if array_key in response_obj:
+            items = response_obj[array_key]
+            if isinstance(items, list):
+                for item in items[:max_count]:
+                    if isinstance(item, dict):
+                        # Try common ID field names
+                        for id_field in ["id", "_id", "ulid", "uuid"]:
+                            if id_field in item:
+                                record_ids.append(item[id_field])
+                                break
+                        if len(record_ids) >= max_count:
+                            break
+                break
+    
+    return record_ids
 
 
 def fetch_record_id_from_collection(

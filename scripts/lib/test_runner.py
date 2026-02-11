@@ -1,5 +1,6 @@
 """Test execution orchestration for API testing framework."""
 
+import re
 from typing import List, Optional
 
 from .types import (
@@ -21,7 +22,8 @@ from .auth import (
 from .placeholders import (
     replace_auth_placeholders,
     replace_record_placeholders,
-    extract_record_id_from_response
+    extract_record_id_from_response,
+    extract_record_ids_from_response
 )
 from .formatters import (
     format_markdown_result,
@@ -58,14 +60,32 @@ def run_test_suite(
         # Make a copy to avoid modifying the original
         test_copy = _copy_test(test)
         
-        # Replace record placeholders if we have a captured ID
-        if placeholder_context.captured_record_id:
+        # Replace authentication placeholders first (needed for API calls)
+        replace_auth_placeholders(test_copy, auth_state)
+        
+        # Check if this test needs fresh numbered placeholders
+        if _test_needs_numbered_placeholders(test_copy):
+            # Extract collection name from the test endpoint
+            collection_name = _extract_collection_name_from_test(test_copy)
+            if collection_name:
+                # Fetch fresh IDs from the collection (headers now have real tokens)
+                fresh_ids = _fetch_fresh_record_ids(
+                    test_suite.serverURL,
+                    test_suite.prefix,
+                    collection_name,
+                    test_copy.headers
+                )
+                if fresh_ids:
+                    # Create a temporary context with fresh IDs
+                    temp_context = PlaceholderContext()
+                    temp_context.set_record_ids(fresh_ids)
+                    replace_record_placeholders(test_copy, temp_context)
+        
+        # Replace single record placeholders if we have a captured ID
+        elif placeholder_context.captured_record_id:
             placeholder_type = replace_record_placeholders(test_copy, placeholder_context)
             if placeholder_type:
                 placeholder_context.placeholder_type = placeholder_type
-        
-        # Replace authentication placeholders
-        replace_auth_placeholders(test_copy, auth_state)
         
         # Detect password change before execution
         new_password = detect_password_change(test_copy)
@@ -111,7 +131,7 @@ def run_test_suite(
                     if new_auth_state.refresh_token:
                         auth_state.update_refresh_token(new_auth_state.refresh_token)
         
-        # Try to capture record ID from successful create/list responses
+        # Try to capture single record ID from successful create/list responses
         if is_successful and response.response_obj:
             endpoint = test_copy.endpoint
             if ":create" in endpoint or ":list" in endpoint:
@@ -155,6 +175,109 @@ def run_test_suite(
         markdown="\n".join(markdown_lines),
         all_tests_passed=all_tests_passed
     )
+
+
+def _test_needs_numbered_placeholders(test: TestDefinition) -> bool:
+    """
+    Check if a single test uses numbered placeholders like $ULID1, $ULID2.
+    
+    Args:
+        test: Test definition
+        
+    Returns:
+        True if numbered placeholders are found
+    """
+    pattern = r'\$ULID\d+'
+    
+    # Check endpoint
+    if test.endpoint and re.search(pattern, test.endpoint):
+        return True
+    
+    # Check data
+    if test.data:
+        import json
+        data_str = json.dumps(test.data)
+        if re.search(pattern, data_str):
+            return True
+    
+    return False
+
+
+def _extract_collection_name_from_test(test: TestDefinition) -> Optional[str]:
+    """
+    Extract collection name from a test endpoint.
+    E.g., "/products:destroy" -> "products"
+    
+    Args:
+        test: Test definition
+        
+    Returns:
+        Collection name or None
+    """
+    if not test.endpoint:
+        return None
+    
+    endpoint = test.endpoint.split('?')[0]  # Remove query params
+    parts = endpoint.split('/')
+    
+    for part in parts:
+        if ':' in part:
+            return part.split(':')[0]
+    
+    return None
+
+
+def _fetch_fresh_record_ids(
+    base_url: str,
+    prefix: str,
+    collection_name: str,
+    headers: Optional[dict],
+    max_count: int = 10
+) -> List[str]:
+    """
+    Fetch fresh record IDs from a collection by calling /{collection}:list.
+    
+    Args:
+        base_url: Base server URL
+        prefix: URL prefix
+        collection_name: Name of the collection
+        headers: Request headers (may contain auth token)
+        max_count: Maximum number of IDs to fetch
+        
+    Returns:
+        List of fresh record IDs (may be empty)
+    """
+    import requests
+    
+    try:
+        list_endpoint = f"/{collection_name}:list"
+        url = f"{base_url}{prefix}{list_endpoint}"
+        
+        # Make request with timeout
+        resp = requests.get(url, headers=headers, timeout=10)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            
+            # Try to find records in common response structures
+            for array_key in ["data", "records", "items", "apikeys", "users"]:
+                records = data.get(array_key, [])
+                if records and isinstance(records, list):
+                    record_ids = []
+                    for record in records[:max_count]:
+                        if isinstance(record, dict):
+                            # Try common ID field names
+                            for id_field in ["id", "_id", "ulid", "uuid"]:
+                                if id_field in record:
+                                    record_ids.append(record[id_field])
+                                    break
+                            if len(record_ids) >= max_count:
+                                break
+                    return record_ids
+    except Exception:
+        pass
+    
+    return []
 
 
 def _copy_test(test: TestDefinition) -> TestDefinition:

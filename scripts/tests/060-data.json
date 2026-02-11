@@ -34,7 +34,7 @@
       }
     },
     {
-      "name": "Create New Record",
+      "name": "Create Record (Single)",
       "cmd": "POST",
       "endpoint": "/products:create",
       "headers": {
@@ -52,7 +52,7 @@
       }
     },
     {
-      "name": "Create New Records (Batch)",
+      "name": "Create Records (Batch)",
       "cmd": "POST",
       "endpoint": "/products:create",
       "headers": {
@@ -87,7 +87,7 @@
       }
     },
     {
-      "name": "Get a Single Record",
+      "name": "Get Single Record",
       "cmd": "GET",
       "endpoint": "/products:get?id=$ULID",
       "headers": {
@@ -95,7 +95,7 @@
       }
     },
     {
-      "name": "Update Existing Record",
+      "name": "Update Existing Record (Single)",
       "cmd": "POST",
       "endpoint": "/products:update",
       "headers": {
@@ -107,6 +107,29 @@
         "data": {
           "price": "6000.00"
         }
+      }
+    },
+    {
+      "name": "Update Records (Batch)",
+      "cmd": "POST",
+      "endpoint": "/products:update",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": [
+          {
+            "id": "$ULID1",
+            "price": "100.00",
+            "title": "Updated Product 1"
+          },
+          {
+            "id": "$ULID2",
+            "price": "200.00",
+            "title": "Updated Product 2"
+          }
+        ]
       }
     },
     {
@@ -122,28 +145,7 @@
       }
     },
     {
-      "name": "Batch Update Records",
-      "cmd": "POST",
-      "endpoint": "/products:update",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": [
-        {
-          "id": "$ULID1",
-          "price": "100.00",
-          "title": "Updated Product 1"
-        },
-        {
-          "id": "$ULID2",
-          "price": "200.00",
-          "title": "Updated Product 2"
-        }
-      ]
-    },
-    {
-      "name": "Batch Destroy Records",
+      "name": "Destroy Records (Batch)",
       "cmd": "POST",
       "endpoint": "/products:destroy",
       "headers": {

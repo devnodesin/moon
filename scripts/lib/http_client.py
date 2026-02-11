@@ -35,7 +35,7 @@ def execute_request(
     if headers:
         req_kwargs["headers"] = headers
     if data is not None:
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             req_kwargs["json"] = data
         else:
             req_kwargs["data"] = data
@@ -111,7 +111,7 @@ def _build_curl_command(
             curl_lines.append(f'    -H "{k}: {v}"')
     
     if data is not None:
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             # Format JSON with proper indentation (4 spaces base, 2 spaces for structure)
             pretty_data = json.dumps(data, indent=2)
             # Indent each line of the JSON by 6 spaces (4 base + 2 for -d flag alignment)
