@@ -902,7 +902,7 @@ func (h *CollectionsHandler) validateModifyColumns(modifies []ModifyColumn, coll
 		for _, existing := range collection.Columns {
 			if existing.Name == modify.Name {
 				found = true
-				
+
 				// Prevent changing default value after collection creation
 				// to avoid data inconsistency and corruption
 				if modify.DefaultValue != nil {

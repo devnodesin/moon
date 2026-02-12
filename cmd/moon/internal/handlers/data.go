@@ -510,7 +510,7 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 	// Add ULID to response data (API field name is "id" but value is ULID)
 	responseData := make(map[string]any)
 	responseData["id"] = ulid
-	
+
 	// Include all fields from request plus any defaults that were applied
 	for _, col := range collection.Columns {
 		if val, ok := data[col.Name]; ok {
@@ -645,7 +645,7 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		// Build response record
 		responseData := make(map[string]any)
 		responseData["id"] = ulid
-		
+
 		// Include all fields from request plus any defaults that were applied
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
@@ -766,7 +766,7 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 		// Build response record
 		responseData := make(map[string]any)
 		responseData["id"] = ulid
-		
+
 		// Include all fields from request plus any defaults that were applied
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
@@ -2564,7 +2564,7 @@ func getDefaultValue(col registry.Column) any {
 	// If a default value is explicitly set, use it
 	if col.DefaultValue != nil {
 		defaultStr := *col.DefaultValue
-		
+
 		// Handle "null" keyword for nullable fields
 		if strings.ToLower(defaultStr) == "null" {
 			return nil

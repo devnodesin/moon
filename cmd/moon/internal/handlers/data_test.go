@@ -96,10 +96,10 @@ type mockDataDriver struct {
 	beginTxFunc  func(ctx context.Context) (*sql.Tx, error)
 }
 
-func (m *mockDataDriver) Connect(ctx context.Context) error     { return nil }
-func (m *mockDataDriver) Close() error                          { return nil }
-func (m *mockDataDriver) Dialect() database.DialectType         { return m.dialect }
-func (m *mockDataDriver) DB() *sql.DB                           { return nil }
+func (m *mockDataDriver) Connect(ctx context.Context) error { return nil }
+func (m *mockDataDriver) Close() error                      { return nil }
+func (m *mockDataDriver) Dialect() database.DialectType     { return m.dialect }
+func (m *mockDataDriver) DB() *sql.DB                       { return nil }
 func (m *mockDataDriver) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	if m.beginTxFunc != nil {
 		return m.beginTxFunc(ctx)

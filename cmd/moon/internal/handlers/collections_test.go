@@ -1221,4 +1221,3 @@ func TestUpdate_SameDefaultValueAllowed(t *testing.T) {
 		t.Errorf("Expected status %d for same default value, got %d: %s", http.StatusOK, updateW.Code, updateW.Body.String())
 	}
 }
-
