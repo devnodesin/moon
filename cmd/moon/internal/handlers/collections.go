@@ -188,10 +188,10 @@ func validateNoDefaultFields(data []byte) error {
 		for i, col := range columns {
 			if colMap, ok := col.(map[string]any); ok {
 				if _, hasDefault := colMap["default"]; hasDefault {
-					return fmt.Errorf("unknown field 'default' in column %d", i)
+					return fmt.Errorf("unknown field 'default' in columns[%d]", i)
 				}
 				if _, hasDefaultValue := colMap["default_value"]; hasDefaultValue {
-					return fmt.Errorf("unknown field 'default_value' in column %d", i)
+					return fmt.Errorf("unknown field 'default_value' in columns[%d]", i)
 				}
 			}
 		}

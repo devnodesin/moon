@@ -1126,7 +1126,7 @@ Operations are executed in the following order: rename → modify → add → re
       "type": "string",
       "nullable": true,
       "unique": false
-      // Note: default_value is NOT allowed - type defaults are applied automatically
+      // Note: default_value is NOT allowed - Type defaults are applied automatically
     }
   ]
 }
