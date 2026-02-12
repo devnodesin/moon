@@ -85,6 +85,7 @@ Supported column data types:
 | `integer` | `0` | Applied only if field is nullable |
 | `decimal` | `"0.00"` | Applied only if field is nullable |
 | `boolean` | `false` | Applied only if field is nullable |
+| `datetime` | `null` | Applied for nullable fields |
 | `json` | `"{}"` (empty object) | Applied only if field is nullable |
 
 **Important:** Defaults are only set for nullable fields during collection creation. Non-nullable fields have NO default and must always be provided in API requests.
