@@ -42,11 +42,11 @@
 
 ---
 
-## Health and Documentation
+## Documentation and Health
+
+{{ include "002-doc.md" }}
 
 {{ include "010-health.md" }}
-
-{{ include "011-doc.md" }}
 ---
 
 ## Authentication
@@ -144,7 +144,7 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?limit={number}` | Limit number of records returned (default: 15, max: 100) |
 | `?after={cursor}` | Get records after the specified cursor |
 
-{{ include "080-query.md" }}
+{{ include "070-query.md" }}
 
 ### Combined Query Examples
 
@@ -191,13 +191,13 @@ Server-side aggregation endpoints for analytics. Replace `{collection}` with you
 - Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
 - Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types. 
 
-{{ include "090-aggregation.md" }}
+{{ include "080-aggregation.md" }}
 
 ---
 
 ## Security
 
-{{ include "091-security.md" }}
+{{ include "003-security.md" }}
 
 ---
 

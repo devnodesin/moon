@@ -17,7 +17,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH58VWC4JHEA2PVQFXDMAS45",
+      "id": "01KH94E10XH6PS3C79JBVXE69P",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -25,7 +25,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KH58VX0B0PD281GXZYEPZB7Y",
+      "id": "01KH94E27EZG88A1CFSZKTT0G9",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -56,7 +56,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH58VWP6SC5TGS4NXP8BVEW2",
+      "id": "01KH94E1T0BJR5WR5JKFFRF1EW",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -64,7 +64,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KH58VX0B0PD281GXZYEPZB7Y",
+      "id": "01KH94E27EZG88A1CFSZKTT0G9",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -72,7 +72,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH58VWC4JHEA2PVQFXDMAS45",
+      "id": "01KH94E10XH6PS3C79JBVXE69P",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -103,7 +103,7 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH58VWC4JHEA2PVQFXDMAS45",
+      "id": "01KH94E10XH6PS3C79JBVXE69P",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -132,17 +132,17 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 {
   "data": [
     {
-      "id": "01KH58VWC4JHEA2PVQFXDMAS45",
+      "id": "01KH94E10XH6PS3C79JBVXE69P",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KH58VWP6SC5TGS4NXP8BVEW2",
+      "id": "01KH94E1T0BJR5WR5JKFFRF1EW",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KH58VX0B0PD281GXZYEPZB7Y",
+      "id": "01KH94E27EZG88A1CFSZKTT0G9",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
@@ -170,7 +170,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KH58VWC4JHEA2PVQFXDMAS45",
+      "id": "01KH94E10XH6PS3C79JBVXE69P",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -178,14 +178,14 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH58VWP6SC5TGS4NXP8BVEW2",
+      "id": "01KH94E1T0BJR5WR5JKFFRF1EW",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
   "total": 3,
-  "next_cursor": "01KH58VWP6SC5TGS4NXP8BVEW2",
+  "next_cursor": "01KH94E1T0BJR5WR5JKFFRF1EW",
   "limit": 2
 }
 ```
@@ -197,7 +197,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
  (Response includes `next_cursor` when more results are available.)
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:list?after=01KH58VWC4JHEA2PVQFXDMAS45&limit=1" \
+curl -s -X GET "http://localhost:6006/products:list?after=01KH94E10XH6PS3C79JBVXE69P&limit=1" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -209,14 +209,14 @@ curl -s -X GET "http://localhost:6006/products:list?after=01KH58VWC4JHEA2PVQFXDM
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KH58VWP6SC5TGS4NXP8BVEW2",
+      "id": "01KH94E1T0BJR5WR5JKFFRF1EW",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
   "total": 3,
-  "next_cursor": "01KH58VWP6SC5TGS4NXP8BVEW2",
+  "next_cursor": "01KH94E1T0BJR5WR5JKFFRF1EW",
   "limit": 1
 }
 ```

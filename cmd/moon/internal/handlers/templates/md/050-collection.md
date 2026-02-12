@@ -11,7 +11,8 @@ curl -s -X POST "http://localhost:6006/collections:create" \
           {
             "name": "title",
             "type": "string",
-            "nullable": false
+            "nullable": false,
+            "unique": true
           },
           {
             "name": "price",
@@ -20,6 +21,16 @@ curl -s -X POST "http://localhost:6006/collections:create" \
           },
           {
             "name": "description",
+            "type": "string",
+            "nullable": true
+          },
+          {
+            "name": "review",
+            "type": "integer",
+            "nullable": true
+          },
+          {
+            "name": "category",
             "type": "string",
             "nullable": true
           }
@@ -39,7 +50,7 @@ curl -s -X POST "http://localhost:6006/collections:create" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -51,7 +62,22 @@ curl -s -X POST "http://localhost:6006/collections:create" \
         "name": "description",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "review",
+        "type": "integer",
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "nullable": true,
+        "unique": false,
+        "default_value": "''"
       }
     ]
   },
@@ -98,7 +124,7 @@ curl -s -X GET "http://localhost:6006/collections:get?name=products" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -110,7 +136,22 @@ curl -s -X GET "http://localhost:6006/collections:get?name=products" \
         "name": "description",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "review",
+        "type": "integer",
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "nullable": true,
+        "unique": false,
+        "default_value": "''"
       }
     ]
   }
@@ -131,11 +172,6 @@ curl -s -X POST "http://localhost:6006/collections:update" \
             "name": "stock",
             "type": "integer",
             "nullable": false
-          },
-          {
-            "name": "category",
-            "type": "string",
-            "nullable": false
           }
         ]
       }
@@ -153,7 +189,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -165,17 +201,26 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "description",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
       },
       {
-        "name": "stock",
+        "name": "review",
         "type": "integer",
-        "nullable": false,
-        "unique": false
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
       },
       {
         "name": "category",
         "type": "string",
+        "nullable": true,
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "stock",
+        "type": "integer",
         "nullable": false,
         "unique": false
       }
@@ -215,7 +260,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -227,17 +272,26 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "details",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
       },
       {
-        "name": "stock",
+        "name": "review",
         "type": "integer",
-        "nullable": false,
-        "unique": false
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
       },
       {
         "name": "category",
         "type": "string",
+        "nullable": true,
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "stock",
+        "type": "integer",
         "nullable": false,
         "unique": false
       }
@@ -278,7 +332,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -290,18 +344,27 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "details",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
       },
       {
-        "name": "stock",
+        "name": "review",
         "type": "integer",
-        "nullable": false,
-        "unique": false
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
       },
       {
         "name": "category",
         "type": "integer",
         "nullable": true,
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "stock",
+        "type": "integer",
+        "nullable": false,
         "unique": false
       }
     ]
@@ -337,7 +400,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -349,7 +412,15 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "details",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "review",
+        "type": "integer",
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
       },
       {
         "name": "stock",
@@ -407,7 +478,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "title",
         "type": "string",
         "nullable": false,
-        "unique": false
+        "unique": true
       },
       {
         "name": "price",
@@ -419,7 +490,15 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "name": "details",
         "type": "string",
         "nullable": true,
-        "unique": false
+        "unique": false,
+        "default_value": "''"
+      },
+      {
+        "name": "review",
+        "type": "integer",
+        "nullable": true,
+        "unique": false,
+        "default_value": "0"
       },
       {
         "name": "quantity",

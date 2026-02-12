@@ -14,20 +14,13 @@ curl -s -X POST "http://localhost:6006/users:create" \
     ' | jq .
 ```
 
-**Response (201 Created):**
+**Response (409 Conflict):**
 
 ```json
 {
-  "message": "user created successfully",
-  "user": {
-    "id": "01KH58YJCJSD8NFKCTP2D4VM9C",
-    "username": "moonuser",
-    "email": "moonuser@example.com",
-    "role": "user",
-    "can_write": true,
-    "created_at": "2026-02-11T02:37:10Z",
-    "updated_at": "2026-02-11T02:37:10Z"
-  }
+  "code": 409,
+  "error": "username already exists",
+  "error_code": "USERNAME_EXISTS"
 }
 ```
 
@@ -44,33 +37,33 @@ curl -s -X GET "http://localhost:6006/users:list" \
 {
   "users": [
     {
-      "id": "01KH37V1PTKQ725F6QFG2BDHC6",
+      "id": "01KH92VDVX1NSQ75VTCAYCESAB",
       "username": "admin",
       "email": "admin@example.com",
       "role": "admin",
       "can_write": true,
-      "created_at": "2026-02-10T07:39:17Z",
-      "updated_at": "2026-02-11T02:37:09Z",
-      "last_login_at": "2026-02-11T02:37:09Z"
+      "created_at": "2026-02-12T14:07:33Z",
+      "updated_at": "2026-02-12T14:34:32Z",
+      "last_login_at": "2026-02-12T14:34:32Z"
     },
     {
-      "id": "01KH58V2PV6ZAM319FBPT1BFV6",
-      "username": "newuser",
-      "email": "newemail@example.com",
-      "role": "user",
-      "can_write": true,
-      "created_at": "2026-02-11T02:35:16Z",
-      "updated_at": "2026-02-11T02:35:20Z",
-      "last_login_at": "2026-02-11T02:35:20Z"
-    },
-    {
-      "id": "01KH58YJCJSD8NFKCTP2D4VM9C",
+      "id": "01KH92YWFSDDAXNY6CH2PH05C4",
       "username": "moonuser",
       "email": "moonuser@example.com",
       "role": "user",
       "can_write": true,
-      "created_at": "2026-02-11T02:37:10Z",
-      "updated_at": "2026-02-11T02:37:10Z"
+      "created_at": "2026-02-12T14:09:27Z",
+      "updated_at": "2026-02-12T14:09:27Z"
+    },
+    {
+      "id": "01KH94CDTSKJ5E3EC0EDP6KS8R",
+      "username": "newuser",
+      "email": "newemail@example.com",
+      "role": "user",
+      "can_write": true,
+      "created_at": "2026-02-12T14:34:19Z",
+      "updated_at": "2026-02-12T14:34:26Z",
+      "last_login_at": "2026-02-12T14:34:26Z"
     }
   ],
   "next_cursor": null,
@@ -81,7 +74,7 @@ curl -s -X GET "http://localhost:6006/users:list" \
 ### Get Specific User by ID
 
 ```bash
-curl -s -X GET "http://localhost:6006/users:get?id=01KH58V2PV6ZAM319FBPT1BFV6" \
+curl -s -X GET "http://localhost:6006/users:get?id=01KH92YWFSDDAXNY6CH2PH05C4" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -90,14 +83,13 @@ curl -s -X GET "http://localhost:6006/users:get?id=01KH58V2PV6ZAM319FBPT1BFV6" \
 ```json
 {
   "user": {
-    "id": "01KH58V2PV6ZAM319FBPT1BFV6",
-    "username": "newuser",
-    "email": "newemail@example.com",
+    "id": "01KH92YWFSDDAXNY6CH2PH05C4",
+    "username": "moonuser",
+    "email": "moonuser@example.com",
     "role": "user",
     "can_write": true,
-    "created_at": "2026-02-11T02:35:16Z",
-    "updated_at": "2026-02-11T02:35:20Z",
-    "last_login_at": "2026-02-11T02:35:20Z"
+    "created_at": "2026-02-12T14:09:27Z",
+    "updated_at": "2026-02-12T14:09:27Z"
   }
 }
 ```
@@ -105,7 +97,7 @@ curl -s -X GET "http://localhost:6006/users:get?id=01KH58V2PV6ZAM319FBPT1BFV6" \
 ### Update User
 
 ```bash
-curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV6" \
+curl -s -X POST "http://localhost:6006/users:update?id=01KH92YWFSDDAXNY6CH2PH05C4" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '
@@ -122,14 +114,13 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 {
   "message": "user updated successfully",
   "user": {
-    "id": "01KH58V2PV6ZAM319FBPT1BFV6",
-    "username": "newuser",
+    "id": "01KH92YWFSDDAXNY6CH2PH05C4",
+    "username": "moonuser",
     "email": "updateduser@example.com",
     "role": "admin",
     "can_write": true,
-    "created_at": "2026-02-11T02:35:16Z",
-    "updated_at": "2026-02-11T02:37:11Z",
-    "last_login_at": "2026-02-11T02:35:20Z"
+    "created_at": "2026-02-12T14:09:27Z",
+    "updated_at": "2026-02-12T14:34:36Z"
   }
 }
 ```
@@ -137,7 +128,7 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 ### Reset User Password
 
 ```bash
-curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV6" \
+curl -s -X POST "http://localhost:6006/users:update?id=01KH92YWFSDDAXNY6CH2PH05C4" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '
@@ -154,14 +145,13 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 {
   "message": "password reset successfully",
   "user": {
-    "id": "01KH58V2PV6ZAM319FBPT1BFV6",
-    "username": "newuser",
+    "id": "01KH92YWFSDDAXNY6CH2PH05C4",
+    "username": "moonuser",
     "email": "updateduser@example.com",
     "role": "admin",
     "can_write": true,
-    "created_at": "2026-02-11T02:35:16Z",
-    "updated_at": "2026-02-11T02:37:12Z",
-    "last_login_at": "2026-02-11T02:35:20Z"
+    "created_at": "2026-02-12T14:09:27Z",
+    "updated_at": "2026-02-12T14:34:36Z"
   }
 }
 ```
@@ -169,7 +159,7 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 ### Revoke All User Sessions
 
 ```bash
-curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV6" \
+curl -s -X POST "http://localhost:6006/users:update?id=01KH92YWFSDDAXNY6CH2PH05C4" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '
@@ -185,14 +175,13 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 {
   "message": "all sessions revoked successfully",
   "user": {
-    "id": "01KH58V2PV6ZAM319FBPT1BFV6",
-    "username": "newuser",
+    "id": "01KH92YWFSDDAXNY6CH2PH05C4",
+    "username": "moonuser",
     "email": "updateduser@example.com",
     "role": "admin",
     "can_write": true,
-    "created_at": "2026-02-11T02:35:16Z",
-    "updated_at": "2026-02-11T02:37:12Z",
-    "last_login_at": "2026-02-11T02:35:20Z"
+    "created_at": "2026-02-12T14:09:27Z",
+    "updated_at": "2026-02-12T14:34:36Z"
   }
 }
 ```
@@ -200,7 +189,7 @@ curl -s -X POST "http://localhost:6006/users:update?id=01KH58V2PV6ZAM319FBPT1BFV
 ### Delete User Account
 
 ```bash
-curl -s -X POST "http://localhost:6006/users:destroy?id=01KH58V2PV6ZAM319FBPT1BFV6" \
+curl -s -X POST "http://localhost:6006/users:destroy?id=01KH92YWFSDDAXNY6CH2PH05C4" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 

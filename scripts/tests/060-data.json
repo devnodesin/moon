@@ -20,8 +20,8 @@
           { "name": "title", "type": "string", "nullable": false },
           { "name": "price", "type": "decimal", "nullable": false },
           { "name": "details", "type": "string", "nullable": true },
-          { "name": "quantity", "type": "integer", "nullable": true },
-          { "name": "brand", "type": "string", "nullable": true }
+          {"name": "quantity", "type": "integer", "nullable": true},
+					{"name": "brand", "type": "string", "nullable": true}
         ]
       }
     },
