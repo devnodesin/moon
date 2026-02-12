@@ -76,6 +76,125 @@ If upgrading from a previous version that supported `text` or `float` types:
 - **`text`** columns should be changed to `string` - behavior is identical
 - **`float`** columns should be changed to `decimal` for exact precision or `integer` for whole numbers
 
+## Default Values
+
+Moon supports two levels of default values for collection fields:
+
+### Global Default Values
+
+When a required (`nullable: false`) field is not provided in an API request and no field-specific `default` is set in the schema, Moon automatically applies these global defaults:
+
+| Type | Global Default | Notes |
+|------|---------------|-------|
+| `string` | `""` (empty string) | Applied at application level |
+| `integer` | `0` | Applied at application level |
+| `decimal` | `"0.00"` | Applied at application level |
+| `boolean` | `false` | Applied at application level |
+| `datetime` | `null` | Stored as NULL even for non-nullable fields |
+| `json` | `"{}"` (empty object) | Applied at application level |
+
+**Important Notes:**
+
+- Global defaults are enforced by Moon's application logic during record creation
+- For `datetime` fields, the global default is `null` (stored as NULL), even if the field is marked as non-nullable
+- For nullable fields (`nullable: true`) without an explicit default, `null` is stored when the field is omitted or set to `null` in the request
+
+### Field-Specific Default Values
+
+To override the global default for a specific field, specify the optional `default` property in the collection schema:
+
+**JSON Schema Example:**
+
+```json
+{
+  "name": "status",
+  "type": "boolean",
+  "nullable": false,
+  "default": "true"
+}
+```
+
+**SQL Behavior:**
+
+When a field-specific default is set, Moon generates appropriate SQL `DEFAULT` constraints:
+
+```sql
+ALTER TABLE users ALTER COLUMN status SET DEFAULT true;
+```
+
+**Type-Specific Default Format:**
+
+- **`string`**: Any string value (e.g., `"default": "pending"`)
+- **`integer`**: Numeric string (e.g., `"default": "0"` or `"default": "-1"`)
+- **`decimal`**: Decimal string (e.g., `"default": "0.00"` or `"default": "99.99"`)
+- **`boolean`**: `"true"` or `"false"` (lowercase strings)
+- **`datetime`**: RFC3339 format (e.g., `"default": "2026-02-12T00:00:00Z"`) or `"null"`
+- **`json`**: Valid JSON string (e.g., `"default": "{}"` or `"default": "[]"`)
+
+**Important Constraints:**
+
+1. Default values **must match the field's data type** (e.g., `"default": "0"` for integer, not `"default": 0`)
+2. Default values are **immutable after collection creation** - attempting to change a default value will result in an error to prevent data inconsistency
+3. Use `"default": "null"` (string) for nullable fields to explicitly set NULL as the default
+
+### nullable vs. default
+
+- **`nullable` (API):** Controls whether a field can be omitted or set to `null` in API requests
+  - `nullable: true` → field can be omitted or explicitly set to `null`
+  - `nullable: false` → field must have a non-null value (uses default if not provided)
+
+- **`default` (Schema/Database):** Specifies the value assigned when no value is provided in the API request
+  - Set at the schema level during collection creation
+  - Enforced by the application and/or database layer
+  - Cannot be changed after collection creation
+
+**Behavior Matrix:**
+
+| nullable | default | field omitted | field = null | Result |
+|----------|---------|---------------|--------------|---------|
+| `false` | not set | ✓ | ✗ | Global default applied |
+| `false` | set | ✓ | ✗ | Field-specific default applied |
+| `true` | not set | ✓ | ✓ | NULL stored |
+| `true` | set | ✓ | ✓ | Field-specific default applied (if omitted), NULL (if explicit) |
+
+**Examples:**
+
+```json
+// Example 1: Required field with global default
+{
+  "name": "score",
+  "type": "integer",
+  "nullable": false
+  // No default specified → uses global default (0)
+}
+
+// Example 2: Required field with custom default
+{
+  "name": "status",
+  "type": "string",
+  "nullable": false,
+  "default": "pending"
+  // Custom default overrides global default ("")
+}
+
+// Example 3: Optional field (nullable)
+{
+  "name": "notes",
+  "type": "string",
+  "nullable": true
+  // No default specified → NULL if omitted
+}
+
+// Example 4: Optional field with default
+{
+  "name": "priority",
+  "type": "integer",
+  "nullable": true,
+  "default": "5"
+  // Default applied if omitted, NULL if explicitly set to null
+}
+```
+
 ## Validation Constraints
 
 Moon enforces strict validation rules to ensure data integrity and prevent naming conflicts.

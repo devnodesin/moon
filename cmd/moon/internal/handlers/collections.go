@@ -897,11 +897,24 @@ func (h *CollectionsHandler) validateModifyColumns(modifies []ModifyColumn, coll
 			return fmt.Errorf("cannot modify system column '%s'", modify.Name)
 		}
 
-		// Check if column exists
+		// Check if column exists and validate default value changes
 		found := false
 		for _, existing := range collection.Columns {
 			if existing.Name == modify.Name {
 				found = true
+				
+				// Prevent changing default value after collection creation
+				// to avoid data inconsistency and corruption
+				if modify.DefaultValue != nil {
+					existingDefault := ""
+					if existing.DefaultValue != nil {
+						existingDefault = *existing.DefaultValue
+					}
+					newDefault := *modify.DefaultValue
+					if existingDefault != newDefault {
+						return fmt.Errorf("cannot change default value for column '%s': default values are immutable after collection creation to prevent data inconsistency", modify.Name)
+					}
+				}
 				break
 			}
 		}
