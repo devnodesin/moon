@@ -466,6 +466,7 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 
 	for _, col := range collection.Columns {
 		if val, ok := data[col.Name]; ok {
+			// Field is present in request - use it
 			columns = append(columns, col.Name)
 			if h.db.Dialect() == database.DialectPostgres {
 				placeholders = append(placeholders, fmt.Sprintf("$%d", i))
@@ -474,9 +475,17 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 			}
 			values = append(values, val)
 			i++
-		} else if !col.Nullable && col.DefaultValue == nil && col.Name != "ulid" {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("required field '%s' is missing", col.Name))
-			return
+		} else {
+			// Field is missing - apply default value
+			defaultVal := getDefaultValue(col)
+			columns = append(columns, col.Name)
+			if h.db.Dialect() == database.DialectPostgres {
+				placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+			} else {
+				placeholders = append(placeholders, "?")
+			}
+			values = append(values, defaultVal)
+			i++
 		}
 	}
 
@@ -501,8 +510,19 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 	// Add ULID to response data (API field name is "id" but value is ULID)
 	responseData := make(map[string]any)
 	responseData["id"] = ulid
-	for k, v := range data {
-		responseData[k] = v
+
+	// Include all fields from request plus any defaults that were applied
+	for _, col := range collection.Columns {
+		if val, ok := data[col.Name]; ok {
+			// Field was in request
+			responseData[col.Name] = val
+		} else {
+			// Field was missing, default was applied
+			defaultVal := getDefaultValue(col)
+			if defaultVal != nil {
+				responseData[col.Name] = defaultVal
+			}
+		}
 	}
 
 	response := CreateDataResponse{
@@ -582,6 +602,7 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
+				// Field is present in request - use it
 				columns = append(columns, col.Name)
 				if h.db.Dialect() == database.DialectPostgres {
 					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
@@ -590,9 +611,17 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 				}
 				values = append(values, val)
 				i++
-			} else if !col.Nullable && col.DefaultValue == nil && col.Name != "ulid" {
-				writeError(w, http.StatusBadRequest, fmt.Sprintf("required field '%s' is missing", col.Name))
-				return
+			} else {
+				// Field is missing - apply default value
+				defaultVal := getDefaultValue(col)
+				columns = append(columns, col.Name)
+				if h.db.Dialect() == database.DialectPostgres {
+					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+				} else {
+					placeholders = append(placeholders, "?")
+				}
+				values = append(values, defaultVal)
+				i++
 			}
 		}
 
@@ -616,8 +645,19 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		// Build response record
 		responseData := make(map[string]any)
 		responseData["id"] = ulid
-		for k, v := range item {
-			responseData[k] = v
+
+		// Include all fields from request plus any defaults that were applied
+		for _, col := range collection.Columns {
+			if val, ok := item[col.Name]; ok {
+				// Field was in request
+				responseData[col.Name] = val
+			} else {
+				// Field was missing, default was applied
+				defaultVal := getDefaultValue(col)
+				if defaultVal != nil {
+					responseData[col.Name] = defaultVal
+				}
+			}
 		}
 		createdRecords = append(createdRecords, responseData)
 	}
@@ -674,6 +714,7 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 		requiredFieldMissing := false
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
+				// Field is present in request - use it
 				columns = append(columns, col.Name)
 				if h.db.Dialect() == database.DialectPostgres {
 					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
@@ -682,16 +723,17 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 				}
 				values = append(values, val)
 				i++
-			} else if !col.Nullable && col.DefaultValue == nil && col.Name != "ulid" {
-				results = append(results, BatchItemResult{
-					Index:        idx,
-					Status:       BatchItemFailed,
-					ErrorCode:    "validation_error",
-					ErrorMessage: fmt.Sprintf("required field '%s' is missing", col.Name),
-				})
-				failed++
-				requiredFieldMissing = true
-				break
+			} else {
+				// Field is missing - apply default value
+				defaultVal := getDefaultValue(col)
+				columns = append(columns, col.Name)
+				if h.db.Dialect() == database.DialectPostgres {
+					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+				} else {
+					placeholders = append(placeholders, "?")
+				}
+				values = append(values, defaultVal)
+				i++
 			}
 		}
 		if requiredFieldMissing {
@@ -724,8 +766,19 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 		// Build response record
 		responseData := make(map[string]any)
 		responseData["id"] = ulid
-		for k, v := range item {
-			responseData[k] = v
+
+		// Include all fields from request plus any defaults that were applied
+		for _, col := range collection.Columns {
+			if val, ok := item[col.Name]; ok {
+				// Field was in request
+				responseData[col.Name] = val
+			} else {
+				// Field was missing, default was applied
+				defaultVal := getDefaultValue(col)
+				if defaultVal != nil {
+					responseData[col.Name] = defaultVal
+				}
+			}
 		}
 
 		results = append(results, BatchItemResult{
@@ -2486,5 +2539,88 @@ func (h *DataHandler) validatePayloadSize(r *http.Request) error {
 	if r.ContentLength > 0 && r.ContentLength > maxSize {
 		return fmt.Errorf("payload size %d exceeds limit of %d bytes", r.ContentLength, maxSize)
 	}
+	return nil
+}
+
+// getDefaultValue returns the appropriate default value for a field
+// based on the column definition and global defaults.
+//
+// Global default values (when col.DefaultValue == nil and !col.Nullable):
+//   - string   = ""
+//   - integer  = 0
+//   - decimal  = "0.00"
+//   - boolean  = false
+//   - datetime = nil (stored as NULL)
+//   - json     = "{}"
+//
+// If col.DefaultValue is set, it overrides the global default.
+// If col.Nullable is true, returns nil (stored as NULL).
+func getDefaultValue(col registry.Column) any {
+	// If field is nullable and no default is set, use NULL
+	if col.Nullable && col.DefaultValue == nil {
+		return nil
+	}
+
+	// If a default value is explicitly set, use it
+	if col.DefaultValue != nil {
+		defaultStr := *col.DefaultValue
+
+		// Handle "null" keyword for nullable fields
+		if strings.ToLower(defaultStr) == "null" {
+			return nil
+		}
+
+		// Parse the default value based on type
+		switch col.Type {
+		case registry.TypeString:
+			return defaultStr
+		case registry.TypeInteger:
+			// Parse as int64
+			val, err := strconv.ParseInt(defaultStr, 10, 64)
+			if err != nil {
+				// If parsing fails, return 0 as fallback
+				return int64(0)
+			}
+			return val
+		case registry.TypeDecimal:
+			// Decimal is stored as string in the database
+			return defaultStr
+		case registry.TypeBoolean:
+			// Parse as boolean
+			lower := strings.ToLower(defaultStr)
+			return lower == "true" || lower == "1"
+		case registry.TypeDatetime:
+			// Keep as string (RFC3339 format)
+			return defaultStr
+		case registry.TypeJSON:
+			// Keep as string (JSON content)
+			return defaultStr
+		default:
+			return defaultStr
+		}
+	}
+
+	// Apply global defaults for required (non-nullable) fields
+	if !col.Nullable {
+		switch col.Type {
+		case registry.TypeString:
+			return ""
+		case registry.TypeInteger:
+			return int64(0)
+		case registry.TypeDecimal:
+			return "0.00"
+		case registry.TypeBoolean:
+			return false
+		case registry.TypeDatetime:
+			// Global default for datetime is NULL even for non-nullable fields
+			return nil
+		case registry.TypeJSON:
+			return "{}"
+		default:
+			return nil
+		}
+	}
+
+	// For nullable fields without explicit default, use NULL
 	return nil
 }
