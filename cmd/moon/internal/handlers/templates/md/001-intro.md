@@ -66,12 +66,14 @@ Moon is intentionally minimal. It does **not** support:
 
 Supported column data types:
 
-- `string` - Text values of any length (maps to TEXT in SQL)
-- `integer` - 64-bit whole numbers
-- `decimal` - For decimal values. API input/output uses strings (e.g., `"199.99"`), with a default of 2 decimal places.
-- `boolean` - true/false values
-- `datetime` - Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z)
-- `json` - Arbitrary JSON object or array
+| Type        | Description |
+|-------------|-------------|
+| `string`    | Text values of any length (maps to TEXT in SQL) |
+| `integer`   | 64-bit whole numbers |
+| `decimal`   | For decimal values. API input/output uses strings (e.g., `"199.99"`), default 2 decimal places |
+| `boolean`   | true/false values |
+| `datetime`  | Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z) |
+| `json`      | Arbitrary JSON object or array |
 
 ***Note:*** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
 
