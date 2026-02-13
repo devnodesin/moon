@@ -746,9 +746,9 @@ func (h *DocHandler) buildJSONAppendix() string {
 					"description":   "Delete record",
 				},
 				"query": map[string]any{
-					"operators": []string{"eq", "ne", "gt", "lt", "gte", "lte", "like", "in"},
-					"syntax": map[string]any{
-						"filter": "?column[operator]=value",
+					"filter": map[string]any{
+						"syntax":    "?column[operator]=value",
+						"operators": []string{"eq", "ne", "gt", "lt", "gte", "lte", "like", "in"},
 						"examples": []string{
 							"?price[gte]=100",
 							"?category[eq]=electronics",
@@ -762,19 +762,29 @@ func (h *DocHandler) buildJSONAppendix() string {
 						"example":    "?sort=-price,name",
 					},
 					"pagination": map[string]any{
-						"cursor_param": "after",
-						"limit_param":  "limit",
-						"example":      "?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
+						"syntax":      "?after={cursor}",
+						"description": "Cursor-based pagination using opaque cursor from previous response",
+						"example":     "?after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
+					},
+					"limit": map[string]any{
+						"syntax":      "?limit={limit}",
+						"description": "Maximum number of records to return (default 50, max 1000)",
+						"example":     "?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
 					},
 					"search": map[string]any{
-						"full_text_param": "q",
-						"description":     "Searches across all text/string columns",
-						"example":         "?q=wireless",
+						"syntax":      "?q={search_term}",
+						"description": "Full text searches across all text/string columns",
+						"example":     "?q=wireless",
 					},
 					"field_selection": map[string]any{
-						"param":       "fields",
+						"syntax":      "?fields={field1,field2}",
 						"description": "Return only specified fields (id always included)",
 						"example":     "?fields=name,price",
+					},
+					"combine_query_examples": map[string]any{
+						"example1": "?quantity[gte]=10&price[lt]=100&sort=-price&limit=5",
+						"example2": "?q=laptop&brand[eq]=Wow&fields=title,price,quantity",
+						"example3": "?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
 					},
 				},
 			},
