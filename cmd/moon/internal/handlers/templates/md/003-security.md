@@ -65,7 +65,7 @@ Access-Control-Max-Age: 3600
 **OPTIONS Preflight Example:**
 
 ```bash
-curl -X OPTIONS "{{$ApiURL}}/collections:list" \
+curl -X OPTIONS "http://localhost:6006/collections:list" \
   -H "Origin: http://localhost:3000" \
   -H "Access-Control-Request-Method: GET"
 ```

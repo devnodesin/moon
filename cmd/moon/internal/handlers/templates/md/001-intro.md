@@ -106,14 +106,14 @@ Supported authentication types:
 
 ```bash
 # Login and save tokens to environment variables
-response=$(curl -s -X POST "{{$ApiURL}}/auth:login" \
+response=$(curl -s -X POST "http://localhost:6006/auth:login" \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"moonadmin12#"}')
 ACCESS_TOKEN=$(echo $response | jq -r '.access_token')
 REFRESH_TOKEN=$(echo $response | jq -r '.refresh_token')
 
 # Use in subsequent requests
-curl -s "{{$ApiURL}}/collections:list" \
+curl -s "http://localhost:6006/collections:list" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -121,13 +121,13 @@ curl -s "{{$ApiURL}}/collections:list" \
 
 ```bash
 # Create an API key (requires admin role)
-curl -X POST "{{$ApiURL}}/apikeys:create" \
+curl -X POST "http://localhost:6006/apikeys:create" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"My Service Key","role":"user"}' | jq .
 
 # Use the API key in requests (same Authorization header format)
-curl -s "{{$ApiURL}}/collections:list" \
+curl -s "http://localhost:6006/collections:list" \
   -H "Authorization: Bearer moon_live_abc123..." | jq .
 ```
 

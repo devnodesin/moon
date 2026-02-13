@@ -270,12 +270,12 @@ func (h *DocHandler) generateHTML() (string, error) {
         h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
         h2 { color: #34495e; margin-top: 30px; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
         h3 { color: #555; margin-top: 20px; }
-        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "Courier New", monospace; }
+        code { background: #ffb3b3; padding: 2px 6px; border-radius: 3px; font-family: "Courier New", monospace; }
         pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; position: relative; padding-right: 80px; }
         pre code { background: none; color: inherit; padding: 0; }
         table { border-collapse: collapse; width: 100%; margin: 15px 0; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #3498db; color: white; }
+        th, td { border: 1px solid #ddd; padding: 3px; text-align: left; }
+        th { background: #004979; color: white; }
         tr:nth-child(even) { background: #f9f9f9; }
         a { color: #2980b9; text-decoration: none; }
         a:hover { text-decoration: underline; }
