@@ -403,18 +403,11 @@ type JSONAppendixData struct {
 	DataTypes       []DataTypeInfo     `json:"data_types"`
 	RegisteredColls []CollectionDetail `json:"registered_collections"`
 	Endpoints       map[string]any     `json:"endpoints"`
-	DataAccess      DataAccessInfo     `json:"data_access"`
 	HTTPStatusCodes map[string]string  `json:"http_status_codes"`
 	RateLimiting    map[string]any     `json:"rate_limiting"`
 	CORS            map[string]any     `json:"cors"`
 	Guarantees      map[string]bool    `json:"guarantees"`
 	AIPStandards    map[string]string  `json:"aip_standards"`
-}
-
-// DataAccessInfo holds query and aggregation information
-type DataAccessInfo struct {
-	Query       map[string]any `json:"query"`
-	Aggregation map[string]any `json:"aggregation"`
 }
 
 // AuthInfo holds authentication configuration
