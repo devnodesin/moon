@@ -10,6 +10,7 @@ type FieldSchema struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
 	Nullable    bool   `json:"nullable"`
+	Readonly    bool   `json:"readonly,omitempty"`
 	Default     *any   `json:"default,omitempty"`
 	Description string `json:"description,omitempty"`
 }
@@ -53,6 +54,7 @@ func (b *Builder) FromCollection(collection *registry.Collection) *Schema {
 		Name:     "id",
 		Type:     "string",
 		Nullable: false,
+		Readonly: true,
 	})
 
 	// Add all other fields, excluding internal system columns (id, ulid)
@@ -87,7 +89,7 @@ func (b *Builder) FromSystemResource(resourceName string) *Schema {
 		return &Schema{
 			Collection: "users",
 			Fields: []FieldSchema{
-				{Name: "id", Type: "string", Nullable: false},
+				{Name: "id", Type: "string", Nullable: false, Readonly: true},
 				{Name: "username", Type: "string", Nullable: false},
 				{Name: "email", Type: "string", Nullable: false},
 				{Name: "role", Type: "string", Nullable: false},
@@ -103,7 +105,7 @@ func (b *Builder) FromSystemResource(resourceName string) *Schema {
 		return &Schema{
 			Collection: "apikeys",
 			Fields: []FieldSchema{
-				{Name: "id", Type: "string", Nullable: false},
+				{Name: "id", Type: "string", Nullable: false, Readonly: true},
 				{Name: "name", Type: "string", Nullable: false},
 				{Name: "description", Type: "string", Nullable: true},
 				{Name: "role", Type: "string", Nullable: false},

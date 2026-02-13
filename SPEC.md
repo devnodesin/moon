@@ -964,7 +964,7 @@ To retrieve the schema (field names, types, and constraints) for a specific coll
 {
   "collection": "products",
   "fields": [
-    { "name": "id", "type": "string", "nullable": false },
+    { "name": "id", "type": "string", "nullable": false, "readonly": true },
     { "name": "title", "type": "string", "nullable": false },
     { "name": "price", "type": "integer", "nullable": false },
     { "name": "description", "type": "string", "nullable": true }
@@ -972,6 +972,12 @@ To retrieve the schema (field names, types, and constraints) for a specific coll
   "total": 42
 }
 ```
+
+**Field Properties:**
+- `name`: The field name
+- `type`: The data type (string, integer, decimal, boolean, datetime, json)
+- `nullable`: Whether the field can be null
+- `readonly`: (Optional) Set to `true` for server-generated fields like `id` that cannot be modified by clients. This field is omitted for editable fields.
 
 The `total` field contains the total number of records currently in the collection. It is always included in the schema response.
 

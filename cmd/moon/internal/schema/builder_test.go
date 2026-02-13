@@ -38,6 +38,9 @@ func TestFromCollection_FiltersInternalColumns(t *testing.T) {
 		if schema.Fields[0].Nullable {
 			t.Error("Expected id to be non-nullable")
 		}
+		if !schema.Fields[0].Readonly {
+			t.Error("Expected id to be readonly")
+		}
 
 		// Verify there's no duplicate 'id' field
 		idCount := 0
@@ -92,6 +95,9 @@ func TestFromCollection_FiltersInternalColumns(t *testing.T) {
 		if schema.Fields[0].Name != "id" {
 			t.Errorf("Expected first field to be 'id', got '%s'", schema.Fields[0].Name)
 		}
+		if !schema.Fields[0].Readonly {
+			t.Error("Expected id field to be readonly")
+		}
 
 		// Verify other fields
 		fieldNames := make(map[string]bool)
@@ -125,6 +131,9 @@ func TestFromCollection_FiltersInternalColumns(t *testing.T) {
 
 		if schema.Fields[0].Name != "id" || schema.Fields[0].Type != "string" {
 			t.Errorf("Expected single 'id' field of type string")
+		}
+		if !schema.Fields[0].Readonly {
+			t.Error("Expected id field to be readonly")
 		}
 	})
 
