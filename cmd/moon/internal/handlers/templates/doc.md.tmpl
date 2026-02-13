@@ -16,8 +16,7 @@
 | Service     | moon                                                |
 | Base URL    | `{{.BaseURL}}`                                      |
 | URL Prefix  | {{if .Prefix}}`{{.Prefix}}`{{else}}N/A{{end}}       |
-| Documentation Version     | 1.5.1                                 |
-| Github URL  | https://github.com/devnodesin/moon                      |
+| Github URL  | https://github.com/devnodesin/moon                  |
 
 {{if .Prefix}} All endpoints are prefixed with `{{.Prefix}}`. {{end}}
 
@@ -53,11 +52,11 @@
 
 | Endpoint       | Method | Description                                 |
 |----------------|--------|---------------------------------------------|
-| /auth:login    | POST   | Authenticate user, receive tokens           |
-| /auth:logout   | POST   | Invalidate current session's refresh token  |
-| /auth:refresh  | POST   | Exchange refresh token for new tokens       |
-| /auth:me       | GET    | Get current authenticated user info         |
-| /auth:me       | POST   | Update current user's profile/password      |
+| `/auth:login`    | POST   | Authenticate user, receive tokens           |
+| `/auth:logout`   | POST   | Invalidate current session's refresh token  |
+| `/auth:refresh`  | POST   | Exchange refresh token for new tokens       |
+| `/auth:me`       | GET    | Get current authenticated user info         |
+| `/auth:me`       | POST   | Update current user's profile/password      |
 
 {{ include "020-auth.md" }}
 
@@ -67,11 +66,11 @@
 
 | Endpoint        | Method | Description                              |
 |-----------------|--------|------------------------------------------|
-| /users:list     | GET    | List all users                           |
-| /users:get      | GET    | Get specific user by ID                  |
-| /users:create   | POST   | Create new user                          |
-| /users:update   | POST   | Update user properties or admin actions  |
-| /users:destroy  | POST   | Delete user account                      |
+| `/users:list`     | GET    | List all users                           |
+| `/users:get`      | GET    | Get specific user by ID                  |
+| `/users:create`   | POST   | Create new user                          |
+| `/users:update`   | POST   | Update user properties or admin actions  |
+| `/users:destroy`  | POST   | Delete user account                      |
 
 {{ include "030-users.md" }}
 
@@ -81,11 +80,11 @@
 
 | Endpoint         | Method | Description                                 |
 |------------------|--------|---------------------------------------------|
-| /apikeys:list    | GET    | List all API keys                           |
-| /apikeys:get     | GET    | Get specific API key                        |
-| /apikeys:create  | POST   | Create new API key                          |
-| /apikeys:update  | POST   | Update API key metadata or rotate key       |
-| /apikeys:destroy | POST   | Delete API key                              |
+| `/apikeys:list`    | GET    | List all API keys                           |
+| `/apikeys:get`     | GET    | Get specific API key                        |
+| `/apikeys:create`  | POST   | Create new API key                          |
+| `/apikeys:update`  | POST   | Update API key metadata or rotate key       |
+| `/apikeys:destroy` | POST   | Delete API key                              |
 
 {{ include "040-apikeys.md" }}
 
@@ -97,11 +96,11 @@ These endpoints manage database tables (collections) and their schemas.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `{{.Prefix}}/collections:list` | GET | List all collections |
-| `{{.Prefix}}/collections:get` | GET | Get collection schema (requires `?name=...`) |
-| `{{.Prefix}}/collections:create` | POST | Create a new collection |
-| `{{.Prefix}}/collections:update` | POST | Update collection schema |
-| `{{.Prefix}}/collections:destroy` | POST | Delete a collection |
+| `/collections:list` | GET | List all collections |
+| `/collections:get` | GET | Get collection schema (requires `?name=...`) |
+| `/collections:create` | POST | Create a new collection |
+| `/collections:update` | POST | Update collection schema |
+| `/collections:destroy` | POST | Delete a collection |
 
 Update collection support following schema modification operations:
 
@@ -120,12 +119,12 @@ These endpoints manage records within a specific collection. Replace `{collectio
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `{{.Prefix}}/{collection}:list` | GET | List all records |
-| `{{.Prefix}}/{collection}:schema` | GET | Get collection schema (read-only) |
-| `{{.Prefix}}/{collection}:get` | GET | Get a single record (requires `?id=...`) |
-| `{{.Prefix}}/{collection}:create` | POST | Create a new record |
-| `{{.Prefix}}/{collection}:update` | POST | Update an existing record |
-| `{{.Prefix}}/{collection}:destroy` | POST | Delete a record |
+| `/collections:list` | GET | List all records |
+| `/collections:schema` | GET | Get collection schema (read-only) |
+| `/collections:get` | GET | Get a single record (requires `?id=...`) |
+| `/collections:create` | POST | Create a new record |
+| `/collections:update` | POST | Update an existing record |
+| `/collections:destroy` | POST | Delete a record |
 
 {{ include "060-data.md" }}
 
@@ -180,11 +179,11 @@ Server-side aggregation endpoints for analytics. Replace `{collection}` with you
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `{{.Prefix}}/{collection}:count` | GET | Count records |
-| `{{.Prefix}}/{collection}:sum` | GET | Sum numeric field (requires `?field=...`) |
-| `{{.Prefix}}/{collection}:avg` | GET | Average numeric field (requires `?field=...`) |
-| `{{.Prefix}}/{collection}:min` | GET | Minimum value (requires `?field=...`) |
-| `{{.Prefix}}/{collection}:max` | GET | Maximum value (requires `?field=...`) |
+| `/{collection}:count` | GET | Count records |
+| `/{collection}:sum` | GET | Sum numeric field (requires `?field=...`) |
+| `/{collection}:avg` | GET | Average numeric field (requires `?field=...`) |
+| `/{collection}:min` | GET | Minimum value (requires `?field=...`) |
+| `/{collection}:max` | GET | Maximum value (requires `?field=...`) |
 
 ***Note:***
 
