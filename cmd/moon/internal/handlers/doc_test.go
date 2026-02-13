@@ -253,12 +253,18 @@ func TestDocHandler_WithPrefix(t *testing.T) {
 	handler.HTML(rec, req)
 
 	body := rec.Body.String()
-	// Template uses {{.Prefix}} which outputs "/api/v1" directly in paths
-	if !strings.Contains(body, "/api/v1/collections:list") {
-		t.Error("expected prefix in collections endpoint")
+	// Template shows prefix in curl examples using $ApiURL variable
+	// Tables show generic paths without prefix as reference
+	if !strings.Contains(body, "/api/v1/products:list") {
+		t.Error("expected prefix in curl examples")
 	}
-	if !strings.Contains(body, "/api/v1/{collection}:list") {
-		t.Error("expected prefix in data endpoints")
+	// Check that prefix is mentioned in the documentation
+	if !strings.Contains(body, "/api/v1") {
+		t.Error("expected prefix to be mentioned in documentation")
+	}
+	// Check that the prefix message is present
+	if !strings.Contains(body, "All endpoints are prefixed with") {
+		t.Error("expected prefix message in documentation")
 	}
 }
 
