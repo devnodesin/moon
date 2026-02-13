@@ -125,6 +125,9 @@ func TestSchemaEndpoint(t *testing.T) {
 				if field.Nullable {
 					t.Error("Expected id to be non-nullable")
 				}
+				if !field.Readonly {
+					t.Error("Expected id to be readonly")
+				}
 			}
 			if field.Name == "name" {
 				if field.Type != "string" {
@@ -133,6 +136,9 @@ func TestSchemaEndpoint(t *testing.T) {
 				if field.Nullable {
 					t.Error("Expected name to be non-nullable")
 				}
+				if field.Readonly {
+					t.Error("Expected name to NOT be readonly")
+				}
 			}
 			if field.Name == "description" {
 				if field.Type != "string" {
@@ -140,6 +146,9 @@ func TestSchemaEndpoint(t *testing.T) {
 				}
 				if !field.Nullable {
 					t.Error("Expected description to be nullable")
+				}
+				if field.Readonly {
+					t.Error("Expected description to NOT be readonly")
 				}
 			}
 		}
@@ -209,6 +218,17 @@ func TestSchemaEndpoint(t *testing.T) {
 					t.Errorf("Expected field to have '%s' property", prop)
 				}
 			}
+
+			// Verify that the id field has readonly property set to true
+			if firstField["name"] == "id" {
+				readonly, hasReadonly := firstField["readonly"]
+				if !hasReadonly {
+					t.Error("Expected id field to have 'readonly' property")
+				}
+				if readonlyBool, ok := readonly.(bool); !ok || !readonlyBool {
+					t.Error("Expected id field 'readonly' property to be true")
+				}
+			}
 		}
 	})
 
@@ -250,6 +270,9 @@ func TestSchemaEndpoint(t *testing.T) {
 				}
 				if field.Nullable {
 					t.Error("The 'id' field should be non-nullable")
+				}
+				if !field.Readonly {
+					t.Error("The 'id' field should be readonly")
 				}
 			}
 		}
