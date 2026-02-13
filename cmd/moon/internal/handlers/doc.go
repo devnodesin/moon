@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"text/template"
@@ -394,20 +393,19 @@ func (h *DocHandler) getCollectionNames() []string {
 
 // JSONAppendixData represents the structure of the JSON Appendix
 type JSONAppendixData struct {
-	Service         string             `json:"service"`
-	Version         string             `json:"version"`
-	BaseURL         string             `json:"base_url"`
-	URLPrefix       *string            `json:"url_prefix"`
-	Authentication  AuthInfo           `json:"authentication"`
-	Collections     CollectionsInfo    `json:"collections"`
-	DataTypes       []DataTypeInfo     `json:"data_types"`
-	RegisteredColls []CollectionDetail `json:"registered_collections"`
-	Endpoints       map[string]any     `json:"endpoints"`
-	HTTPStatusCodes map[string]string  `json:"http_status_codes"`
-	RateLimiting    map[string]any     `json:"rate_limiting"`
-	CORS            map[string]any     `json:"cors"`
-	Guarantees      map[string]bool    `json:"guarantees"`
-	AIPStandards    map[string]string  `json:"aip_standards"`
+	Service         string            `json:"service"`
+	Version         string            `json:"version"`
+	BaseURL         string            `json:"base_url"`
+	URLPrefix       *string           `json:"url_prefix"`
+	Authentication  AuthInfo          `json:"authentication"`
+	Collections     CollectionsInfo   `json:"collections"`
+	DataTypes       []DataTypeInfo    `json:"data_types"`
+	Endpoints       map[string]any    `json:"endpoints"`
+	HTTPStatusCodes map[string]string `json:"http_status_codes"`
+	RateLimiting    map[string]any    `json:"rate_limiting"`
+	CORS            map[string]any    `json:"cors"`
+	Guarantees      map[string]bool   `json:"guarantees"`
+	AIPStandards    map[string]string `json:"aip_standards"`
 }
 
 // AuthInfo holds authentication configuration
@@ -437,20 +435,6 @@ type DataTypeInfo struct {
 	Note        string `json:"note,omitempty"`
 }
 
-// CollectionDetail represents a registered collection with its fields
-type CollectionDetail struct {
-	Name   string      `json:"name"`
-	Fields []FieldInfo `json:"fields"`
-}
-
-// FieldInfo represents a field within a collection
-type FieldInfo struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Nullable bool   `json:"nullable"`
-	Unique   bool   `json:"unique"`
-}
-
 // buildJSONAppendix generates a dynamic JSON appendix from the registry and config
 func (h *DocHandler) buildJSONAppendix() string {
 	// Prepare authentication modes
@@ -469,40 +453,6 @@ func (h *DocHandler) buildJSONAppendix() string {
 	var urlPrefix *string
 	if h.config.Server.Prefix != "" {
 		urlPrefix = &h.config.Server.Prefix
-	}
-
-	// Get registered collections with sorted fields
-	collections := h.registry.GetAll()
-	registeredColls := make([]CollectionDetail, 0, len(collections))
-
-	// Sort collections by name for deterministic output
-	sort.Slice(collections, func(i, j int) bool {
-		return collections[i].Name < collections[j].Name
-	})
-
-	for _, coll := range collections {
-		fields := make([]FieldInfo, 0, len(coll.Columns))
-
-		// Sort fields by name for deterministic output
-		sortedColumns := make([]registry.Column, len(coll.Columns))
-		copy(sortedColumns, coll.Columns)
-		sort.Slice(sortedColumns, func(i, j int) bool {
-			return sortedColumns[i].Name < sortedColumns[j].Name
-		})
-
-		for _, col := range sortedColumns {
-			fields = append(fields, FieldInfo{
-				Name:     col.Name,
-				Type:     string(col.Type),
-				Nullable: col.Nullable,
-				Unique:   col.Unique,
-			})
-		}
-
-		registeredColls = append(registeredColls, CollectionDetail{
-			Name:   coll.Name,
-			Fields: fields,
-		})
 	}
 
 	// Build the appendix data structure
@@ -595,7 +545,6 @@ func (h *DocHandler) buildJSONAppendix() string {
 				Note:        "API input/output uses strings, default precision 2 decimal places, nullable fields default to '0.00' when null",
 			},
 		},
-		RegisteredColls: registeredColls,
 		Endpoints: map[string]any{
 			"health": map[string]any{
 				"path":          "/health",
