@@ -1946,7 +1946,7 @@ func parseSort(r *http.Request) ([]sortField, error) {
 }
 
 // parseFields parses the fields query parameter
-// Returns nil to select all fields, or a list of requested fields (always includes ulid)
+// Returns nil to select all fields, or a list of requested fields (always includes id)
 func parseFields(r *http.Request, collection *registry.Collection) ([]string, error) {
 	fieldsParam := r.URL.Query().Get("fields")
 	if fieldsParam == "" {
@@ -1994,8 +1994,8 @@ func parseFields(r *http.Request, collection *registry.Collection) ([]string, er
 // buildOrderBy constructs ORDER BY clause from sort fields
 func buildOrderBy(sorts []sortField, collection *registry.Collection, builder query.Builder) (string, error) {
 	if len(sorts) == 0 {
-		// Default sorting by ulid
-		return "ulid ASC", nil
+		// Default sorting by id
+		return "id ASC", nil
 	}
 
 	// Create a map of valid column names
