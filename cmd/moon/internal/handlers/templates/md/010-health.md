@@ -10,6 +10,6 @@ curl -s -X GET "http://localhost:6006/health" | jq .
 {
   "name": "moon",
   "status": "live",
-  "version": "1.99"
+  "version": "1.0"
 }
 ```
