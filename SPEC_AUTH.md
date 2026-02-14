@@ -57,7 +57,7 @@ Authorization: Bearer <access_token>
 **JWT Claims Structure:**
 
 Access tokens contain the following claims:
-- `user_id`: Internal user ID (integer)
+- `user_id`: User's ULID identifier (string, from `id` column)
 - `username`: User's username (string)
 - `email`: User's email address (string)
 - `role`: User's role (`admin`, `user`, or `readonly`)
@@ -309,7 +309,7 @@ The password policy is applied and validated in the following scenarios:
 
 **Refresh Token Storage:**
 
-- Stored in database with: user_id, token_hash, expires_at, created_at, last_used_at
+- Stored in database with: user_pkid, token_hash, expires_at, created_at, last_used_at
 - Tokens are single-use: invalidated immediately after successful refresh
 - New refresh token issued with each successful refresh
 - **Expired Token Cleanup:** Expired tokens should be purged from the database periodically via a scheduled cleanup job (implementation recommended but not automatic)
