@@ -4,19 +4,6 @@
 
 Moon is an API-first, migration-less backend in Go. Manage database schemas and data via REST APIs—no migration files needed.
 
-> ## ⚠️ Breaking Change: Mandatory Authentication
-> 
-> **All API endpoints now require authentication** (except `/health`).
-> 
-> Quick setup:
-> 1. Generate JWT secret: `openssl rand -base64 32`
-> 2. Configure `jwt.secret` in `moon.conf`
-> 3. Set up bootstrap admin in config
-> 4. Login via `POST /auth:login`
-> 5. Use `Authorization: Bearer <token>` header
-> 
-> See [INSTALL.md](INSTALL.md#authentication-setup) for complete setup instructions.
-
 ## Features
 
 - Migration-less schema management (create/modify tables via API)
