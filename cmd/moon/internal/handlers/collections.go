@@ -543,7 +543,10 @@ func (h *CollectionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 				if _, err := h.db.Exec(ctx, uniqueDDL); err != nil {
 					// Rollback: drop the column we just added, then rollback registry
 					dropDDL := generateDropColumnDDL(req.Name, col.Name, h.db.Dialect())
-					h.db.Exec(ctx, dropDDL) // Best effort cleanup
+					if _, rollbackErr := h.db.Exec(ctx, dropDDL); rollbackErr != nil {
+						// Log rollback failure but continue with error handling
+						log.Printf("WARNING: Failed to rollback column addition for '%s': %v", col.Name, rollbackErr)
+					}
 					collection.Columns = originalColumns
 					h.registry.Set(collection)
 					writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to add unique constraint on column '%s': %v", col.Name, err))
@@ -1140,7 +1143,7 @@ func generateAddColumnDDL(tableName string, column registry.Column, dialect data
 		sb.WriteString(" NOT NULL")
 	}
 
-	// UNIQUE constraint removed from here - handled separately by generateAddUniqueConstraintDDL
+	// UNIQUE constraints are handled separately via generateAddUniqueConstraintDDL for database portability
 
 	if column.DefaultValue != nil {
 		sb.WriteString(" DEFAULT ")
