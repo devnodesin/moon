@@ -1,13 +1,21 @@
-## Standard API Response
+# Standard API Response Patterns
 
-### Standard Response Pattern for `:list` Endpoints
+This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
 
-- List Users `GET /users:list`
-- List API Keys `GET /apikeys:list`
-- List Collections `GET /collections:list`
-- List Collection Records `GET /{collection_name}:list`
+## Standard Response Pattern for `:list` Endpoints
 
-**Response Structure:**
+List endpoints return paginated collections of resources.
+
+**Applicable Endpoints:**
+
+- List Users: `GET /users:list`
+- List API Keys: `GET /apikeys:list`
+- List Collections: `GET /collections:list`
+- List Collection Records: `GET /{collection_name}:list`
+
+### Response Structure
+
+All list endpoints return a consistent JSON structure with two main sections: `data` (the array of records) and `meta` (pagination information).
 
 ```json
 {
@@ -27,9 +35,11 @@
 }
 ```
 
-**Pagination:**
+### Pagination
 
-The API uses **unidirectional cursor pagination**. The `after` parameter always returns records that come after the specified cursor.
+The API uses **unidirectional cursor-based pagination**. The `after` parameter always returns records that come after the specified cursor.
+
+**Example Usage:**
 
 ```sh
 # First page
@@ -42,29 +52,31 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F&limit=15
 GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5&limit=15
 ```
 
-**How it works:**
+**How It Works:**
 
-- `meta.next`: Cursor pointing to the last record in the current page
-  - Using this with `after` returns the next page
-- `meta.prev`: Cursor pointing to a record **before** the current page
-  - Using this with `after` returns the previous page
-- Both cursors use the same `after` parameter for simplicity
+- `meta.next`: Cursor pointing to the last record in the current page. Using this with `after` returns the next page.
+- `meta.prev`: Cursor pointing to a record before the current page. Using this with `after` returns the previous page.
+- Both cursors use the same `after` parameter for simplicity and consistency.
 
-**Parameters:**
+### Parameters
 
-- `limit` (optional): Number of items per page (default: 15, max: 100)
-- `after` (optional): ULID cursor - returns records after this cursor
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit` | integer | Number of items per page (default: 15, max: 100) |
+| `after` | string | ULID cursor - returns records after this cursor |
 
-**Important Notes:**
+### Important Notes
 
-- **Null cursors**: `prev` is `null` on the first page; `next` is `null` on the last page
-- **Sort order**: Records are always returned in consistent chronological order (by ULID/creation time)
-- **No cursor**: Omitting `after` returns the first page
-- **ID requirement**: Each record in `data` must include an `id` field (ULID), except for collections which use `name` as identifier
-- **Cursor format**: Cursors are ULIDs pointing to specific records
-- **Invalid cursor**: Returns error `RECORD_NOT_FOUND` if cursor doesn't exist
+- **Null cursors**: `prev` is `null` on the first page; `next` is `null` on the last page.
+- **Sort order**: Records are always returned in consistent chronological order (by ULID/creation time).
+- **No cursor**: Omitting `after` returns the first page.
+- **ID requirement**: Each record in `data` must include an `id` field (ULID), except for collections which use `name` as the identifier.
+- **Cursor format**: Cursors are ULIDs pointing to specific records.
+- **Invalid cursor**: Returns error `RECORD_NOT_FOUND` if the cursor doesn't exist.
 
-**Error Response:**
+### Error Response
+
+When an error occurs, the API returns a structured error response:
 
 ```json
 {
@@ -75,22 +87,26 @@ GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5&limit=15
 }
 ```
 
-**Common error codes:**
+**Common Error Codes:**
 
-- `RECORD_NOT_FOUND`: Invalid cursor or resource doesn't exist
-- `INVALID_PARAMETER`: Invalid limit value (e.g., exceeds max of 100)
-- `UNAUTHORIZED`: Missing or invalid authentication
+- `RECORD_NOT_FOUND`: Invalid cursor or resource doesn't exist.
+- `INVALID_PARAMETER`: Invalid limit value (e.g., exceeds max of 100).
+- `UNAUTHORIZED`: Missing or invalid authentication.
 
-### Standard Response Pattern for `:get` Endpoints
+## Standard Response Pattern for `:get` Endpoints
 
-- Get User `GET /users:get?id={id}`
-- Get API Key `GET /apikeys:get?id={id}`
-- Get Collection `GET /collections:get?name={collection_name}`
-- Get Collection Record `GET /{collection_name}:get?id={id}`
+Get endpoints retrieve a single resource by its identifier.
 
-**Response Structure:**
+**Applicable Endpoints:**
 
-**Get User, API Key and Collection Record:**
+- Get User: `GET /users:get?id={id}`
+- Get API Key: `GET /apikeys:get?id={id}`
+- Get Collection: `GET /collections:get?name={collection_name}`
+- Get Collection Record: `GET /{collection_name}:get?id={id}`
+
+### Response Structure
+
+**For Users, API Keys, and Collection Records:**
 
 ```sh
 GET /users:get?id=01KHCZGWWRBQBREMG0K23C6C5H
@@ -98,7 +114,7 @@ GET /apikeys:get?id=01KHCZGWWRBQBREMG0K23C6C5H
 GET /products:get?id=01KHCZGWWRBQBREMG0K23C6C5H
 ```
 
-See the example responses below.
+**Example Response:**
 
 ```json
 {
@@ -110,11 +126,13 @@ See the example responses below.
 }
 ```
 
-**For Collection:**
+**For Collections:**
 
 ```sh
 GET /collections:get?name=products
 ```
+
+**Example Response:**
 
 ```json
 {
@@ -132,19 +150,21 @@ GET /collections:get?name=products
 }
 ```
 
-**Parameters:**
+### Parameters
 
-- `id` (required for users, apikeys, records): ULID of the resource
-- `name` (required for collections): Name of the collection
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ULID of the resource (required for users, apikeys, records) |
+| `name` | string | Name of the collection (required for collections) |
 
-**Important Notes:**
+### Important Notes
 
-- **Single object**: The `data` field contains a single object (not an array)
-- **No meta field**: Get endpoints don't need pagination metadata
-- **Consistent wrapper**: All `:get` endpoints use `data` wrapper, matching `:list` endpoints
-- **404 error**: Returns `RECORD_NOT_FOUND` if the resource doesn't exist
+- **Single object**: The `data` field contains a single object (not an array).
+- **No meta field**: Get endpoints don't need pagination metadata.
+- **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
+- **404 error**: Returns `RECORD_NOT_FOUND` if the resource doesn't exist.
 
-**Error Response:**
+### Error Response
 
 ```json
 {
@@ -155,22 +175,26 @@ GET /collections:get?name=products
 }
 ```
 
-**Common error codes:**
+**Common Error Codes:**
 
-- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist
-- `INVALID_PARAMETER`: Missing or invalid `id` or `name` parameter
-- `UNAUTHORIZED`: Missing or invalid authentication
+- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist.
+- `INVALID_PARAMETER`: Missing or invalid `id` or `name` parameter.
+- `UNAUTHORIZED`: Missing or invalid authentication.
 
-### Standard Response Pattern for `:create` Endpoints
+## Standard Response Pattern for `:create` Endpoints
 
-- Create User `POST /users:create`
-- Create API Key `POST /apikeys:create`
-- Create Collection `POST /collections:create`
-- Create Collection Record(s) `POST /{collection_name}:create`
+Create endpoints add new resources to the system.
 
-**Response Structure:**
+**Applicable Endpoints:**
 
-**Create User, API Key, Collection:**
+- Create User: `POST /users:create`
+- Create API Key: `POST /apikeys:create`
+- Create Collection: `POST /collections:create`
+- Create Collection Record(s): `POST /{collection_name}:create`
+
+### Response Structure
+
+**For Users, API Keys, and Collections:**
 
 ```sh
 POST /users:create
@@ -178,7 +202,7 @@ POST /apikeys:create
 POST /collections:create
 ```
 
-Request body:
+**Request Body:**
 
 ```json
 {
@@ -190,7 +214,7 @@ Request body:
 }
 ```
 
-Response (201 Created):
+**Response (201 Created):**
 
 ```json
 {
@@ -204,7 +228,7 @@ Response (201 Created):
 }
 ```
 
-**Create Collection Record(s):**
+**For Collection Records:**
 
 Single record:
 
@@ -228,7 +252,7 @@ Multiple records:
 }
 ```
 
-Response (201 Created) - All succeeded:
+**Response (201 Created) - All Succeeded:**
 
 ```json
 {
@@ -258,7 +282,7 @@ Response (201 Created) - All succeeded:
 }
 ```
 
-Response (201 Created) - Partial success:
+**Response (201 Created) - Partial Success:**
 
 ```json
 {
@@ -283,7 +307,9 @@ Response (201 Created) - Partial success:
 }
 ```
 
-**Collections Create:**
+**For Collection Creation:**
+
+**Request Body:**
 
 ```json
 {
@@ -329,20 +355,20 @@ Response (201 Created) - Partial success:
 }
 ```
 
-**Important Notes:**
+### Important Notes
 
-- **id field**: The `id` field is system-generated and read-only. Do not include it in create requests.
-- **Array format**: Collection records must always be sent as an array in `data`, even for single records
-- **Partial success**: If some records fail validation, successfully created records are returned in `data`
-- **Failed records**: Failed records are excluded from `data` array. Check `meta.failed` count to detect partial failures.
-- **Status code**: Always returns `201 Created` if at least one record was created successfully
-- **Consistent wrapper**: All `:create` endpoints use `data` field for created resource(s)
-- **Message field**: Always includes a human-readable success message
-- **API Key security**: The `key` field appears in `data` only once during creation
+- **ID field**: The `id` field is system-generated and read-only. Do not include it in create requests.
+- **Array format**: Collection records must always be sent as an array in `data`, even for single records.
+- **Partial success**: If some records fail validation, successfully created records are returned in `data`.
+- **Failed records**: Failed records are excluded from the `data` array. Check `meta.failed` count to detect partial failures.
+- **Status code**: Always returns `201 Created` if at least one record was created successfully.
+- **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
+- **Message field**: Always includes a human-readable success message.
+- **API Key security**: The `key` field appears in `data` only once during creation.
 
-**Error Response:**
+### Error Response
 
-Full failure (no records created):
+**Full Failure (No Records Created):**
 
 ```json
 {
@@ -353,23 +379,27 @@ Full failure (no records created):
 }
 ```
 
-**Common error codes:**
+**Common Error Codes:**
 
-- `VALIDATION_ERROR`: Invalid input or constraint violation
-- `DUPLICATE_RECORD`: Resource with unique field already exists
-- `INVALID_PARAMETER`: Missing required fields
-- `UNAUTHORIZED`: Missing or invalid authentication
+- `VALIDATION_ERROR`: Invalid input or constraint violation.
+- `DUPLICATE_RECORD`: Resource with unique field already exists.
+- `INVALID_PARAMETER`: Missing required fields.
+- `UNAUTHORIZED`: Missing or invalid authentication.
 
-### Standard Response Pattern for `:destroy` Endpoints
+## Standard Response Pattern for `:destroy` Endpoints
 
-- Delete User `POST /users:destroy?id={id}`
-- Delete API Key `POST /apikeys:destroy?id={id}`
-- Delete Collection `POST /collections:destroy?name={collection_name}`
-- Delete Collection Record(s) `POST /{collection_name}:destroy`
+Destroy endpoints permanently delete resources from the system.
 
-**Response Structure:**
+**Applicable Endpoints:**
 
-**Delete User, API Key, Collection:**
+- Delete User: `POST /users:destroy?id={id}`
+- Delete API Key: `POST /apikeys:destroy?id={id}`
+- Delete Collection: `POST /collections:destroy?name={collection_name}`
+- Delete Collection Record(s): `POST /{collection_name}:destroy`
+
+### Response Structure
+
+**For Users, API Keys, and Collections:**
 
 ```sh
 POST /users:destroy?id=01KHCZGWWRBQBREMG0K23C6C5H
@@ -377,7 +407,7 @@ POST /apikeys:destroy?id=01KHCZKCR7MHB0Q69KM63D6AXF
 POST /collections:destroy?name=products
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -385,7 +415,7 @@ Response (200 OK):
 }
 ```
 
-**Delete Collection Record(s):**
+**For Collection Records:**
 
 Single record:
 
@@ -407,7 +437,7 @@ Multiple records:
 }
 ```
 
-Response (200 OK) - All succeeded:
+**Response (200 OK) - All Succeeded:**
 
 ```json
 {
@@ -425,7 +455,7 @@ Response (200 OK) - All succeeded:
 }
 ```
 
-Response (200 OK) - Partial success:
+**Response (200 OK) - Partial Success:**
 
 ```json
 {
@@ -442,24 +472,26 @@ Response (200 OK) - Partial success:
 }
 ```
 
-**Parameters:**
+### Parameters
 
-- `id` (required for users, apikeys): ULID of the resource
-- `name` (required for collections): Name of the collection
-- Request body `data` (required for records): Array of record IDs to delete
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ULID of the resource (required for users, apikeys) |
+| `name` | string | Name of the collection (required for collections) |
+| `data` | array | Array of record IDs to delete (required for records) |
 
-**Important Notes:**
+### Important Notes
 
-- **Array format**: Collection records must be sent as an array in `data`, even for single deletions
-- **Deleted IDs returned**: Response includes `data` array with IDs of successfully deleted records
-- **Partial success**: If some records fail to delete, successfully deleted count is shown in `meta`
-- **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from `data` array.
-- **Status code**: Returns `200 OK` if at least one record was deleted successfully
-- **Message field**: Always includes a human-readable success message
+- **Array format**: Collection records must be sent as an array in `data`, even for single deletions.
+- **Deleted IDs returned**: Response includes `data` array with IDs of successfully deleted records.
+- **Partial success**: If some records fail to delete, the successfully deleted count is shown in `meta`.
+- **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
+- **Status code**: Returns `200 OK` if at least one record was deleted successfully.
+- **Message field**: Always includes a human-readable success message.
 
-**Error Response:**
+### Error Response
 
-Full failure (no records deleted):
+**Full Failure (No Records Deleted):**
 
 ```json
 {
@@ -470,23 +502,27 @@ Full failure (no records deleted):
 }
 ```
 
-**Common error codes:**
+**Common Error Codes:**
 
-- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist
-- `INVALID_PARAMETER`: Missing required `id`, `name`, or `data` parameter
-- `UNAUTHORIZED`: Missing or invalid authentication
-- `FORBIDDEN`: Cannot delete protected resource
+- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist.
+- `INVALID_PARAMETER`: Missing required `id`, `name`, or `data` parameter.
+- `UNAUTHORIZED`: Missing or invalid authentication.
+- `FORBIDDEN`: Cannot delete protected resource.
 
-### Standard Response Pattern for `:update` Endpoints
+## Standard Response Pattern for `:update` Endpoints
 
-- Update User `POST /users:update?id={id}`
-- Update API Key `POST /apikeys:update?id={id}`
-- Update Collection `POST /collections:update`
-- Update Collection Record(s) `POST /{collection_name}:update`
+Update endpoints modify existing resources in the system.
 
-#### Response Structure
+**Applicable Endpoints:**
 
-**Update User, API Key:**
+- Update User: `POST /users:update?id={id}`
+- Update API Key: `POST /apikeys:update?id={id}`
+- Update Collection: `POST /collections:update`
+- Update Collection Record(s): `POST /{collection_name}:update`
+
+### Response Structure
+
+**For Users and API Keys:**
 
 ```sh
 POST /users:update?id=01KHCZGWWRBQBREMG0K23C6C5H
@@ -511,7 +547,7 @@ Special actions:
 }
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -526,13 +562,13 @@ Response (200 OK):
 }
 ```
 
-**Update Collection:**
+**For Collections:**
 
 ```sh
 POST /collections:update
 ```
 
-Request body:
+**Request Body:**
 
 ```json
 {
@@ -547,7 +583,7 @@ Request body:
 }
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -559,7 +595,7 @@ Response (200 OK):
 }
 ```
 
-**Update Collection Record(s):**
+**For Collection Records:**
 
 Single record:
 
@@ -592,7 +628,7 @@ Multiple records:
 }
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -612,11 +648,11 @@ Response (200 OK):
 }
 ```
 
-#### Special Actions
+### Special Actions
 
 **User Actions:**
 
-`reset_password` - Reset user password:
+Reset user password:
 
 ```json
 {
@@ -625,7 +661,7 @@ Response (200 OK):
 }
 ```
 
-`revoke_sessions` - Revoke all active sessions:
+Revoke all active sessions:
 
 ```json
 {
@@ -635,7 +671,7 @@ Response (200 OK):
 
 **API Key Actions:**
 
-`rotate` - Generate new key and invalidate old one:
+Rotate API key (generate new key and invalidate old one):
 
 ```json
 {
@@ -657,27 +693,29 @@ Response includes new `key` field:
 }
 ```
 
-#### Parameters
+### Parameters
 
-- `id` (required for users, apikeys): ULID of the resource
-- Request body: Fields to update OR `action` parameter for special operations
-- `action` (optional): Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`)
-- Collection operations: `name` (required) + operation fields
-- Record updates: `data` array with objects containing `id` + fields to update
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ULID of the resource (required for users, apikeys) |
+| Request Body | object | Fields to update OR `action` parameter for special operations |
+| `action` | string | Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`) |
+| `name` | string | Collection name (required for collection operations) |
+| `data` | array | Array with objects containing `id` + fields to update (for records) |
 
-#### Important Notes
+### Important Notes
 
-- **Array format**: Collection records must be sent as an array in `data`, even for single updates
-- **Partial updates**: Only fields provided are updated; other fields remain unchanged
-- **Actions vs updates**: When `action` is specified, it takes precedence over field updates
-- **Action-specific fields**: Some actions require additional fields (e.g., `new_password` for `reset_password`)
-- **Updated data returned**: Response includes full updated resource(s) in `data`
-- **Partial success**: For batch updates, successfully updated records are returned in `data`
-- **Status code**: Returns `200 OK` if at least one record was updated successfully
-- **Key rotation**: `rotate` action returns new key in `data.key` field (shown only once)
-- **Warning field**: Optional field for security warnings (e.g., key rotation, password reset)
+- **Array format**: Collection records must be sent as an array in `data`, even for single updates.
+- **Partial updates**: Only fields provided are updated; other fields remain unchanged.
+- **Actions vs updates**: When `action` is specified, it takes precedence over field updates.
+- **Action-specific fields**: Some actions require additional fields (e.g., `new_password` for `reset_password`).
+- **Updated data returned**: Response includes the full updated resource(s) in `data`.
+- **Partial success**: For batch updates, successfully updated records are returned in `data`.
+- **Status code**: Returns `200 OK` if at least one record was updated successfully.
+- **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
+- **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
 
-#### Error Response
+### Error Response
 
 ```json
 {
@@ -688,40 +726,42 @@ Response includes new `key` field:
 }
 ```
 
-**Common error codes:**
+**Common Error Codes:**
 
-- `RECORD_NOT_FOUND`: Resource with specified ID doesn't exist
-- `VALIDATION_ERROR`: Invalid input or constraint violation
-- `INVALID_ACTION`: Unsupported action specified
-- `INVALID_PARAMETER`: Missing required fields for action
-- `UNAUTHORIZED`: Missing or invalid authentication
-- `FORBIDDEN`: Cannot update protected resource
+- `RECORD_NOT_FOUND`: Resource with specified ID doesn't exist.
+- `VALIDATION_ERROR`: Invalid input or constraint violation.
+- `INVALID_ACTION`: Unsupported action specified.
+- `INVALID_PARAMETER`: Missing required fields for action.
+- `UNAUTHORIZED`: Missing or invalid authentication.
+- `FORBIDDEN`: Cannot update protected resource.
 
-### Query Options
+## Query Options
 
-Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. Using these options allows you to retrieve specific subsets of data based on your criteria.
+Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. These options allow you to retrieve specific subsets of data based on your criteria.
 
-| Query Options | Description |
-|---------------|-------------|
+| Query Option | Description |
+|--------------|-------------|
 | `?column[operator]=value` | Filter records by column values using comparison operators |
-| `?sort={fields}` | Sort by one or more fields (prefix `-` for descending) |
+| `?sort={fields}` | Sort by one or more fields (prefix `-` for descending order) |
 | `?q={term}` | Full-text search across all text columns |
-| `?fields={field1,field2}` | Select specific fields to return (id always included) |
-| `?limit={number}` | Limit number of records returned (default: 15, max: 100) |
+| `?fields={field1,field2}` | Select specific fields to return (`id` is always included) |
+| `?limit={number}` | Limit the number of records returned (default: 15, max: 100) |
 | `?after={cursor}` | Get records after the specified cursor |
 
-#### Filtering
+### Filtering
 
 **Query Option:** `?column[operator]=value`
 
-**Operators:** eq, ne, gt, lt, gte, lte, like, in
+**Supported Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -752,18 +792,20 @@ Response (200 OK):
 }
 ```
 
-#### Sorting
+### Sorting
 
 **Query Option:** `?sort={-field1,field2}`
 
-Sort by `field` (ascending) or `-field` (descending).
+Sort by `field` (ascending) or `-field` (descending). Multiple fields can be specified.
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -802,18 +844,20 @@ Response (200 OK):
 }
 ```
 
-#### Full-Text Search
+### Full-Text Search
 
-**Query Option:** `?q={search_term}` (across all text columns)
+**Query Option:** `?q={search_term}`
 
 Searches across all string/text fields in the collection.
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -836,18 +880,20 @@ Response (200 OK):
 }
 ```
 
-#### Field Selection
+### Field Selection
 
 **Query Option:** `?fields={field1,field2}`
 
-Returns only the specified fields (plus `id` which is always included).
+Returns only the specified fields (plus `id`, which is always included).
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -877,16 +923,18 @@ Response (200 OK):
 }
 ```
 
-#### Limit
+### Limit
 
-**Query Option:** `?limit={limit}`
+**Query Option:** `?limit={number}`
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -917,44 +965,46 @@ Response (200 OK):
 }
 ```
 
-#### Pagination
+### Pagination
 
 **Query Option:** `?after={cursor}`
 
-Refer to `:list` endpoint documentation for detailed pagination behavior.
+Refer to the `:list` endpoint documentation for detailed pagination behavior.
 
-#### Combined Query Examples
+### Combined Query Examples
 
 Query parameters can be combined to perform complex queries. Here are some examples:
 
-Filter, sort, and limit:
+**Filter, sort, and limit:**
 
 ```bash
 curl -g "http://localhost:6006/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Search with category filter and field selection:
+**Search with category filter and field selection:**
 
 ```bash
 curl -g "http://localhost:6006/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Multiple filters with pagination:
+**Multiple filters with pagination:**
 
 ```bash
 curl -g "http://localhost:6006/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEK" \
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-### Aggregation Operations
+## Aggregation Operations
 
-Traditional analytics and reporting often require downloading large datasets to the client for processing, which is inefficient and slow—especially for counting, summing, or calculating averages across millions of records.
+Traditional analytics and reporting often require downloading large datasets to the client for processing, which is inefficient and slow—especially when counting, summing, or calculating averages across millions of records.
 
 Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
 
-Server-side aggregation endpoints for analytics. Replace `{collection}` with your collection name.
+**Server-Side Aggregation Endpoints:**
+
+Replace `{collection}` with your collection name.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -969,14 +1019,16 @@ Server-side aggregation endpoints for analytics. Replace `{collection}` with you
 - Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
 - Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
 
-#### Count Records
+### Count Records
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:count" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -986,14 +1038,16 @@ Response (200 OK):
 }
 ```
 
-#### Sum Numeric Field
+### Sum Numeric Field
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:sum?field=quantity" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -1003,14 +1057,16 @@ Response (200 OK):
 }
 ```
 
-#### Average Numeric Field
+### Average Numeric Field
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:avg?field=quantity" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -1020,14 +1076,16 @@ Response (200 OK):
 }
 ```
 
-#### Minimum Value
+### Minimum Value
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:min?field=quantity" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -1037,14 +1095,16 @@ Response (200 OK):
 }
 ```
 
-#### Maximum Value
+### Maximum Value
+
+**Example:**
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:max?field=quantity" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-Response (200 OK):
+**Response (200 OK):**
 
 ```json
 {
@@ -1054,24 +1114,22 @@ Response (200 OK):
 }
 ```
 
-#### Aggregation with Filters
+### Aggregation with Filters
 
 Combine aggregation with query filters for calculations on specific subsets:
 
+**Count products with quantity greater than 10:**
+
 ```bash
-# Count products with quantity greater than 10
 curl -s -X GET "http://localhost:6006/products:count?quantity[gt]=10" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
+**Sum quantity for specific brand:**
+
 ```bash
-# Sum quantity for specific brand
 curl -s -X GET "http://localhost:6006/products:sum?field=quantity&brand[eq]=Wow" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-```bash
-# Average price for products in stock
-curl -s -X GET "http://localhost:6006/products:avg?field=price&quantity[gt]=0" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
+**Average price for products in stock:**
