@@ -345,6 +345,7 @@ With optional details:
 | `VALIDATION_ERROR` | 400 | Input validation failed |
 | `INVALID_JSON` | 400 | Malformed JSON |
 | `INVALID_ULID` | 400 | Invalid ULID format |
+| `INVALID_PARAMETER` | 400 | Invalid or unsupported query or body parameter |
 | `PAGE_SIZE_EXCEEDED` | 400 | Page size exceeds maximum |
 | `COLLECTION_NOT_FOUND` | 404 | Collection does not exist |
 | `RECORD_NOT_FOUND` | 404 | Record not found |
