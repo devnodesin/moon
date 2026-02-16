@@ -348,6 +348,7 @@ With optional details:
 | `INVALID_PARAMETER` | 400 | Invalid or unsupported query or body parameter |
 | `PAGE_SIZE_EXCEEDED` | 400 | Page size exceeds maximum |
 | `COLLECTION_NOT_FOUND` | 404 | Collection does not exist |
+| `DUPLICATE_RECORD` | 404 | Resource with unique field already exists |
 | `RECORD_NOT_FOUND` | 404 | Record not found |
 | `DUPLICATE_COLLECTION` | 409 | Collection name already exists |
 | `MAX_COLLECTIONS_REACHED` | 409 | Maximum collections limit reached |
