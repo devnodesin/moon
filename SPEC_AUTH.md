@@ -324,9 +324,9 @@ The password policy is applied and validated in the following scenarios:
 
 ### First Admin Account Bootstrap
 
-**On First Startup:**
+**On First Service Start (Bootstrap Only):**
 
-1. Check if any admin users exist in database
+1. On the very first service start, check if any admin users exist in the database.
 2. If no admin exists:
    - Check config file for `auth.bootstrap_admin` section:
 
@@ -338,15 +338,16 @@ The password policy is applied and validated in the following scenarios:
          password: "change-me-on-first-login"
      ```
 
-   - If bootstrap config present, create admin user from config
-   - If bootstrap config absent, server logs warning and requires manual admin creation via direct database access or setup script
-3. If admin already exists, skip bootstrap
+   - If bootstrap config is present, create the initial admin user from config.
+   - If bootstrap config is absent, server logs a warning and requires manual admin creation via direct database access or setup script.
+3. If any admin already exists, skip bootstrap (the `bootstrap_admin` config is ignored).
 
 **Security Notes:**
 
-- Bootstrap password should be changed immediately after first login
-- Bootstrap config should be removed from config file after first startup
-- Never commit bootstrap credentials to version control
+- The `bootstrap_admin` section is only required for the very first service start (when no admin exists).
+- After the first successful startup and admin creation, **remove the `bootstrap_admin` section from your config file**. It is not needed for normal operation and should not remain in production configuration.
+- Change the bootstrap admin password immediately after first login.
+- Never commit bootstrap credentials to version control.
 
 ### Security Best Practices
 
@@ -1322,7 +1323,7 @@ auth:
     expiry: 604800                         # Refresh token expiry in seconds (default: 604800 = 7 days)
     max_per_user: 10                       # Max concurrent sessions per user (default: 10)
   
-  # Bootstrap admin account (REMOVE AFTER FIRST STARTUP)
+  # Bootstrap admin account (only needed for very first service start)
   bootstrap_admin:
     username: "admin"
     email: "admin@example.com"
@@ -1356,7 +1357,7 @@ security:
 
 - Never commit `jwt.secret` to version control
 - Use strong, randomly generated secrets (min 32 chars)
-- Remove `bootstrap_admin` section after first startup
+- The `bootstrap_admin` section is only needed for the very first service start (when no admin exists). After the first successful startup and admin creation, **remove the `bootstrap_admin` section from your config file** to prevent accidental re-creation or exposure of bootstrap credentials.
 - Change bootstrap admin password immediately
 - Use HTTPS in production (HTTP for development only)
 - Restrict CORS origins in production (no wildcards)
