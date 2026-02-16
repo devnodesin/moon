@@ -7,9 +7,10 @@
 
 ## Mandatory Rules
 
-- **SPEC.md is the only source of truth.**
+- **SPEC.md is the only source of truth for architecture and design.**
   - Follow its architecture, configuration, and operational details exactly.
-- Do not invent patterns or workflows not present in SPEC.md.
+  - For API request/response formats, endpoints, and error codes, see **SPEC_API.md**.
+- Do not invent patterns or workflows not present in SPEC.md or SPEC_API.md.
 - Never use or reference content from `docs/` or `example/` for production.
 - Flag missing information and unsupported assumptions.
 - Be skeptical by default; state uncertainty clearly.
@@ -23,9 +24,13 @@
   - When a `prd/` file is given, use only that file for the specific implementation requested.
   - Do not use `prd/` files for cross-reference, documentation, or any other purpose unless instructed.
 
-## SPEC.md Compliance
+## Documentation Compliance
 
-Strictly follow all guidelines and structures in SPEC.md for every task.
+- **SPEC.md**: Architecture, database design, schema management, and system behavior
+- **SPEC_API.md**: Complete API reference with all endpoints, request/response patterns, query options, and error codes
+- **SPEC_AUTH.md**: Authentication flows, JWT tokens, API keys, and security
+
+Strictly follow all guidelines and structures in these documents for every task.
 
 ## Database Default
 
@@ -67,7 +72,7 @@ SQLite is the default database. For most development and testing, no connection 
 - Aim for 90% test coverage
 - Unless explicitly asked to create new documentation you should never create new documentation files
 - Always keep the existing documentation and scripts in sync with code changes:
-  - Documentation: `INSTALL.md`, `README.md`, `SPEC.md`, `AGENTS.md`
+  - Documentation: `INSTALL.md`, `README.md`, `SPEC.md`, `SPEC_API.md`, `SPEC_AUTH.md`, `AGENTS.md`
   - Scripts: `install.sh`, `build.sh`, `scripts/*`
   - Configuration: `samples/*`
 

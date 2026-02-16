@@ -2,6 +2,8 @@
 
 A modular, type-safe automated API test runner for Moon API endpoints.
 
+> **Note**: Test files follow the API patterns documented in [SPEC_API.md](../SPEC_API.md). For endpoint details, request/response formats, and error codes, refer to that specification.
+
 ## Features
 
 - **Modular Architecture**: Split into focused modules under `lib/` for easy maintenance

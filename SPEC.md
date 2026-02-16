@@ -287,6 +287,10 @@ Moon enforces strict validation rules to ensure data integrity and prevent namin
 
 ## API Standards
 
+> **📖 Complete API Reference**: For detailed API documentation including all endpoints, request/response formats, query options, aggregation operations, and error codes, see **[SPEC_API.md](SPEC_API.md)**.
+>
+> This section covers API design principles and patterns. Implementation details are in SPEC_API.md.
+
 Moon implements industry-standard API patterns for consistent client experience.
 
 ### HTTP Methods
@@ -316,7 +320,9 @@ When rate limiting is enabled, all responses include rate limit headers:
 
 ### Error Response Format
 
-All error responses follow a consistent JSON structure:
+All error responses follow a consistent JSON structure.
+
+> **See SPEC_API.md** for complete error response documentation and examples across all endpoint types.
 
 ```json
 {
@@ -598,6 +604,8 @@ The system uses a strict pattern to ensure that AI agents and developers can int
 
 These endpoints manage the database tables and metadata.
 
+> **See SPEC_API.md** for complete endpoint documentation including request/response formats, parameters, and examples.
+
 **Note:** All endpoints below are shown without a prefix. If a prefix is configured (e.g., `/api/v1`), prepend it to all paths.
 
 | Endpoint                    | Method | Purpose                                                |
@@ -636,6 +644,8 @@ The `GET /collections:list` endpoint returns detailed information about each col
 
 These endpoints manage the records within a specific collection.
 
+> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
+
 **Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
 
 | Endpoint               | Method | Purpose                                            |
@@ -650,6 +660,8 @@ These endpoints manage the records within a specific collection.
 #### Batch Operations (PRD-064)
 
 The `:create`, `:update`, and `:destroy` endpoints support both **single-object** and **batch** modes, allowing you to process multiple records in a single request. This feature reduces network overhead and improves throughput for bulk operations.
+
+> **See SPEC_API.md** for complete batch operation documentation including request/response formats, atomic mode, error handling, and detailed examples.
 
 **Overview:**
 
@@ -892,7 +904,9 @@ batch:
 
 #### Advanced Query Parameters for `/{name}:list`
 
-The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection:
+The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection.
+
+> **See SPEC_API.md** for complete query documentation including all operators, pagination details, field selection, full-text search, and combined query examples.
 
 **Filtering:**
 
@@ -999,6 +1013,8 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" https://api.example.com/products:s
 ### C. Aggregation Operations (`/{collectionName}`)
 
 These endpoints provide server-side aggregation for analytics without fetching full datasets.
+
+> **See SPEC_API.md** for complete aggregation documentation including all operations (count, sum, avg, min, max), filtering, and response formats.
 
 | Endpoint                    | Method | Purpose                                |
 | --------------------------- | ------ | -------------------------------------- |

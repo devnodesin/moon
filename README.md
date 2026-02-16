@@ -64,6 +64,7 @@ Moon provides comprehensive, auto-generated API documentation:
 
 - [INSTALL.md](INSTALL.md): Installation and deployment guide (includes authentication setup)
 - [SPEC.md](SPEC.md): Architecture and technical specifications
+- [SPEC_API.md](SPEC_API.md): Complete API reference (endpoints, request/response formats, query options)
 - [SPEC_AUTH.md](SPEC_AUTH.md): Detailed authentication specification
 - [samples/](samples/): Sample configuration files
 - [scripts/](scripts/): Python API Test Suite

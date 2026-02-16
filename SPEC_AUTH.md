@@ -62,6 +62,7 @@ Access tokens contain the following claims:
 - `email`: User's email address (string)
 - `role`: User's role (`admin`, `user`, or `readonly`)
 - `can_write`: Write permission flag (boolean)
+- `active`: User Active (boolean)
 - Standard JWT claims: `iss`, `exp`, `iat`, `sub`
 
 **Rate Limits:**
@@ -481,6 +482,10 @@ CREATE INDEX idx_rate_limits_entity ON rate_limits(entity_id, window_start);
 ```
 
 ## API Endpoints
+
+> **📖 Complete API Reference**: For standardized request/response formats, error codes, and pagination patterns used by authentication endpoints, see **[SPEC_API.md](SPEC_API.md)**.
+>
+> This section documents authentication-specific endpoints. These endpoints follow the same response patterns as other Moon APIs.
 
 All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
