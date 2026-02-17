@@ -574,22 +574,14 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		values := []any{ulid}
 		i := 1
 
-		if h.db.Dialect() == database.DialectPostgres {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-		} else {
-			placeholders = append(placeholders, "?")
-		}
+		placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 		i++
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
 				// Field is present in request - use it
 				columns = append(columns, col.Name)
-				if h.db.Dialect() == database.DialectPostgres {
-					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-				} else {
-					placeholders = append(placeholders, "?")
-				}
+				placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 				values = append(values, val)
 				i++
 			}
@@ -670,22 +662,14 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 		values := []any{ulid}
 		i := 1
 
-		if h.db.Dialect() == database.DialectPostgres {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-		} else {
-			placeholders = append(placeholders, "?")
-		}
+		placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 		i++
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
 				// Field is present in request - use it
 				columns = append(columns, col.Name)
-				if h.db.Dialect() == database.DialectPostgres {
-					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-				} else {
-					placeholders = append(placeholders, "?")
-				}
+				placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 				values = append(values, val)
 				i++
 			}
@@ -842,11 +826,7 @@ func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, colle
 
 	for _, col := range collection.Columns {
 		if val, ok := item[col.Name]; ok {
-			if h.db.Dialect() == database.DialectPostgres {
-				setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-			} else {
-				setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-			}
+			setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 			values = append(values, val)
 			i++
 		}
@@ -860,17 +840,10 @@ func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, colle
 	// Add ULID to values
 	values = append(values, id)
 
-	var query string
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-			collectionName,
-			strings.Join(setClauses, ", "),
-			i)
-	} else {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-			collectionName,
-			strings.Join(setClauses, ", "))
-	}
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+		collectionName,
+		strings.Join(setClauses, ", "),
+		buildPlaceholder(h.db.Dialect(), i))
 
 	// Execute update
 	ctx := r.Context()
@@ -991,11 +964,7 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
-				if h.db.Dialect() == database.DialectPostgres {
-					setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-				} else {
-					setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-				}
+				setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 				values = append(values, val)
 				i++
 			}
@@ -1009,17 +978,10 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		// Add ULID to values
 		values = append(values, id)
 
-		var query string
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-				collectionName,
-				strings.Join(setClauses, ", "),
-				i)
-		} else {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-				collectionName,
-				strings.Join(setClauses, ", "))
-		}
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+		collectionName,
+		strings.Join(setClauses, ", "),
+		buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update within transaction
 		result, err := tx.ExecContext(ctx, query, values...)
@@ -1133,11 +1095,7 @@ func (h *DataHandler) updateBatchBestEffort(w http.ResponseWriter, ctx context.C
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
-				if h.db.Dialect() == database.DialectPostgres {
-					setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-				} else {
-					setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-				}
+				setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 				values = append(values, val)
 				i++
 			}
@@ -1158,17 +1116,10 @@ func (h *DataHandler) updateBatchBestEffort(w http.ResponseWriter, ctx context.C
 		// Add ULID to values
 		values = append(values, id)
 
-		var query string
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-				collectionName,
-				strings.Join(setClauses, ", "),
-				i)
-		} else {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-				collectionName,
-				strings.Join(setClauses, ", "))
-		}
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+		collectionName,
+		strings.Join(setClauses, ", "),
+		buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update
 		result, err := h.db.Exec(ctx, query, values...)
@@ -1318,13 +1269,8 @@ func (h *DataHandler) destroySingle(w http.ResponseWriter, r *http.Request, coll
 	}
 
 	// Build DELETE query using ULID
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 	args := []any{id}
-
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-	}
 
 	// Execute delete
 	ctx := r.Context()
@@ -1403,13 +1349,8 @@ func (h *DataHandler) destroyBatchAtomic(w http.ResponseWriter, ctx context.Cont
 
 	// Delete each item
 	for _, id := range ids {
-		query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+		query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 		args := []any{id}
-
-		// Adjust placeholder style based on dialect
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-		}
 
 		// Execute delete within transaction
 		result, err := tx.ExecContext(ctx, query, args...)
@@ -1466,13 +1407,8 @@ func (h *DataHandler) destroyBatchBestEffort(w http.ResponseWriter, ctx context.
 		}
 
 		// Build DELETE query using ULID
-		query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+		query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 		args := []any{id}
-
-		// Adjust placeholder style based on dialect
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-		}
 
 		// Execute delete
 		result, err := h.db.Exec(ctx, query, args...)
