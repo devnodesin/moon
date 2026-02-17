@@ -161,9 +161,11 @@ func TestDataHandler_Update_CollectionNotFound(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := UpdateDataRequest{
-		ID:   "01ARYZ6S41TSV4RRFFQ69G5FAV",
-		Data: map[string]any{"name": "Test"},
+	reqBody := map[string]any{
+		"data": map[string]any{
+			"id":   "01ARYZ6S41TSV4RRFFQ69G5FAV",
+			"name": "Test",
+		},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -183,8 +185,8 @@ func TestDataHandler_Destroy_CollectionNotFound(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := DestroyDataRequest{
-		ID: "01ARYZ6S41TSV4RRFFQ69G5FAV",
+	reqBody := map[string]any{
+		"data": "01ARYZ6S41TSV4RRFFQ69G5FAV",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -268,9 +270,11 @@ func TestDataHandler_Update_MissingID(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := UpdateDataRequest{
-		ID:   "", // Missing ID
-		Data: map[string]any{"name": "Test"},
+	reqBody := map[string]any{
+		"data": map[string]any{
+			"id":   "", // Missing ID
+			"name": "Test",
+		},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -298,8 +302,8 @@ func TestDataHandler_Destroy_MissingID(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := DestroyDataRequest{
-		ID: "", // Missing ID
+	reqBody := map[string]any{
+		"data": "", // Missing ID
 	}
 	body, _ := json.Marshal(reqBody)
 

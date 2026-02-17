@@ -24,6 +24,12 @@ import (
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
+const (
+	// Default JWT token expiry times (in seconds)
+	defaultAccessExpirySeconds  = 900    // 15 minutes
+	defaultRefreshExpirySeconds = 604800 // 7 days
+)
+
 // Server represents the HTTP server
 type Server struct {
 	config         *config.AppConfig
@@ -70,7 +76,7 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 	// Create token service for authentication
 	accessExpiry := cfg.JWT.AccessExpiry
 	if accessExpiry == 0 {
-		accessExpiry = cfg.JWT.Expiry
+		accessExpiry = defaultAccessExpirySeconds
 	}
 	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
 
@@ -116,11 +122,11 @@ func (s *Server) setupRoutes() {
 	// Create auth handler with login rate limiting
 	accessExpiry := s.config.JWT.AccessExpiry
 	if accessExpiry == 0 {
-		accessExpiry = s.config.JWT.Expiry // fallback to legacy config
+		accessExpiry = defaultAccessExpirySeconds
 	}
 	refreshExpiry := s.config.JWT.RefreshExpiry
 	if refreshExpiry == 0 {
-		refreshExpiry = 604800 // 7 days default
+		refreshExpiry = defaultRefreshExpirySeconds
 	}
 	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
 

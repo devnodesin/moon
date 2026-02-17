@@ -36,6 +36,29 @@ func NewDataHandler(db database.Driver, reg *registry.SchemaRegistry, cfg *confi
 	}
 }
 
+// buildPlaceholder returns the SQL placeholder for the given dialect and index.
+// For PostgreSQL, it returns $1, $2, etc. For SQLite/MySQL, it returns ?.
+func buildPlaceholder(dialect database.DialectType, index int) string {
+	if dialect == database.DialectPostgres {
+		return fmt.Sprintf("$%d", index)
+	}
+	return "?"
+}
+
+// buildPlaceholders returns a slice of SQL placeholders for the given dialect.
+// It generates 'count' placeholders starting at startIndex.
+func buildPlaceholders(dialect database.DialectType, count, startIndex int) []string {
+	placeholders := make([]string, count)
+	for i := 0; i < count; i++ {
+		if dialect == database.DialectPostgres {
+			placeholders[i] = fmt.Sprintf("$%d", startIndex+i)
+		} else {
+			placeholders[i] = "?"
+		}
+	}
+	return placeholders
+}
+
 // DataListRequest represents query parameters for list operation
 type DataListRequest struct {
 	Limit  int               `json:"limit"`
@@ -67,21 +90,10 @@ type CreateDataResponse struct {
 	Message string         `json:"message"`
 }
 
-// UpdateDataRequest represents request for update operation
-type UpdateDataRequest struct {
-	ID   string         `json:"id"` // ULID
-	Data map[string]any `json:"data"`
-}
-
 // UpdateDataResponse represents response for update operation
 type UpdateDataResponse struct {
 	Data    map[string]any `json:"data"`
 	Message string         `json:"message"`
-}
-
-// DestroyDataRequest represents request for destroy operation
-type DestroyDataRequest struct {
-	ID string `json:"id"` // ULID
 }
 
 // DestroyDataResponse represents response for destroy operation
@@ -358,13 +370,8 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 	}
 
 	// Build SELECT query using ULID
-	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", collectionName)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 	args := []any{idStr}
-
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("SELECT * FROM %s WHERE id = $1", collectionName)
-	}
 
 	// Execute query
 	ctx := r.Context()
@@ -424,7 +431,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 	}
 
 	if !isBatch {
-		// Single-object mode (backward compatible)
+		// Single-object mode
 		h.createSingle(w, r, collectionName, collection, batchReq.Data)
 		return
 	}
@@ -434,7 +441,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 	h.createBatch(w, r, collectionName, collection, batchReq.Data, atomic)
 }
 
-// createSingle handles single-object create (backward compatible)
+// createSingle handles single-object create
 func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, collectionName string, collection *registry.Collection, rawData json.RawMessage) {
 	var data map[string]any
 	if err := json.Unmarshal(rawData, &data); err != nil {
@@ -453,26 +460,15 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 
 	// Build INSERT query including ULID
 	columns := []string{"id"}
-	placeholders := []string{}
+	placeholders := []string{buildPlaceholder(h.db.Dialect(), 1)}
 	values := []any{ulid}
-	i := 1
-
-	if h.db.Dialect() == database.DialectPostgres {
-		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-	} else {
-		placeholders = append(placeholders, "?")
-	}
-	i++
+	i := 2
 
 	for _, col := range collection.Columns {
 		if val, ok := data[col.Name]; ok {
 			// Field is present in request - use it
 			columns = append(columns, col.Name)
-			if h.db.Dialect() == database.DialectPostgres {
-				placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-			} else {
-				placeholders = append(placeholders, "?")
-			}
+			placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 			values = append(values, val)
 			i++
 		}
@@ -578,22 +574,14 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		values := []any{ulid}
 		i := 1
 
-		if h.db.Dialect() == database.DialectPostgres {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-		} else {
-			placeholders = append(placeholders, "?")
-		}
+		placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 		i++
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
 				// Field is present in request - use it
 				columns = append(columns, col.Name)
-				if h.db.Dialect() == database.DialectPostgres {
-					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-				} else {
-					placeholders = append(placeholders, "?")
-				}
+				placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 				values = append(values, val)
 				i++
 			}
@@ -674,22 +662,14 @@ func (h *DataHandler) createBatchBestEffort(w http.ResponseWriter, ctx context.C
 		values := []any{ulid}
 		i := 1
 
-		if h.db.Dialect() == database.DialectPostgres {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-		} else {
-			placeholders = append(placeholders, "?")
-		}
+		placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 		i++
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
 				// Field is present in request - use it
 				columns = append(columns, col.Name)
-				if h.db.Dialect() == database.DialectPostgres {
-					placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-				} else {
-					placeholders = append(placeholders, "?")
-				}
+				placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 				values = append(values, val)
 				i++
 			}
@@ -768,7 +748,7 @@ func (h *DataHandler) Update(w http.ResponseWriter, r *http.Request, collectionN
 		return
 	}
 
-	// Read body into buffer for multiple parses
+	// Read body into buffer for parsing
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(r.Body); err != nil {
 		writeError(w, http.StatusBadRequest, "failed to read request body")
@@ -776,34 +756,20 @@ func (h *DataHandler) Update(w http.ResponseWriter, r *http.Request, collectionN
 	}
 	bodyBytes := buf.Bytes()
 
-	// Try to detect format: old format has "id" and "data" at root, new format has only "data" field
+	// Parse request body to get data field
 	var rawReq map[string]json.RawMessage
 	if err := json.Unmarshal(bodyBytes, &rawReq); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	// Check if this is old format (has both "id" and "data" fields)
-	_, hasID := rawReq["id"]
 	dataField, hasData := rawReq["data"]
-
-	if hasID && hasData {
-		// Old format: {"id": "...", "data": {...}}
-		var req UpdateDataRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		h.updateSingleLegacy(w, r, collectionName, collection, req)
-		return
-	}
-
 	if !hasData {
 		writeError(w, http.StatusBadRequest, "missing data field")
 		return
 	}
 
-	// New format: detect batch vs single mode
+	// Detect batch vs single mode
 	isBatch, err := detectBatchMode(dataField)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -811,7 +777,7 @@ func (h *DataHandler) Update(w http.ResponseWriter, r *http.Request, collectionN
 	}
 
 	if !isBatch {
-		// Single-object mode (backward compatible)
+		// Single-object mode
 		h.updateSingle(w, r, collectionName, collection, dataField)
 		return
 	}
@@ -821,103 +787,7 @@ func (h *DataHandler) Update(w http.ResponseWriter, r *http.Request, collectionN
 	h.updateBatch(w, r, collectionName, collection, dataField, atomic)
 }
 
-// updateSingleLegacy handles single-object update in legacy format (backward compatible)
-func (h *DataHandler) updateSingleLegacy(w http.ResponseWriter, r *http.Request, collectionName string, collection *registry.Collection, req UpdateDataRequest) {
-	if req.ID == "" {
-		writeError(w, http.StatusBadRequest, "id is required")
-		return
-	}
-
-	// Validate ULID format
-	if err := validateULID(req.ID); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid id: %v", err))
-		return
-	}
-
-	// Validate fields against schema
-	if err := validateFieldsForUpdate(req.Data, collection); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// Build UPDATE query
-	setClauses := []string{}
-	values := []any{}
-	i := 1
-
-	for _, col := range collection.Columns {
-		if val, ok := req.Data[col.Name]; ok {
-			if h.db.Dialect() == database.DialectPostgres {
-				setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-			} else {
-				setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-			}
-			values = append(values, val)
-			i++
-		}
-	}
-
-	if len(setClauses) == 0 {
-		writeError(w, http.StatusBadRequest, "no fields to update")
-		return
-	}
-
-	// Add ULID to values
-	values = append(values, req.ID)
-
-	var query string
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-			collectionName,
-			strings.Join(setClauses, ", "),
-			i)
-	} else {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-			collectionName,
-			strings.Join(setClauses, ", "))
-	}
-
-	// Execute update
-	ctx := r.Context()
-	result, err := h.db.Exec(ctx, query, values...)
-	if err != nil {
-		// Check for unique constraint violations
-		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
-			writeError(w, http.StatusConflict, fmt.Sprintf("unique constraint violation: %v", err))
-			return
-		}
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update data: %v", err))
-		return
-	}
-
-	// Check if any rows were affected
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get rows affected: %v", err))
-		return
-	}
-
-	if rowsAffected == 0 {
-		writeError(w, http.StatusNotFound, fmt.Sprintf("record with id %s not found", req.ID))
-		return
-	}
-
-	// Add ULID to response data (API field name is "id" but value is ULID)
-	responseData := make(map[string]any)
-	responseData["id"] = req.ID
-	for k, v := range req.Data {
-		responseData[k] = v
-	}
-
-	response := UpdateDataResponse{
-		Data:    responseData,
-		Message: fmt.Sprintf("Record %s updated successfully", req.ID),
-	}
-
-	writeJSON(w, http.StatusOK, response)
-}
-
-// updateSingle handles single-object update in new format (backward compatible)
+// updateSingle handles single-object update
 func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, collectionName string, collection *registry.Collection, rawData json.RawMessage) {
 	var item map[string]any
 	if err := json.Unmarshal(rawData, &item); err != nil {
@@ -956,11 +826,7 @@ func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, colle
 
 	for _, col := range collection.Columns {
 		if val, ok := item[col.Name]; ok {
-			if h.db.Dialect() == database.DialectPostgres {
-				setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-			} else {
-				setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-			}
+			setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 			values = append(values, val)
 			i++
 		}
@@ -974,17 +840,10 @@ func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, colle
 	// Add ULID to values
 	values = append(values, id)
 
-	var query string
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-			collectionName,
-			strings.Join(setClauses, ", "),
-			i)
-	} else {
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-			collectionName,
-			strings.Join(setClauses, ", "))
-	}
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+		collectionName,
+		strings.Join(setClauses, ", "),
+		buildPlaceholder(h.db.Dialect(), i))
 
 	// Execute update
 	ctx := r.Context()
@@ -1105,11 +964,7 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
-				if h.db.Dialect() == database.DialectPostgres {
-					setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-				} else {
-					setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-				}
+				setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 				values = append(values, val)
 				i++
 			}
@@ -1123,17 +978,10 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		// Add ULID to values
 		values = append(values, id)
 
-		var query string
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-				collectionName,
-				strings.Join(setClauses, ", "),
-				i)
-		} else {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-				collectionName,
-				strings.Join(setClauses, ", "))
-		}
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+			collectionName,
+			strings.Join(setClauses, ", "),
+			buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update within transaction
 		result, err := tx.ExecContext(ctx, query, values...)
@@ -1247,11 +1095,7 @@ func (h *DataHandler) updateBatchBestEffort(w http.ResponseWriter, ctx context.C
 
 		for _, col := range collection.Columns {
 			if val, ok := item[col.Name]; ok {
-				if h.db.Dialect() == database.DialectPostgres {
-					setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col.Name, i))
-				} else {
-					setClauses = append(setClauses, fmt.Sprintf("%s = ?", col.Name))
-				}
+				setClauses = append(setClauses, fmt.Sprintf("%s = %s", col.Name, buildPlaceholder(h.db.Dialect(), i)))
 				values = append(values, val)
 				i++
 			}
@@ -1272,17 +1116,10 @@ func (h *DataHandler) updateBatchBestEffort(w http.ResponseWriter, ctx context.C
 		// Add ULID to values
 		values = append(values, id)
 
-		var query string
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = $%d",
-				collectionName,
-				strings.Join(setClauses, ", "),
-				i)
-		} else {
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id = ?",
-				collectionName,
-				strings.Join(setClauses, ", "))
-		}
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
+			collectionName,
+			strings.Join(setClauses, ", "),
+			buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update
 		result, err := h.db.Exec(ctx, query, values...)
@@ -1374,7 +1211,7 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 		return
 	}
 
-	// Read body into buffer for multiple parses
+	// Read body into buffer for parsing
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(r.Body); err != nil {
 		writeError(w, http.StatusBadRequest, "failed to read request body")
@@ -1382,34 +1219,20 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	}
 	bodyBytes := buf.Bytes()
 
-	// Try to detect format: old format has "id" at root, new format has "data" field
+	// Parse request body to get data field
 	var rawReq map[string]json.RawMessage
 	if err := json.Unmarshal(bodyBytes, &rawReq); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	// Check if this is old format (has "id" field at root)
-	_, hasID := rawReq["id"]
 	dataField, hasData := rawReq["data"]
-
-	if hasID && !hasData {
-		// Old format: {"id": "..."}
-		var req DestroyDataRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		h.destroySingleLegacy(w, r, collectionName, req)
-		return
-	}
-
 	if !hasData {
 		writeError(w, http.StatusBadRequest, "missing data field")
 		return
 	}
 
-	// New format: detect batch vs single mode (array of IDs)
+	// Detect batch vs single mode (array of IDs)
 	isBatch, err := detectBatchMode(dataField)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -1417,7 +1240,7 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	}
 
 	if !isBatch {
-		// Single-object mode (backward compatible) - just a string ID
+		// Single-object mode - just a string ID
 		var id string
 		if err := json.Unmarshal(dataField, &id); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid data format")
@@ -1432,56 +1255,7 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 	h.destroyBatch(w, r, collectionName, dataField, atomic)
 }
 
-// destroySingleLegacy handles single-object destroy in legacy format (backward compatible)
-func (h *DataHandler) destroySingleLegacy(w http.ResponseWriter, r *http.Request, collectionName string, req DestroyDataRequest) {
-	if req.ID == "" {
-		writeError(w, http.StatusBadRequest, "id is required")
-		return
-	}
-
-	// Validate ULID format
-	if err := validateULID(req.ID); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid id: %v", err))
-		return
-	}
-
-	// Build DELETE query using ULID
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
-	args := []any{req.ID}
-
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-	}
-
-	// Execute delete
-	ctx := r.Context()
-	result, err := h.db.Exec(ctx, query, args...)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to delete data: %v", err))
-		return
-	}
-
-	// Check if any rows were affected
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get rows affected: %v", err))
-		return
-	}
-
-	if rowsAffected == 0 {
-		writeError(w, http.StatusNotFound, fmt.Sprintf("record with id %s not found", req.ID))
-		return
-	}
-
-	response := DestroyDataResponse{
-		Message: fmt.Sprintf("Record %s deleted successfully", req.ID),
-	}
-
-	writeJSON(w, http.StatusOK, response)
-}
-
-// destroySingle handles single-object destroy in new format (backward compatible)
+// destroySingle handles single-object destroy
 func (h *DataHandler) destroySingle(w http.ResponseWriter, r *http.Request, collectionName string, id string) {
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "id is required")
@@ -1495,13 +1269,8 @@ func (h *DataHandler) destroySingle(w http.ResponseWriter, r *http.Request, coll
 	}
 
 	// Build DELETE query using ULID
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 	args := []any{id}
-
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-	}
 
 	// Execute delete
 	ctx := r.Context()
@@ -1580,13 +1349,8 @@ func (h *DataHandler) destroyBatchAtomic(w http.ResponseWriter, ctx context.Cont
 
 	// Delete each item
 	for _, id := range ids {
-		query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+		query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 		args := []any{id}
-
-		// Adjust placeholder style based on dialect
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-		}
 
 		// Execute delete within transaction
 		result, err := tx.ExecContext(ctx, query, args...)
@@ -1643,13 +1407,8 @@ func (h *DataHandler) destroyBatchBestEffort(w http.ResponseWriter, ctx context.
 		}
 
 		// Build DELETE query using ULID
-		query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", collectionName)
+		query := fmt.Sprintf("DELETE FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 		args := []any{id}
-
-		// Adjust placeholder style based on dialect
-		if h.db.Dialect() == database.DialectPostgres {
-			query = fmt.Sprintf("DELETE FROM %s WHERE id = $1", collectionName)
-		}
 
 		// Execute delete
 		result, err := h.db.Exec(ctx, query, args...)

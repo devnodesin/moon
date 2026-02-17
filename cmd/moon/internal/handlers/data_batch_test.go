@@ -424,10 +424,12 @@ func TestBackwardCompatibility_SingleUpdate(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// Old format: {"id": "...", "data": {"name": "test"}}
-	reqBody := UpdateDataRequest{
-		ID:   "01HFXYZ1234567890ABCDEFGHI",
-		Data: map[string]any{"name": "updated"},
+	// New format: {"data": {"id": "...", "name": "updated"}}
+	reqBody := map[string]any{
+		"data": map[string]any{
+			"id":   "01HFXYZ1234567890ABCDEFGHI",
+			"name": "updated",
+		},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -469,9 +471,9 @@ func TestBackwardCompatibility_SingleDestroy(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// Old format: {"id": "..."}
-	reqBody := DestroyDataRequest{
-		ID: "01HFXYZ1234567890ABCDEFGHI",
+	// New format: {"data": "..."}
+	reqBody := map[string]any{
+		"data": "01HFXYZ1234567890ABCDEFGHI",
 	}
 	body, _ := json.Marshal(reqBody)
 

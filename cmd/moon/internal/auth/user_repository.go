@@ -295,8 +295,8 @@ func (r *UserRepository) CountByRole(ctx context.Context, role string) (int64, e
 
 // ListOptions contains options for listing users.
 type ListOptions struct {
-	Limit     int
-	AfterID   string
+	Limit      int
+	AfterID    string
 	RoleFilter string
 }
 

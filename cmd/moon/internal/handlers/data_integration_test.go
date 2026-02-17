@@ -109,9 +109,9 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 	}
 
 	// 3. Update the product
-	updateBody := UpdateDataRequest{
-		ID: productID,
-		Data: map[string]any{
+	updateBody := map[string]any{
+		"data": map[string]any{
+			"id":    productID,
 			"price": 149,
 		},
 	}
@@ -139,8 +139,8 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 	}
 
 	// 5. Delete the product
-	deleteBody := DestroyDataRequest{
-		ID: productID,
+	deleteBody := map[string]any{
+		"data": productID,
 	}
 	body, _ = json.Marshal(deleteBody)
 	req = httptest.NewRequest(http.MethodPost, "/products:destroy", bytes.NewReader(body))
