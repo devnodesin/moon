@@ -46,7 +46,7 @@ func buildPlaceholder(dialect database.DialectType, index int) string {
 }
 
 // buildPlaceholders returns a slice of SQL placeholders for the given dialect.
-// For count placeholders starting at startIndex.
+// It generates 'count' placeholders starting at startIndex.
 func buildPlaceholders(dialect database.DialectType, count, startIndex int) []string {
 	placeholders := make([]string, count)
 	for i := 0; i < count; i++ {
@@ -979,9 +979,9 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		values = append(values, id)
 
 		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
-		collectionName,
-		strings.Join(setClauses, ", "),
-		buildPlaceholder(h.db.Dialect(), i))
+			collectionName,
+			strings.Join(setClauses, ", "),
+			buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update within transaction
 		result, err := tx.ExecContext(ctx, query, values...)
@@ -1117,9 +1117,9 @@ func (h *DataHandler) updateBatchBestEffort(w http.ResponseWriter, ctx context.C
 		values = append(values, id)
 
 		query := fmt.Sprintf("UPDATE %s SET %s WHERE id = %s",
-		collectionName,
-		strings.Join(setClauses, ", "),
-		buildPlaceholder(h.db.Dialect(), i))
+			collectionName,
+			strings.Join(setClauses, ", "),
+			buildPlaceholder(h.db.Dialect(), i))
 
 		// Execute update
 		result, err := h.db.Exec(ctx, query, values...)
