@@ -2,6 +2,129 @@
 
 This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
 
+## Documentation and Health Endpoints
+
+### Documentation Endpoints
+
+Access API documentation in multiple formats.
+
+#### View HTML Documentation
+
+`GET /doc/`
+
+View interactive HTML documentation in browser.
+
+**URL:** [http://localhost:6006/doc/](http://localhost:6006/doc/)
+
+---
+
+#### Get Markdown Documentation
+
+`GET /doc/llms.md`
+
+Retrieve documentation in Markdown format (for humans and AI coding agents).
+
+**Response (200 OK):**
+
+Returns Markdown-formatted documentation.
+
+**URL:** [http://localhost:6006/doc/llms.md](http://localhost:6006/doc/llms.md)
+
+---
+
+#### Get Text Documentation
+
+`GET /doc/llms.txt`
+
+Retrieve documentation in plain text format.
+
+**Response (200 OK):**
+
+Returns plain text documentation.
+
+---
+
+#### Get JSON Schema
+
+`GET /doc/llms.json`
+
+Retrieve machine-readable API schema in JSON format.
+
+**Response (200 OK):**
+
+```json
+{
+  "data": {
+    "version": "1.0",
+    "endpoints": [...],
+    "schemas": {...}
+  }
+}
+```
+
+---
+
+#### Refresh Documentation Cache
+
+`POST /doc:refresh`
+
+Force refresh of the documentation cache.
+
+**Headers:**
+
+- `Authorization: Bearer {access_token}` (required)
+
+**Response (200 OK):**
+
+```json
+{
+  "message": "Documentation cache refreshed successfully"
+}
+```
+
+---
+
+### Health Check Endpoint
+
+`GET /health`
+
+Check API service health and version information.
+
+**Response (200 OK):**
+
+```json
+{
+  "data": {
+    "name": "moon",
+    "status": "live",
+    "version": "1.0"
+  }
+}
+```
+
+### Important Notes
+
+- **Documentation formats**: Available in HTML (interactive), Markdown (human/AI readable), plain text, and JSON (machine-readable)
+- **Cache refresh**: Documentation is cached for performance. Use `/doc:refresh` after configuration changes or schema updates
+- **Health check**: No authentication required. Use for monitoring and uptime checks
+- **Version tracking**: The version field in health response indicates the current API version
+
+### Error Response
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+**Common error codes:**
+
+- `UNAUTHORIZED`: Missing or invalid authentication (for `/doc:refresh`)
+- `NOT_FOUND`: Documentation format not available
+
 ## Authentication Endpoints
 
 ### Login
@@ -11,6 +134,7 @@ This document describes the standard response patterns, query options, and aggre
 Authenticate user and receive access token.
 
 **Request body:**
+
 ```json
 {
   "username": "newuser",
@@ -19,6 +143,7 @@ Authenticate user and receive access token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -45,9 +170,11 @@ Authenticate user and receive access token.
 Retrieve authenticated user information.
 
 **Headers:**
+
 - `Authorization: Bearer {access_token}` (required)
 
 **Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -67,9 +194,11 @@ Retrieve authenticated user information.
 Update authenticated user's email or password.
 
 **Headers:**
+
 - `Authorization: Bearer {access_token}` (required)
 
 **Update email:**
+
 ```json
 {
   "email": "newemail@example.com"
@@ -77,6 +206,7 @@ Update authenticated user's email or password.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -91,6 +221,7 @@ Update authenticated user's email or password.
 ```
 
 **Change password:**
+
 ```json
 {
   "old_password": "UserPass123#",
@@ -99,6 +230,7 @@ Update authenticated user's email or password.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -119,6 +251,7 @@ Update authenticated user's email or password.
 Generate new access token using refresh token.
 
 **Request body:**
+
 ```json
 {
   "refresh_token": "hyTTpweINXOKltH6r5Cl7--_8VKl58Z6fE7W0fjlHls="
@@ -126,6 +259,7 @@ Generate new access token using refresh token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "data": {
@@ -152,9 +286,11 @@ Generate new access token using refresh token.
 Invalidate current session and refresh token.
 
 **Headers:**
+
 - `Authorization: Bearer {access_token}` (required)
 
 **Request body:**
+
 ```json
 {
   "refresh_token": "hyTTpweINXOKltH6r5Cl7--_8VKl58Z6fE7W0fjlHls="
@@ -162,6 +298,7 @@ Invalidate current session and refresh token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Logged out successfully"
@@ -177,6 +314,7 @@ Invalidate current session and refresh token.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
 ### Error Response
+
 ```json
 {
   "error": {
@@ -251,10 +389,10 @@ GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5&limit=15
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `limit` | integer | Number of items per page (default: 15, max: 100) |
-| `after` | string | ULID cursor - returns records after this cursor |
+| Parameter | Type    | Description                                      |
+| --------- | ------- | ------------------------------------------------ |
+| `limit`   | integer | Number of items per page (default: 15, max: 100) |
+| `after`   | string  | ULID cursor - returns records after this cursor  |
 
 ### Important Notes
 
@@ -343,10 +481,10 @@ GET /collections:get?name=products
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | string | ULID of the resource (required for users, apikeys, records) |
-| `name` | string | Name of the collection (required for collections) |
+| Parameter | Type   | Description                                                 |
+| --------- | ------ | ----------------------------------------------------------- |
+| `id`      | string | ULID of the resource (required for users, apikeys, records) |
+| `name`    | string | Name of the collection (required for collections)           |
 
 ### Important Notes
 
@@ -425,9 +563,7 @@ Single record:
 
 ```json
 {
-  "data": [
-    { "title": "Wireless Mouse", "price": "29.99" }
-  ]
+  "data": [{ "title": "Wireless Mouse", "price": "29.99" }]
 }
 ```
 
@@ -650,10 +786,7 @@ Multiple records:
 
 ```json
 {
-  "data": [
-    "01KHCZKMXYVC1NRHDZ83XMHY4N",
-    "01KHCZKMY28ERJFPCVBQEKQ4SY"
-  ],
+  "data": ["01KHCZKMXYVC1NRHDZ83XMHY4N", "01KHCZKMY28ERJFPCVBQEKQ4SY"],
   "meta": {
     "total": 3,
     "succeeded": 2,
@@ -665,11 +798,11 @@ Multiple records:
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | string | ULID of the resource (required for users, apikeys) |
-| `name` | string | Name of the collection (required for collections) |
-| `data` | array | Array of record IDs to delete (required for records) |
+| Parameter | Type   | Description                                          |
+| --------- | ------ | ---------------------------------------------------- |
+| `id`      | string | ULID of the resource (required for users, apikeys)   |
+| `name`    | string | Name of the collection (required for collections)    |
+| `data`    | array  | Array of record IDs to delete (required for records) |
 
 ### Important Notes
 
@@ -886,13 +1019,13 @@ Response includes new `key` field:
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | string | ULID of the resource (required for users, apikeys) |
-| Request Body | object | Fields to update OR `action` parameter for special operations |
-| `action` | string | Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`) |
-| `name` | string | Collection name (required for collection operations) |
-| `data` | array | Array with objects containing `id` + fields to update (for records) |
+| Parameter    | Type   | Description                                                                  |
+| ------------ | ------ | ---------------------------------------------------------------------------- |
+| `id`         | string | ULID of the resource (required for users, apikeys)                           |
+| Request Body | object | Fields to update OR `action` parameter for special operations                |
+| `action`     | string | Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`) |
+| `name`       | string | Collection name (required for collection operations)                         |
+| `data`       | array  | Array with objects containing `id` + fields to update (for records)          |
 
 ### Important Notes
 
@@ -930,14 +1063,14 @@ Response includes new `key` field:
 
 Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. These options allow you to retrieve specific subsets of data based on your criteria.
 
-| Query Option | Description |
-|--------------|-------------|
-| `?column[operator]=value` | Filter records by column values using comparison operators |
-| `?sort={fields}` | Sort by one or more fields (prefix `-` for descending order) |
-| `?q={term}` | Full-text search across all text columns |
-| `?fields={field1,field2}` | Select specific fields to return (`id` is always included) |
-| `?limit={number}` | Limit the number of records returned (default: 15, max: 100) |
-| `?after={cursor}` | Get records after the specified cursor |
+| Query Option              | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `?column[operator]=value` | Filter records by column values using comparison operators   |
+| `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending order) |
+| `?q={term}`               | Full-text search across all text columns                     |
+| `?fields={field1,field2}` | Select specific fields to return (`id` is always included)   |
+| `?limit={number}`         | Limit the number of records returned (default: 15, max: 100) |
+| `?after={cursor}`         | Get records after the specified cursor                       |
 
 ### Filtering
 
@@ -1197,13 +1330,13 @@ Moon provides dedicated aggregation endpoints that perform calculations directly
 
 Replace `{collection}` with your collection name.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/{collection}:count` | GET | Count records |
-| `/{collection}:sum` | GET | Sum numeric field (requires `?field=...`) |
-| `/{collection}:avg` | GET | Average numeric field (requires `?field=...`) |
-| `/{collection}:min` | GET | Minimum value (requires `?field=...`) |
-| `/{collection}:max` | GET | Maximum value (requires `?field=...`) |
+| Endpoint              | Method | Description                                   |
+| --------------------- | ------ | --------------------------------------------- |
+| `/{collection}:count` | GET    | Count records                                 |
+| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
+| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
+| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
+| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
 **Note:**
 
