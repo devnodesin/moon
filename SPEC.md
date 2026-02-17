@@ -89,13 +89,6 @@ The `decimal` type provides **exact, deterministic numeric handling** for precis
 - **Boolean storage:** SQLite uses INTEGER (0/1) for boolean values; PostgreSQL and MySQL use native BOOLEAN.
 - **Decimal storage:** Uses native NUMERIC/DECIMAL types for exact arithmetic. API exposes values as strings to preserve precision in JSON serialization.
 
-### Migration from Previous Versions
-
-If upgrading from a previous version that supported `text` or `float` types:
-
-- **`text`** columns should be changed to `string` - behavior is identical
-- **`float`** columns should be changed to `decimal` for exact precision or `integer` for whole numbers
-
 ## Default Values
 
 Moon handles default values strictly at the database column level during collection creation. Default values are NOT applied record-by-record during insert operations.
@@ -643,7 +636,6 @@ The `:create`, `:update`, and `:destroy` endpoints support both **single-object*
 - **Best-Effort (Default):** Process each record independently, return HTTP 207 with per-record results
 - **Atomic Mode:** `?atomic=true` - all succeed or all fail (transaction)
 - **Size Limits:** Default 50 records, 2MB payload (configurable)
-- **Backward Compatible:** Single-object requests unchanged
 
 **Configuration:**
 ```yaml
