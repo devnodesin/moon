@@ -18,7 +18,7 @@ type Status string
 
 const (
 	// StatusHealthy indicates the service is healthy
-	StatusHealthy Status = "healthy"
+	StatusHealthy Status = "live"
 
 	// StatusUnhealthy indicates the service is unhealthy
 	StatusUnhealthy Status = "unhealthy"
@@ -132,7 +132,7 @@ func (s *Service) LivenessHandler(w http.ResponseWriter, r *http.Request) {
 	if s.db != nil {
 		if err := s.db.Ping(ctx); err != nil {
 			response.Status = StatusUnhealthy
-			s.writeJSON(w, http.StatusServiceUnavailable, response)
+			s.writeJSON(w, http.StatusServiceUnavailable, map[string]any{"data": response})
 			return
 		}
 		response.Database = string(s.db.Dialect())
@@ -143,7 +143,7 @@ func (s *Service) LivenessHandler(w http.ResponseWriter, r *http.Request) {
 		response.Collections = s.registry.Count()
 	}
 
-	s.writeJSON(w, http.StatusOK, response)
+	s.writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
 
 // ReadinessHandler handles the /health/ready readiness check
@@ -201,7 +201,7 @@ func (s *Service) ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusServiceUnavailable
 	}
 
-	s.writeJSON(w, statusCode, response)
+	s.writeJSON(w, statusCode, map[string]any{"data": response})
 }
 
 // checkDatabase performs a database health check

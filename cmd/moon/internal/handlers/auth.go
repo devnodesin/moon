@@ -183,7 +183,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    response,
+		"message": "Login successful",
+	})
 }
 
 // Logout handles POST /auth:logout
@@ -227,7 +230,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"message": "logged out successfully"})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }
 
 // extractAccessToken extracts the access token from the Authorization header
@@ -333,7 +336,10 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    response,
+		"message": "Token refreshed successfully",
+	})
 }
 
 // Me handles GET /auth:me (get current user) and POST /auth:me (update current user)
@@ -378,7 +384,7 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		CanWrite: user.CanWrite,
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"user": response})
+	writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
 
 // UpdateMe handles POST /auth:me
@@ -468,14 +474,14 @@ func (h *AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		CanWrite: user.CanWrite,
 	}
 
-	message := "user updated successfully"
+	message := "User updated successfully"
 	if req.Password != "" {
-		message = "password updated successfully, please login again"
+		message = "Password updated successfully. Please login again."
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    response,
 		"message": message,
-		"user":    response,
 	})
 }
 

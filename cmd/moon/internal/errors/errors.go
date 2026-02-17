@@ -75,13 +75,16 @@ const (
 	CodeRateLimitExceeded ErrorCode = "RATE_LIMIT_EXCEEDED"
 )
 
-// ErrorResponse represents the standard error response format
+// ErrorDetail represents the nested error object in API responses.
+type ErrorDetail struct {
+	Code    ErrorCode `json:"code"`
+	Message string    `json:"message"`
+}
+
+// ErrorResponse represents the standard error response format per SPEC_API.md:
+// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
 type ErrorResponse struct {
-	Error     string         `json:"error"`
-	Code      int            `json:"code"`
-	ErrorCode ErrorCode      `json:"error_code,omitempty"`
-	Details   map[string]any `json:"details,omitempty"`
-	RequestID string         `json:"request_id,omitempty"`
+	Error ErrorDetail `json:"error"`
 }
 
 // APIError represents an application error
@@ -234,28 +237,16 @@ func (h *ErrorHandler) RecoveryMiddleware(next http.HandlerFunc) http.HandlerFun
 	}
 }
 
-// WriteError writes an error response
+// WriteError writes an error response per SPEC_API.md:
+// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
 func (h *ErrorHandler) WriteError(w http.ResponseWriter, r *http.Request, err *APIError) {
 	requestID := GetRequestID(r)
 
 	response := ErrorResponse{
-		Error:     err.Message,
-		Code:      err.StatusCode,
-		ErrorCode: err.ErrorCode,
-		RequestID: requestID,
-	}
-
-	// Add details if present
-	if err.Details != nil {
-		response.Details = err.Details
-	}
-
-	// In development, include wrapped error details
-	if h.config.ShowInternalErrors && err.Err != nil {
-		if response.Details == nil {
-			response.Details = make(map[string]any)
-		}
-		response.Details["internal_error"] = err.Err.Error()
+		Error: ErrorDetail{
+			Code:    err.ErrorCode,
+			Message: err.Message,
+		},
 	}
 
 	// Log the error

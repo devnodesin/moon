@@ -142,13 +142,14 @@ func (m *AuthorizationMiddleware) logAuthzFailure(r *http.Request, entityID, ent
 		entityID, entityType, r.URL.Path, reason)
 }
 
-// writeAuthzError writes an authorization error response.
+// writeAuthzError writes an authorization error response per SPEC_API.md.
 func (m *AuthorizationMiddleware) writeAuthzError(w http.ResponseWriter, statusCode int, message, code string) {
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
-		"error":      message,
-		"code":       statusCode,
-		"error_code": code,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }

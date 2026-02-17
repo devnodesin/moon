@@ -172,10 +172,17 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("user_list", claims.UserID, "")
 
-	writeJSON(w, http.StatusOK, UserListResponse{
-		Users:      publicUsers,
-		NextCursor: nextCursor,
-		Limit:      limit,
+	// Build meta with prev/next cursors per SPEC_API.md
+	meta := map[string]any{
+		"count": len(publicUsers),
+		"limit": limit,
+		"next":  nextCursor,
+		"prev":  nil,
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": publicUsers,
+		"meta": meta,
 	})
 }
 
@@ -215,7 +222,7 @@ func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"user": userToPublicInfo(user),
+		"data": userToPublicInfo(user),
 	})
 }
 
@@ -330,9 +337,9 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("user_created", claims.UserID, user.ID)
 
-	writeJSON(w, http.StatusCreated, CreateUserResponse{
-		Message: "user created successfully",
-		User:    userToPublicInfo(user),
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"data":    userToPublicInfo(user),
+		"message": "User created successfully",
 	})
 }
 
@@ -412,9 +419,9 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 		h.logAdminAction("password_reset", claims.UserID, user.ID)
 
-		writeJSON(w, http.StatusOK, UpdateUserResponse{
-			Message: "password reset successfully",
-			User:    userToPublicInfo(user),
+		writeJSON(w, http.StatusOK, map[string]any{
+			"data":    userToPublicInfo(user),
+			"message": "Password reset successfully",
 		})
 		return
 
@@ -427,9 +434,9 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 		h.logAdminAction("sessions_revoked", claims.UserID, user.ID)
 
-		writeJSON(w, http.StatusOK, UpdateUserResponse{
-			Message: "all sessions revoked successfully",
-			User:    userToPublicInfo(user),
+		writeJSON(w, http.StatusOK, map[string]any{
+			"data":    userToPublicInfo(user),
+			"message": "All sessions revoked successfully",
 		})
 		return
 
@@ -506,9 +513,9 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("user_updated", claims.UserID, user.ID)
 
-	writeJSON(w, http.StatusOK, UpdateUserResponse{
-		Message: "user updated successfully",
-		User:    userToPublicInfo(user),
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    userToPublicInfo(user),
+		"message": "User updated successfully",
 	})
 }
 
@@ -580,8 +587,8 @@ func (h *UsersHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("user_deleted", claims.UserID, userID)
 
-	writeJSON(w, http.StatusOK, DeleteUserResponse{
-		Message: "user deleted successfully",
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message": "User deleted successfully",
 	})
 }
 
@@ -658,11 +665,13 @@ func parseIntWithDefault(s string, defaultVal int) int {
 	return result
 }
 
-// writeErrorWithCode writes a JSON error response with an error code.
+// writeErrorWithCode writes a JSON error response per SPEC_API.md:
+// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
 func writeErrorWithCode(w http.ResponseWriter, statusCode int, message, code string) {
 	writeJSON(w, statusCode, map[string]any{
-		"error":      message,
-		"error_code": code,
-		"code":       statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }

@@ -246,12 +246,15 @@ func (h *CollectionsHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := ListResponse{
-		Collections: collections,
-		Count:       len(collections),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": collections,
+		"meta": map[string]any{
+			"count": len(collections),
+			"limit": len(collections),
+			"next":  nil,
+			"prev":  nil,
+		},
+	})
 }
 
 // getRecordCount returns the number of records in a collection
@@ -311,11 +314,9 @@ func (h *CollectionsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := GetResponse{
-		Collection: collection,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": collection,
+	})
 }
 
 // Create handles POST /collections:create
@@ -409,12 +410,10 @@ func (h *CollectionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := CreateResponse{
-		Collection: collection,
-		Message:    fmt.Sprintf("Collection '%s' created successfully", req.Name),
-	}
-
-	writeJSON(w, http.StatusCreated, response)
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"data":    collection,
+		"message": fmt.Sprintf("Collection '%s' created successfully", req.Name),
+	})
 }
 
 // Update handles POST /collections:update
@@ -595,12 +594,10 @@ func (h *CollectionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := UpdateResponse{
-		Collection: collection,
-		Message:    fmt.Sprintf("Collection '%s' updated successfully", req.Name),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    collection,
+		"message": fmt.Sprintf("Collection '%s' updated successfully", req.Name),
+	})
 }
 
 // Destroy handles POST /collections:destroy
@@ -642,11 +639,9 @@ func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := DestroyResponse{
-		Message: fmt.Sprintf("Collection '%s' destroyed successfully", req.Name),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message": fmt.Sprintf("Collection '%s' destroyed successfully", req.Name),
+	})
 }
 
 // validateCollectionName validates a collection name against all PRD-047 and PRD-048 rules.
@@ -1312,8 +1307,35 @@ func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 }
 
 func writeError(w http.ResponseWriter, statusCode int, message string) {
+	code := mapStatusToErrorCode(statusCode)
 	writeJSON(w, statusCode, map[string]any{
-		"error": message,
-		"code":  statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
+}
+
+// mapStatusToErrorCode maps HTTP status codes to SPEC_API.md error codes.
+func mapStatusToErrorCode(statusCode int) string {
+	switch statusCode {
+	case http.StatusBadRequest:
+		return "INVALID_PARAMETER"
+	case http.StatusUnauthorized:
+		return "UNAUTHORIZED"
+	case http.StatusForbidden:
+		return "FORBIDDEN"
+	case http.StatusNotFound:
+		return "RECORD_NOT_FOUND"
+	case http.StatusConflict:
+		return "DUPLICATE_RECORD"
+	case http.StatusMethodNotAllowed:
+		return "METHOD_NOT_ALLOWED"
+	case http.StatusRequestEntityTooLarge:
+		return "INVALID_PARAMETER"
+	case http.StatusTooManyRequests:
+		return "RATE_LIMIT_EXCEEDED"
+	default:
+		return "INTERNAL_ERROR"
+	}
 }

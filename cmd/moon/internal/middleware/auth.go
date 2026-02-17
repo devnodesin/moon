@@ -223,13 +223,19 @@ func (m *JWTMiddleware) logAuthFailure(r *http.Request, reason string, err error
 	}
 }
 
-// writeAuthError writes an authentication error response
+// writeAuthError writes an authentication error response per SPEC_API.md
 func (m *JWTMiddleware) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
+	code := "UNAUTHORIZED"
+	if statusCode == http.StatusForbidden {
+		code = "FORBIDDEN"
+	}
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
-		"error": message,
-		"code":  statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }
 
