@@ -1039,25 +1039,51 @@ Response includes new `key` field:
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
 
-### Error Response
+## Aggregation Operations
+
+Traditional analytics and reporting often require downloading large datasets to the client for processing, which is inefficient and slow—especially when counting, summing, or calculating averages across millions of records.
+
+Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
+
+**Server-Side Aggregation Endpoints:**
+
+| Endpoint              | Method | Description                                   |
+| --------------------- | ------ | --------------------------------------------- |
+| `/{collection}:count` | GET    | Count records                                 |
+| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
+| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
+| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
+| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
+
+**Note:**
+
+- Replace `{collection}` with your collection name.
+- Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
+- Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
+
+**Example Request**
+
+```sh
+POST /products:sum?field=quantity
+```
+
+**Response (200 OK):**
 
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid field values provided"
+  "data": {
+    "value": 55
   }
 }
 ```
 
-**Common Error Codes:**
+**Aggregation with Filters:** Combine aggregation with query filters for calculations on specific subsets:
 
-- `RECORD_NOT_FOUND`: Resource with specified ID doesn't exist.
-- `VALIDATION_ERROR`: Invalid input or constraint violation.
-- `INVALID_ACTION`: Unsupported action specified.
-- `INVALID_PARAMETER`: Missing required fields for action.
-- `UNAUTHORIZED`: Missing or invalid authentication.
-- `FORBIDDEN`: Cannot update protected resource.
+- `/products:count?quantity[gt]=10`
+- `/products:sum?field=quantity&brand[eq]=Wow"`
+- `/products:max?field=quantity`
+
+for **error handling** refer [Error Response ](#error-response )
 
 ## Query Options
 
@@ -1081,8 +1107,7 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 **Example:**
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+GET "/products:list?quantity[gt]=5&brand[eq]=Wow"
 ```
 
 **Response (200 OK):**
@@ -1320,140 +1345,74 @@ curl -g "http://localhost:6006/products:list?price[gte]=100&quantity[gt]=0&sort=
   -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-## Aggregation Operations
 
-Traditional analytics and reporting often require downloading large datasets to the client for processing, which is inefficient and slow—especially when counting, summing, or calculating averages across millions of records.
 
-Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
 
-**Server-Side Aggregation Endpoints:**
 
-Replace `{collection}` with your collection name.
+## Error Response 
 
-| Endpoint              | Method | Description                                   |
-| --------------------- | ------ | --------------------------------------------- |
-| `/{collection}:count` | GET    | Count records                                 |
-| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
-| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
-| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
-| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
+The Moon API uses a simple, consistent error handling approach:
 
-**Note:**
+- Errors are indicated by standard **HTTP status codes** (for machines).
+- Each error response includes only a single **`message`** field (for humans).
+- No internal error codes are used.
 
-- Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
-- Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
-
-### Count Records
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:count" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
+When an error occurs, the API responds with the appropriate HTTP status code and a JSON body:
 
 ```json
 {
-  "data": {
-    "value": 3
-  }
+  "message": "A human-readable description of the error"
 }
 ```
 
-### Sum Numeric Field
+The API strictly follows standard HTTP semantics. Only the codes listed below are permitted; do not use any others.
 
-**Example:**
+| Code  | Meaning                 |
+| ----- | ----------------------- |
+| `400` | Invalid request like Validation error, invalid parameter, malformed request         |
+| `401` | Authentication required |
+| `404` | Resource not found      |
+| `500` | Server error            |
 
-```bash
-curl -s -X GET "http://localhost:6006/products:sum?field=quantity" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
 
-**Response (200 OK):**
+### Examples
+
+**HTTP 400: Validation Error**
 
 ```json
 {
-  "data": {
-    "value": 85
-  }
+  "message": "Email format is invalid"
 }
 ```
 
-### Average Numeric Field
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:avg?field=quantity" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
+**HTTP 401: Unauthorized**
 
 ```json
 {
-  "data": {
-    "value": 28.333333333333332
-  }
+  "message": "Authentication required"
 }
 ```
 
-### Minimum Value
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:min?field=quantity" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
+**HTTP 404: Not Found**
 
 ```json
 {
-  "data": {
-    "value": 10
-  }
+  "message": "User with id '01KHCZGWWRBQBREMG0K23C6C5H' not found"
 }
 ```
 
-### Maximum Value
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:max?field=quantity" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
+**HTTP 500: Server Error**
 
 ```json
 {
-  "data": {
-    "value": 55
-  }
+  "message": "An unexpected error occurred"
 }
 ```
 
-### Aggregation with Filters
+### Design Principles
 
-Combine aggregation with query filters for calculations on specific subsets:
-
-**Count products with quantity greater than 10:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:count?quantity[gt]=10" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Sum quantity for specific brand:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:sum?field=quantity&brand[eq]=Wow" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Average price for products in stock:**
+* The HTTP status code is the only machine-readable error signal.
+* The `message` field is intended for direct display to users.
+* Clients are not expected to parse or branch on error types.
+* All error responses contain only the `message` field.
+* No additional error metadata is returned.
