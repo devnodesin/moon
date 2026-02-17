@@ -201,9 +201,14 @@ func TestHealthHandler_DatabaseDown(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+	var wrapper map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	response, ok := wrapper["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
 	if response["status"] != "down" {

@@ -79,11 +79,9 @@ func (h *AggregationHandler) Count(w http.ResponseWriter, r *http.Request, colle
 		return
 	}
 
-	response := AggregationResponse{
-		Value: count,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]any{"value": count},
+	})
 }
 
 // Sum handles GET /{name}:sum?field={field}
@@ -155,11 +153,9 @@ func (h *AggregationHandler) Sum(w http.ResponseWriter, r *http.Request, collect
 		result = sum.Float64
 	}
 
-	response := AggregationResponse{
-		Value: result,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]any{"value": result},
+	})
 }
 
 // Avg handles GET /{name}:avg?field={field}
@@ -231,11 +227,9 @@ func (h *AggregationHandler) Avg(w http.ResponseWriter, r *http.Request, collect
 		result = avg.Float64
 	}
 
-	response := AggregationResponse{
-		Value: result,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]any{"value": result},
+	})
 }
 
 // Min handles GET /{name}:min?field={field}
@@ -307,11 +301,9 @@ func (h *AggregationHandler) Min(w http.ResponseWriter, r *http.Request, collect
 		result = min.Float64
 	}
 
-	response := AggregationResponse{
-		Value: result,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]any{"value": result},
+	})
 }
 
 // Max handles GET /{name}:max?field={field}
@@ -383,11 +375,9 @@ func (h *AggregationHandler) Max(w http.ResponseWriter, r *http.Request, collect
 		result = max.Float64
 	}
 
-	response := AggregationResponse{
-		Value: result,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]any{"value": result},
+	})
 }
 
 // validateNumericField checks if a field exists and is numeric type

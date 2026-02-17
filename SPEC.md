@@ -339,20 +339,9 @@ All error responses follow a consistent JSON structure.
 
 ```json
 {
-  "error": "human-readable error message",
-  "code": "ERROR_CODE"
-}
-```
-
-With optional details:
-
-```json
-{
-  "error": "validation failed",
-  "code": "VALIDATION_ERROR",
-  "details": {
-    "field": "email",
-    "expected": "valid email format"
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "human-readable error message"
   }
 }
 ```

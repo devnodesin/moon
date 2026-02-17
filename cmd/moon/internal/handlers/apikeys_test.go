@@ -73,13 +73,13 @@ func TestAPIKeysHandler_List_Success(t *testing.T) {
 		t.Errorf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp APIKeyListResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.APIKeys == nil {
-		t.Error("List() should return apikeys array")
+	if resp["data"] == nil {
+		t.Error("List() should return data array")
 	}
 }
 
@@ -147,13 +147,14 @@ func TestAPIKeysHandler_List_WithPagination(t *testing.T) {
 		t.Errorf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp APIKeyListResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.Limit != 10 {
-		t.Errorf("List() limit = %d, want 10", resp.Limit)
+	meta := resp["meta"].(map[string]any)
+	if meta["limit"] != float64(10) {
+		t.Errorf("List() limit = %v, want 10", meta["limit"])
 	}
 }
 
@@ -179,25 +180,28 @@ func TestAPIKeysHandler_Create_Success(t *testing.T) {
 		t.Errorf("Create() status = %d, want %d, body: %s", w.Code, http.StatusCreated, w.Body.String())
 	}
 
-	var resp CreateAPIKeyResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.APIKey.Name != "test-api-key" {
-		t.Errorf("Create() name = %v, want test-api-key", resp.APIKey.Name)
+	data := resp["data"].(map[string]any)
+	if data["name"] != "test-api-key" {
+		t.Errorf("Create() name = %v, want test-api-key", data["name"])
 	}
-	if resp.APIKey.Role != "user" {
-		t.Errorf("Create() role = %v, want user", resp.APIKey.Role)
+	if data["role"] != "user" {
+		t.Errorf("Create() role = %v, want user", data["role"])
 	}
-	if resp.Key == "" {
+	key, _ := data["key"].(string)
+	if key == "" {
 		t.Error("Create() should return the key value")
 	}
-	if resp.Warning == "" {
+	warning, _ := resp["warning"].(string)
+	if warning == "" {
 		t.Error("Create() should return a warning")
 	}
-	if !hasPrefix(resp.Key, "moon_live_") {
-		t.Errorf("Create() key should have moon_live_ prefix, got: %s", resp.Key)
+	if !hasPrefix(key, "moon_live_") {
+		t.Errorf("Create() key should have moon_live_ prefix, got: %s", key)
 	}
 }
 
@@ -224,12 +228,13 @@ func TestAPIKeysHandler_Create_WithCanWrite(t *testing.T) {
 		t.Errorf("Create() status = %d, want %d, body: %s", w.Code, http.StatusCreated, w.Body.String())
 	}
 
-	var resp CreateAPIKeyResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if !resp.APIKey.CanWrite {
+	data := resp["data"].(map[string]any)
+	if data["can_write"] != true {
 		t.Error("Create() can_write should be true")
 	}
 }
@@ -256,8 +261,9 @@ func TestAPIKeysHandler_Create_MissingName(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeMissingRequiredField {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeMissingRequiredField)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeMissingRequiredField {
+		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
 	}
 }
 
@@ -283,8 +289,9 @@ func TestAPIKeysHandler_Create_MissingRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeMissingRequiredField {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeMissingRequiredField)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeMissingRequiredField {
+		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
 	}
 }
 
@@ -311,8 +318,9 @@ func TestAPIKeysHandler_Create_InvalidRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeInvalidRole {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeInvalidRole)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeInvalidRole {
+		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeInvalidRole)
 	}
 }
 
@@ -339,8 +347,9 @@ func TestAPIKeysHandler_Create_NameTooShort(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeInvalidKeyName {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeInvalidKeyName)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeInvalidKeyName {
+		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeInvalidKeyName)
 	}
 }
 
@@ -378,8 +387,9 @@ func TestAPIKeysHandler_Create_DuplicateName(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeAPIKeyNameExists {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeAPIKeyNameExists)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeAPIKeyNameExists {
+		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNameExists)
 	}
 }
 
@@ -400,11 +410,14 @@ func TestAPIKeysHandler_Get_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
 
+	createData := createResp["data"].(map[string]any)
+	keyID := createData["id"].(string)
+
 	// Now get it
-	req = httptest.NewRequest(http.MethodGet, "/apikeys:get?id="+createResp.APIKey.ID, nil)
+	req = httptest.NewRequest(http.MethodGet, "/apikeys:get?id="+keyID, nil)
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	w = httptest.NewRecorder()
 	handler.Get(w, req)
@@ -415,7 +428,7 @@ func TestAPIKeysHandler_Get_Success(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	apiKey := resp["apikey"].(map[string]any)
+	apiKey := resp["data"].(map[string]any)
 
 	if apiKey["name"] != "test-get-key" {
 		t.Errorf("Get() name = %v, want test-get-key", apiKey["name"])
@@ -438,8 +451,9 @@ func TestAPIKeysHandler_Get_NotFound(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeAPIKeyNotFound {
-		t.Errorf("Get() error_code = %v, want %v", resp["error_code"], ErrCodeAPIKeyNotFound)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeAPIKeyNotFound {
+		t.Errorf("Get() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNotFound)
 	}
 }
 
@@ -475,8 +489,10 @@ func TestAPIKeysHandler_Update_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+
+	createData := createResp["data"].(map[string]any)
 
 	// Update it
 	newName := "updated-name"
@@ -485,7 +501,7 @@ func TestAPIKeysHandler_Update_Success(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -495,13 +511,14 @@ func TestAPIKeysHandler_Update_Success(t *testing.T) {
 		t.Errorf("Update() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UpdateAPIKeyResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
-	if resp.APIKey.Name != "updated-name" {
-		t.Errorf("Update() name = %v, want updated-name", resp.APIKey.Name)
+	data := resp["data"].(map[string]any)
+	if data["name"] != "updated-name" {
+		t.Errorf("Update() name = %v, want updated-name", data["name"])
 	}
-	if resp.Key != "" {
+	if _, hasKey := data["key"]; hasKey {
 		t.Error("Update() should not return key for non-rotate updates")
 	}
 }
@@ -523,9 +540,10 @@ func TestAPIKeysHandler_Update_Rotate(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
-	originalKey := createResp.Key
+	createData := createResp["data"].(map[string]any)
+	originalKey := createData["key"].(string)
 
 	// Rotate it
 	updateBody := UpdateAPIKeyRequest{
@@ -533,7 +551,7 @@ func TestAPIKeysHandler_Update_Rotate(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -543,16 +561,19 @@ func TestAPIKeysHandler_Update_Rotate(t *testing.T) {
 		t.Errorf("Update() with rotate status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UpdateAPIKeyResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
-	if resp.Key == "" {
+	data := resp["data"].(map[string]any)
+	newKey, _ := data["key"].(string)
+	if newKey == "" {
 		t.Error("Update() with rotate should return new key")
 	}
-	if resp.Key == originalKey {
+	if newKey == originalKey {
 		t.Error("Update() with rotate should return different key")
 	}
-	if resp.Warning == "" {
+	warning, _ := resp["warning"].(string)
+	if warning == "" {
 		t.Error("Update() with rotate should return warning")
 	}
 }
@@ -574,8 +595,9 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
 	// Try invalid action
 	updateBody := UpdateAPIKeyRequest{
@@ -583,7 +605,7 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -595,8 +617,9 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeInvalidAction {
-		t.Errorf("Update() error_code = %v, want %v", resp["error_code"], ErrCodeInvalidAction)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeInvalidAction {
+		t.Errorf("Update() error_code = %v, want %v", errObj["code"], ErrCodeInvalidAction)
 	}
 }
 
@@ -639,14 +662,15 @@ func TestAPIKeysHandler_Update_NoFieldsToUpdate(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
 	// Try update with no fields
 	updateBody := UpdateAPIKeyRequest{}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -674,11 +698,12 @@ func TestAPIKeysHandler_Destroy_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
 	// Delete it
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:destroy?id="+createResp.APIKey.ID, nil)
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:destroy?id="+createData["id"].(string), nil)
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	w = httptest.NewRecorder()
 	handler.Destroy(w, req)
@@ -688,7 +713,7 @@ func TestAPIKeysHandler_Destroy_Success(t *testing.T) {
 	}
 
 	// Verify it's deleted
-	req = httptest.NewRequest(http.MethodGet, "/apikeys:get?id="+createResp.APIKey.ID, nil)
+	req = httptest.NewRequest(http.MethodGet, "/apikeys:get?id="+createData["id"].(string), nil)
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	w = httptest.NewRecorder()
 	handler.Get(w, req)
@@ -863,8 +888,9 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
 	// Try to rename second key to first key's name
 	newName := "key-one"
@@ -873,7 +899,7 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -885,8 +911,9 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeAPIKeyNameExists {
-		t.Errorf("Update() error_code = %v, want %v", resp["error_code"], ErrCodeAPIKeyNameExists)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeAPIKeyNameExists {
+		t.Errorf("Update() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNameExists)
 	}
 }
 
@@ -937,8 +964,9 @@ func TestAPIKeysHandler_Update_DescriptionUpdate(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
 	// Update description
 	newDesc := "updated description"
@@ -947,7 +975,7 @@ func TestAPIKeysHandler_Update_DescriptionUpdate(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -957,11 +985,12 @@ func TestAPIKeysHandler_Update_DescriptionUpdate(t *testing.T) {
 		t.Errorf("Update() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UpdateAPIKeyResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
-	if resp.APIKey.Description != "updated description" {
-		t.Errorf("Update() description = %v, want 'updated description'", resp.APIKey.Description)
+	data := resp["data"].(map[string]any)
+	if data["description"] != "updated description" {
+		t.Errorf("Update() description = %v, want 'updated description'", data["description"])
 	}
 }
 
@@ -982,10 +1011,11 @@ func TestAPIKeysHandler_Update_CanWriteUpdate(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	var createResp CreateAPIKeyResponse
+	var createResp map[string]any
 	json.NewDecoder(w.Body).Decode(&createResp)
+	createData := createResp["data"].(map[string]any)
 
-	if createResp.APIKey.CanWrite {
+	if createData["can_write"] == true {
 		t.Error("Create() default can_write should be false")
 	}
 
@@ -996,7 +1026,7 @@ func TestAPIKeysHandler_Update_CanWriteUpdate(t *testing.T) {
 	}
 	bodyBytes, _ = json.Marshal(updateBody)
 
-	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createResp.APIKey.ID, bytes.NewReader(bodyBytes))
+	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -1006,10 +1036,11 @@ func TestAPIKeysHandler_Update_CanWriteUpdate(t *testing.T) {
 		t.Errorf("Update() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UpdateAPIKeyResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
-	if !resp.APIKey.CanWrite {
+	data := resp["data"].(map[string]any)
+	if data["can_write"] != true {
 		t.Error("Update() can_write should be true after update")
 	}
 }
@@ -1035,11 +1066,12 @@ func TestAPIKeysHandler_Create_AdminRole(t *testing.T) {
 		t.Errorf("Create() with admin role status = %d, want %d, body: %s", w.Code, http.StatusCreated, w.Body.String())
 	}
 
-	var resp CreateAPIKeyResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
-	if resp.APIKey.Role != "admin" {
-		t.Errorf("Create() role = %v, want admin", resp.APIKey.Role)
+	data := resp["data"].(map[string]any)
+	if data["role"] != "admin" {
+		t.Errorf("Create() role = %v, want admin", data["role"])
 	}
 }
 

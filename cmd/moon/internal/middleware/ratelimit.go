@@ -265,11 +265,10 @@ func (m *RateLimitMiddleware) writeRateLimitError(w http.ResponseWriter, limit i
 	w.WriteHeader(http.StatusTooManyRequests)
 	// Note: Using string literal instead of errors.CodeRateLimitExceeded to avoid circular import
 	json.NewEncoder(w).Encode(map[string]any{
-		"error":      "rate limit exceeded",
-		"code":       "RATE_LIMIT_EXCEEDED",
-		"error_code": "RATE_LIMIT_EXCEEDED",
-		"limit":      limit,
-		"reset":      reset.Unix(),
+		"error": map[string]any{
+			"code":    "RATE_LIMIT_EXCEEDED",
+			"message": "rate limit exceeded",
+		},
 	})
 }
 
@@ -434,10 +433,10 @@ func WriteLoginRateLimitError(w http.ResponseWriter, resetAt time.Time) {
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(http.StatusTooManyRequests)
 	json.NewEncoder(w).Encode(map[string]any{
-		"error":      "too many login attempts",
-		"code":       http.StatusTooManyRequests,
-		"error_code": "LOGIN_RATE_LIMIT",
-		"reset":      resetAt.Unix(),
+		"error": map[string]any{
+			"code":    "LOGIN_ATTEMPTS_EXCEEDED",
+			"message": "too many login attempts",
+		},
 	})
 }
 

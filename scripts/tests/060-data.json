@@ -103,8 +103,8 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "id": "$ULID",
         "data": {
+          "id": "$ULID",
           "price": "6000.00"
         }
       }
@@ -141,7 +141,7 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "id": "$ULID"
+        "data": "$ULID"
       }
     },
     {

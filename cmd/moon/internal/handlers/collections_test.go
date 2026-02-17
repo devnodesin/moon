@@ -60,13 +60,14 @@ func TestList_Empty(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response ListResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response.Count != 0 {
-		t.Errorf("Expected count 0, got %d", response.Count)
+	meta := response["meta"].(map[string]any)
+	if meta["count"] != float64(0) {
+		t.Errorf("Expected count 0, got %v", meta["count"])
 	}
 }
 
@@ -96,29 +97,31 @@ func TestList_WithCollectionsAndRecords(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response ListResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify response structure
-	if response.Count != 1 {
-		t.Errorf("Expected count 1, got %d", response.Count)
+	meta := response["meta"].(map[string]any)
+	if meta["count"] != float64(1) {
+		t.Errorf("Expected count 1, got %v", meta["count"])
 	}
 
-	if len(response.Collections) != 1 {
-		t.Fatalf("Expected 1 collection, got %d", len(response.Collections))
+	data := response["data"].([]any)
+	if len(data) != 1 {
+		t.Fatalf("Expected 1 collection, got %d", len(data))
 	}
 
 	// Verify collection item structure
-	collection := response.Collections[0]
-	if collection.Name != "customers" {
-		t.Errorf("Expected collection name 'customers', got '%s'", collection.Name)
+	collection := data[0].(map[string]any)
+	if collection["name"] != "customers" {
+		t.Errorf("Expected collection name 'customers', got '%v'", collection["name"])
 	}
 
 	// Records should be 0 as we haven't inserted any
-	if collection.Records != 0 {
-		t.Errorf("Expected 0 records, got %d", collection.Records)
+	if collection["records"] != float64(0) {
+		t.Errorf("Expected 0 records, got %v", collection["records"])
 	}
 }
 
@@ -173,17 +176,19 @@ func TestCreate_Success(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
 	}
 
-	var response CreateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response.Collection.Name != "customers" {
-		t.Errorf("Expected collection name 'customers', got '%s'", response.Collection.Name)
+	data := response["data"].(map[string]any)
+	if data["name"] != "customers" {
+		t.Errorf("Expected collection name 'customers', got '%v'", data["name"])
 	}
 
-	if len(response.Collection.Columns) != 3 {
-		t.Errorf("Expected 3 columns, got %d", len(response.Collection.Columns))
+	columns := data["columns"].([]any)
+	if len(columns) != 3 {
+		t.Errorf("Expected 3 columns, got %d", len(columns))
 	}
 }
 
@@ -334,13 +339,15 @@ func TestUpdate_AddColumns(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response UpdateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if len(response.Collection.Columns) != 3 {
-		t.Errorf("Expected 3 columns after update, got %d", len(response.Collection.Columns))
+	data := response["data"].(map[string]any)
+	columns := data["columns"].([]any)
+	if len(columns) != 3 {
+		t.Errorf("Expected 3 columns after update, got %d", len(columns))
 	}
 }
 
@@ -779,14 +786,16 @@ func TestUpdate_RemoveColumns_Success(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response UpdateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify column was removed
-	for _, col := range response.Collection.Columns {
-		if col.Name == "old_field" {
+	data := response["data"].(map[string]any)
+	for _, col := range data["columns"].([]any) {
+		c := col.(map[string]any)
+		if c["name"] == "old_field" {
 			t.Error("Column 'old_field' should have been removed")
 		}
 	}
@@ -902,18 +911,20 @@ func TestUpdate_RenameColumns_Success(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response UpdateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify column was renamed
+	data := response["data"].(map[string]any)
 	found := false
-	for _, col := range response.Collection.Columns {
-		if col.Name == "username" {
+	for _, col := range data["columns"].([]any) {
+		c := col.(map[string]any)
+		if c["name"] == "username" {
 			found = true
 		}
-		if col.Name == "user_name" {
+		if c["name"] == "user_name" {
 			t.Error("Old column name 'user_name' should not exist after rename")
 		}
 	}
@@ -1026,15 +1037,17 @@ func TestUpdate_ModifyColumns_Success(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response UpdateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify column type was modified
+	data := response["data"].(map[string]any)
 	found := false
-	for _, col := range response.Collection.Columns {
-		if col.Name == "description" && col.Type == registry.TypeString {
+	for _, col := range data["columns"].([]any) {
+		c := col.(map[string]any)
+		if c["name"] == "description" && c["type"] == string(registry.TypeString) {
 			found = true
 			break
 		}
@@ -1121,29 +1134,31 @@ func TestUpdate_CombinedOperations(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response UpdateResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify all operations
+	data := response["data"].(map[string]any)
 	hasNewName := false
 	hasNewField := false
 	hasToModify := false
-	for _, col := range response.Collection.Columns {
-		if col.Name == "new_name" {
+	for _, col := range data["columns"].([]any) {
+		c := col.(map[string]any)
+		if c["name"] == "new_name" {
 			hasNewName = true
 		}
-		if col.Name == "new_field" {
+		if c["name"] == "new_field" {
 			hasNewField = true
 		}
-		if col.Name == "to_modify" && col.Type == registry.TypeString {
+		if c["name"] == "to_modify" && c["type"] == string(registry.TypeString) {
 			hasToModify = true
 		}
-		if col.Name == "old_name" {
+		if c["name"] == "old_name" {
 			t.Error("Column 'old_name' should have been renamed")
 		}
-		if col.Name == "to_remove" {
+		if c["name"] == "to_remove" {
 			t.Error("Column 'to_remove' should have been removed")
 		}
 	}

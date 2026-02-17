@@ -66,12 +66,10 @@ type DataListRequest struct {
 	Filter map[string]string `json:"filter,omitempty"`
 }
 
-// DataListResponse represents response for list operation (PRD-062)
+// DataListResponse represents response for list operation per SPEC_API.md
 type DataListResponse struct {
-	Data       []map[string]any `json:"data"`
-	Total      int              `json:"total"`       // PRD-062: Total record count matching the query
-	NextCursor *string          `json:"next_cursor"` // Next ULID cursor, null if no more data
-	Limit      int              `json:"limit"`       // Always include pagination limit
+	Data []map[string]any `json:"data"`
+	Meta map[string]any   `json:"meta"`
 }
 
 // DataGetResponse represents response for get operation
@@ -336,12 +334,15 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		}
 	}
 
-	// Build response (PRD-062: include total)
+	// Build response per SPEC_API.md
 	response := DataListResponse{
-		Data:       data,
-		Total:      total,
-		NextCursor: nextCursor,
-		Limit:      limit,
+		Data: data,
+		Meta: map[string]any{
+			"count": len(data),
+			"limit": limit,
+			"next":  nextCursor,
+			"prev":  nil,
+		},
 	}
 
 	writeJSON(w, http.StatusOK, response)
@@ -506,12 +507,10 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 		// Omitted fields are not included in response - client can query the record to see defaults
 	}
 
-	response := CreateDataResponse{
-		Data:    responseData,
-		Message: fmt.Sprintf("Record created successfully with id %s", ulid),
-	}
-
-	writeJSON(w, http.StatusCreated, response)
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"data":    responseData,
+		"message": fmt.Sprintf("Record created successfully with id %s", ulid),
+	})
 }
 
 // createBatch handles batch create operations (PRD-064)
@@ -626,12 +625,15 @@ func (h *DataHandler) createBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		return
 	}
 
-	response := BatchCreateResponse{
-		Data:    createdRecords,
-		Message: fmt.Sprintf("%d records created successfully", len(createdRecords)),
-	}
-
-	writeJSON(w, http.StatusCreated, response)
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"data": createdRecords,
+		"meta": map[string]any{
+			"total":     len(createdRecords),
+			"succeeded": len(createdRecords),
+			"failed":    0,
+		},
+		"message": fmt.Sprintf("%d record(s) created successfully", len(createdRecords)),
+	})
 }
 
 // createBatchBestEffort handles best-effort batch create (PRD-064)
@@ -879,12 +881,10 @@ func (h *DataHandler) updateSingle(w http.ResponseWriter, r *http.Request, colle
 		}
 	}
 
-	response := UpdateDataResponse{
-		Data:    responseData,
-		Message: fmt.Sprintf("Record %s updated successfully", id),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    responseData,
+		"message": fmt.Sprintf("Record %s updated successfully", id),
+	})
 }
 
 // updateBatch handles batch update operations (PRD-064)
@@ -1024,12 +1024,15 @@ func (h *DataHandler) updateBatchAtomic(w http.ResponseWriter, ctx context.Conte
 		return
 	}
 
-	response := BatchUpdateResponse{
-		Data:    updatedRecords,
-		Message: fmt.Sprintf("%d records updated successfully", len(updatedRecords)),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": updatedRecords,
+		"meta": map[string]any{
+			"total":     len(updatedRecords),
+			"succeeded": len(updatedRecords),
+			"failed":    0,
+		},
+		"message": fmt.Sprintf("%d record(s) updated successfully", len(updatedRecords)),
+	})
 }
 
 // updateBatchBestEffort handles best-effort batch update (PRD-064)
@@ -1292,11 +1295,10 @@ func (h *DataHandler) destroySingle(w http.ResponseWriter, r *http.Request, coll
 		return
 	}
 
-	response := DestroyDataResponse{
-		Message: fmt.Sprintf("Record %s deleted successfully", id),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    []string{id},
+		"message": fmt.Sprintf("Record %s deleted successfully", id),
+	})
 }
 
 // destroyBatch handles batch destroy operations (PRD-064)
@@ -1378,11 +1380,15 @@ func (h *DataHandler) destroyBatchAtomic(w http.ResponseWriter, ctx context.Cont
 		return
 	}
 
-	response := BatchDestroyResponse{
-		Message: fmt.Sprintf("%d records deleted successfully", len(ids)),
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": ids,
+		"meta": map[string]any{
+			"total":     len(ids),
+			"succeeded": len(ids),
+			"failed":    0,
+		},
+		"message": fmt.Sprintf("%d record(s) deleted successfully", len(ids)),
+	})
 }
 
 // destroyBatchBestEffort handles best-effort batch destroy (PRD-064)
@@ -1500,14 +1506,13 @@ func (h *DataHandler) Schema(w http.ResponseWriter, r *http.Request, collectionN
 		total = 0
 	}
 
-	// Create response matching PRD-054 and PRD-061 specification
-	response := SchemaResponse{
-		Collection: fullSchema.Collection,
-		Fields:     fullSchema.Fields,
-		Total:      total,
-	}
-
-	writeJSON(w, http.StatusOK, response)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": SchemaResponse{
+			Collection: fullSchema.Collection,
+			Fields:     fullSchema.Fields,
+			Total:      total,
+		},
+	})
 }
 
 // filterParam represents a parsed filter from query string

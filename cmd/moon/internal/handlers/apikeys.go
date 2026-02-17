@@ -166,10 +166,17 @@ func (h *APIKeysHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("apikey_list", claims.UserID, "")
 
-	writeJSON(w, http.StatusOK, APIKeyListResponse{
-		APIKeys:    publicKeys,
-		NextCursor: nextCursor,
-		Limit:      limit,
+	// Build meta with prev/next cursors per SPEC_API.md
+	meta := map[string]any{
+		"count": len(publicKeys),
+		"limit": limit,
+		"next":  nextCursor,
+		"prev":  nil,
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data": publicKeys,
+		"meta": meta,
 	})
 }
 
@@ -206,7 +213,7 @@ func (h *APIKeysHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"apikey": apiKeyToPublicInfo(apiKey),
+		"data": apiKeyToPublicInfo(apiKey),
 	})
 }
 
@@ -298,11 +305,20 @@ func (h *APIKeysHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("apikey_created", claims.UserID, apiKey.ID)
 
-	writeJSON(w, http.StatusCreated, CreateAPIKeyResponse{
-		Message: "API key created successfully",
-		Warning: "Store this key securely. It will not be shown again.",
-		APIKey:  apiKeyToPublicInfo(apiKey),
-		Key:     rawKey,
+	dataResp := map[string]any{
+		"id":          apiKey.ID,
+		"name":        apiKey.Name,
+		"description": apiKey.Description,
+		"role":        apiKey.Role,
+		"can_write":   apiKey.CanWrite,
+		"key":         rawKey,
+		"created_at":  apiKey.CreatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"data":    dataResp,
+		"message": "API key created successfully",
+		"warning": "Store this key securely. It will not be shown again.",
 	})
 }
 
@@ -359,11 +375,14 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 		h.logAdminAction("apikey_rotated", claims.UserID, apiKey.ID)
 
-		writeJSON(w, http.StatusOK, UpdateAPIKeyResponse{
-			Message: "API key rotated successfully",
-			Warning: "Store this key securely. It will not be shown again.",
-			APIKey:  apiKeyToPublicInfo(apiKey),
-			Key:     rawKey,
+		writeJSON(w, http.StatusOK, map[string]any{
+			"data": map[string]any{
+				"id":   apiKey.ID,
+				"name": apiKey.Name,
+				"key":  rawKey,
+			},
+			"message": "API key rotated successfully",
+			"warning": "Store this key securely. The old key is now invalid.",
 		})
 		return
 	}
@@ -426,9 +445,9 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("apikey_updated", claims.UserID, apiKey.ID)
 
-	writeJSON(w, http.StatusOK, UpdateAPIKeyResponse{
-		Message: "API key updated successfully",
-		APIKey:  apiKeyToPublicInfo(apiKey),
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":    apiKeyToPublicInfo(apiKey),
+		"message": "API key updated successfully",
 	})
 }
 
@@ -471,8 +490,8 @@ func (h *APIKeysHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("apikey_deleted", claims.UserID, keyID)
 
-	writeJSON(w, http.StatusOK, DeleteAPIKeyResponse{
-		Message: "API key deleted successfully",
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message": "API key deleted successfully",
 	})
 }
 

@@ -92,6 +92,42 @@ func TestService_RegisterChecker(t *testing.T) {
 	}
 }
 
+// decodeHealthResponse decodes a wrapped {"data": ...} health response
+func decodeHealthResponse(t *testing.T, body []byte) HealthResponse {
+	t.Helper()
+	var wrapper map[string]json.RawMessage
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		t.Fatalf("Failed to decode wrapper: %v", err)
+	}
+	raw, ok := wrapper["data"]
+	if !ok {
+		t.Fatalf("Expected 'data' field in response, got: %s", string(body))
+	}
+	var hr HealthResponse
+	if err := json.Unmarshal(raw, &hr); err != nil {
+		t.Fatalf("Failed to decode HealthResponse from data: %v", err)
+	}
+	return hr
+}
+
+// decodeReadinessResponse decodes a wrapped {"data": ...} readiness response
+func decodeReadinessResponse(t *testing.T, body []byte) ReadinessResponse {
+	t.Helper()
+	var wrapper map[string]json.RawMessage
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		t.Fatalf("Failed to decode wrapper: %v", err)
+	}
+	raw, ok := wrapper["data"]
+	if !ok {
+		t.Fatalf("Expected 'data' field in response, got: %s", string(body))
+	}
+	var rr ReadinessResponse
+	if err := json.Unmarshal(raw, &rr); err != nil {
+		t.Fatalf("Failed to decode ReadinessResponse from data: %v", err)
+	}
+	return rr
+}
+
 func TestService_LivenessHandler_Healthy(t *testing.T) {
 	db := &mockDB{healthy: true, dialect: "sqlite"}
 	registry := &mockRegistry{count: 5}
@@ -106,13 +142,10 @@ func TestService_LivenessHandler_Healthy(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response HealthResponse
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode response: %v", err)
-	}
+	response := decodeHealthResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusHealthy {
-		t.Errorf("Expected status 'healthy', got '%s'", response.Status)
+		t.Errorf("Expected status '%s', got '%s'", StatusHealthy, response.Status)
 	}
 
 	if response.Database != "sqlite" {
@@ -141,8 +174,7 @@ func TestService_LivenessHandler_Unhealthy(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusServiceUnavailable, w.Code)
 	}
 
-	var response HealthResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeHealthResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusUnhealthy {
 		t.Errorf("Expected status 'unhealthy', got '%s'", response.Status)
@@ -161,11 +193,10 @@ func TestService_LivenessHandler_NoDB(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response HealthResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeHealthResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusHealthy {
-		t.Errorf("Expected status 'healthy', got '%s'", response.Status)
+		t.Errorf("Expected status '%s', got '%s'", StatusHealthy, response.Status)
 	}
 }
 
@@ -188,11 +219,10 @@ func TestService_ReadinessHandler_AllHealthy(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response ReadinessResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeReadinessResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusHealthy {
-		t.Errorf("Expected status 'healthy', got '%s'", response.Status)
+		t.Errorf("Expected status '%s', got '%s'", StatusHealthy, response.Status)
 	}
 
 	if len(response.Checks) != 3 { // database, registry, external
@@ -214,8 +244,7 @@ func TestService_ReadinessHandler_DatabaseUnhealthy(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusServiceUnavailable, w.Code)
 	}
 
-	var response ReadinessResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeReadinessResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusUnhealthy {
 		t.Errorf("Expected status 'unhealthy', got '%s'", response.Status)
@@ -243,8 +272,7 @@ func TestService_ReadinessHandler_CustomCheckerUnhealthy(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusServiceUnavailable, w.Code)
 	}
 
-	var response ReadinessResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeReadinessResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusUnhealthy {
 		t.Errorf("Expected status 'unhealthy', got '%s'", response.Status)
@@ -268,8 +296,7 @@ func TestService_ReadinessHandler_DegradedStatus(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response ReadinessResponse
-	json.NewDecoder(w.Body).Decode(&response)
+	response := decodeReadinessResponse(t, w.Body.Bytes())
 
 	if response.Status != StatusDegraded {
 		t.Errorf("Expected status 'degraded', got '%s'", response.Status)
@@ -446,8 +473,8 @@ func TestService_checkRegistry(t *testing.T) {
 }
 
 func TestStatus_Constants(t *testing.T) {
-	if StatusHealthy != "healthy" {
-		t.Errorf("Expected 'healthy', got '%s'", StatusHealthy)
+	if StatusHealthy != "live" {
+		t.Errorf("Expected 'live', got '%s'", StatusHealthy)
 	}
 
 	if StatusUnhealthy != "unhealthy" {

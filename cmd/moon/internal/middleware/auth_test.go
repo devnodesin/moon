@@ -529,12 +529,17 @@ func TestWriteAuthError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response["error"] != "Test error" {
-		t.Errorf("Expected error 'Test error', got '%v'", response["error"])
+	errObj, ok := response["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected error to be a nested object, got %T", response["error"])
 	}
 
-	if response["code"].(float64) != float64(http.StatusUnauthorized) {
-		t.Errorf("Expected code %d, got %v", http.StatusUnauthorized, response["code"])
+	if errObj["message"] != "Test error" {
+		t.Errorf("Expected message 'Test error', got '%v'", errObj["message"])
+	}
+
+	if errObj["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected code 'UNAUTHORIZED', got '%v'", errObj["code"])
 	}
 }
 

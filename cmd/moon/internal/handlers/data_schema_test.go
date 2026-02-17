@@ -72,10 +72,13 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var resp SchemaResponse
-		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		var wrapper map[string]any
+		if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
+		dataBytes, _ := json.Marshal(wrapper["data"])
+		var resp SchemaResponse
+		json.Unmarshal(dataBytes, &resp)
 
 		// Verify response structure
 		if resp.Collection != "products" {
@@ -187,17 +190,23 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
 
+		// Verify data wrapper exists
+		data, ok := resp["data"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected 'data' wrapper in response")
+		}
+
 		// Verify required fields exist
-		if _, ok := resp["collection"]; !ok {
+		if _, ok := data["collection"]; !ok {
 			t.Error("Expected 'collection' field in response")
 		}
 
-		if _, ok := resp["fields"]; !ok {
+		if _, ok := data["fields"]; !ok {
 			t.Error("Expected 'fields' field in response")
 		}
 
 		// Verify fields is an array
-		fields, ok := resp["fields"].([]any)
+		fields, ok := data["fields"].([]any)
 		if !ok {
 			t.Error("Expected 'fields' to be an array")
 		}
@@ -250,10 +259,13 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var resp SchemaResponse
-		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		var wrapper map[string]any
+		if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
+		dataBytes, _ := json.Marshal(wrapper["data"])
+		var resp SchemaResponse
+		json.Unmarshal(dataBytes, &resp)
 
 		// Count how many times 'id' appears
 		idCount := 0
@@ -303,10 +315,13 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var resp SchemaResponse
-		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		var wrapper map[string]any
+		if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
+		dataBytes, _ := json.Marshal(wrapper["data"])
+		var resp SchemaResponse
+		json.Unmarshal(dataBytes, &resp)
 
 		// Verify total field exists and is 0 for empty collection
 		if resp.Total != 0 {
@@ -359,10 +374,13 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var resp SchemaResponse
-		if decodeErr := json.NewDecoder(w.Body).Decode(&resp); decodeErr != nil {
+		var wrapper map[string]any
+		if decodeErr := json.NewDecoder(w.Body).Decode(&wrapper); decodeErr != nil {
 			t.Fatalf("Failed to decode response: %v", decodeErr)
 		}
+		dataBytes, _ := json.Marshal(wrapper["data"])
+		var resp SchemaResponse
+		json.Unmarshal(dataBytes, &resp)
 
 		// Verify total field reflects actual record count
 		if resp.Total != 2 {

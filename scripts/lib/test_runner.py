@@ -260,7 +260,7 @@ def _fetch_fresh_record_ids(
             data = resp.json()
             
             # Try to find records in common response structures
-            for array_key in ["data", "records", "items", "apikeys", "users"]:
+            for array_key in ["data", "records", "items"]:
                 records = data.get(array_key, [])
                 if records and isinstance(records, list):
                     record_ids = []

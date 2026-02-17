@@ -77,13 +77,14 @@ func TestUsersHandler_List_Success(t *testing.T) {
 		t.Errorf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UserListResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if len(resp.Users) == 0 {
-		t.Error("List() should return at least one user")
+	data, ok := resp["data"].([]any)
+	if !ok || len(data) == 0 {
+		t.Error("List() should return at least one user in data array")
 	}
 }
 
@@ -153,14 +154,16 @@ func TestUsersHandler_List_WithRoleFilter(t *testing.T) {
 		t.Errorf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UserListResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	for _, user := range resp.Users {
-		if user.Role != "admin" {
-			t.Errorf("List() with role filter returned user with role %s, want admin", user.Role)
+	data := resp["data"].([]any)
+	for _, u := range data {
+		user := u.(map[string]any)
+		if user["role"] != "admin" {
+			t.Errorf("List() with role filter returned user with role %v, want admin", user["role"])
 		}
 	}
 }
@@ -184,7 +187,7 @@ func TestUsersHandler_Get_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	userInfo := resp["user"].(map[string]any)
+	userInfo := resp["data"].(map[string]any)
 	if userInfo["username"] != "admin" {
 		t.Errorf("Get() username = %v, want admin", userInfo["username"])
 	}
@@ -243,16 +246,17 @@ func TestUsersHandler_Create_Success(t *testing.T) {
 		t.Errorf("Create() status = %d, want %d, body: %s", w.Code, http.StatusCreated, w.Body.String())
 	}
 
-	var resp CreateUserResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.User.Username != "newuser" {
-		t.Errorf("Create() username = %v, want newuser", resp.User.Username)
+	data := resp["data"].(map[string]any)
+	if data["username"] != "newuser" {
+		t.Errorf("Create() username = %v, want newuser", data["username"])
 	}
-	if resp.User.Role != "user" {
-		t.Errorf("Create() role = %v, want user", resp.User.Role)
+	if data["role"] != "user" {
+		t.Errorf("Create() role = %v, want user", data["role"])
 	}
 }
 
@@ -281,8 +285,9 @@ func TestUsersHandler_Create_WeakPassword(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeWeakPassword {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeWeakPassword)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeWeakPassword {
+		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeWeakPassword)
 	}
 }
 
@@ -311,8 +316,9 @@ func TestUsersHandler_Create_InvalidEmail(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeInvalidEmailFormat {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeInvalidEmailFormat)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeInvalidEmailFormat {
+		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeInvalidEmailFormat)
 	}
 }
 
@@ -341,8 +347,9 @@ func TestUsersHandler_Create_InvalidRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeInvalidRole {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeInvalidRole)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeInvalidRole {
+		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeInvalidRole)
 	}
 }
 
@@ -371,8 +378,9 @@ func TestUsersHandler_Create_DuplicateUsername(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeUsernameExists {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeUsernameExists)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeUsernameExists {
+		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeUsernameExists)
 	}
 }
 
@@ -401,8 +409,9 @@ func TestUsersHandler_Create_DuplicateEmail(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeEmailExists {
-		t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeEmailExists)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeEmailExists {
+		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeEmailExists)
 	}
 }
 
@@ -443,13 +452,14 @@ func TestUsersHandler_Update_Success(t *testing.T) {
 		t.Errorf("Update() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp UpdateUserResponse
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.User.Email != "updated@example.com" {
-		t.Errorf("Update() email = %v, want updated@example.com", resp.User.Email)
+	data := resp["data"].(map[string]any)
+	if data["email"] != "updated@example.com" {
+		t.Errorf("Update() email = %v, want updated@example.com", data["email"])
 	}
 }
 
@@ -557,8 +567,9 @@ func TestUsersHandler_Update_CannotModifySelf(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeCannotModifySelf {
-		t.Errorf("Update() error_code = %v, want %v", resp["error_code"], ErrCodeCannotModifySelf)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeCannotModifySelf {
+		t.Errorf("Update() error code = %v, want %v", errObj["code"], ErrCodeCannotModifySelf)
 	}
 }
 
@@ -654,8 +665,9 @@ func TestUsersHandler_Destroy_CannotDeleteSelf(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["error_code"] != ErrCodeCannotModifySelf {
-		t.Errorf("Destroy() error_code = %v, want %v", resp["error_code"], ErrCodeCannotModifySelf)
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != ErrCodeCannotModifySelf {
+		t.Errorf("Destroy() error code = %v, want %v", errObj["code"], ErrCodeCannotModifySelf)
 	}
 }
 
@@ -752,8 +764,9 @@ func TestUsersHandler_Create_MissingFields(t *testing.T) {
 
 			var resp map[string]any
 			json.NewDecoder(w.Body).Decode(&resp)
-			if resp["error_code"] != ErrCodeMissingRequiredField {
-				t.Errorf("Create() error_code = %v, want %v", resp["error_code"], ErrCodeMissingRequiredField)
+			errObj := resp["error"].(map[string]any)
+			if errObj["code"] != ErrCodeMissingRequiredField {
+				t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
 			}
 		})
 	}

@@ -112,9 +112,14 @@ func TestHealthHandler(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+	var wrapper map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	response, ok := wrapper["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
 	if response["status"] != "live" {
@@ -129,7 +134,7 @@ func TestHealthHandler(t *testing.T) {
 		t.Errorf("Expected version '1-test', got '%v'", response["version"])
 	}
 
-	// Ensure no other fields are present
+	// Ensure no other fields are present in data
 	if len(response) != 3 {
 		t.Errorf("Expected exactly 3 fields, got %d: %v", len(response), response)
 	}
@@ -319,12 +324,17 @@ func TestWriteError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response["error"] != "Test error message" {
-		t.Errorf("Expected error 'Test error message', got '%v'", response["error"])
+	errObj, ok := response["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected error to be a nested object, got %T", response["error"])
 	}
 
-	if response["code"].(float64) != float64(http.StatusBadRequest) {
-		t.Errorf("Expected code %d, got %v", http.StatusBadRequest, response["code"])
+	if errObj["message"] != "Test error message" {
+		t.Errorf("Expected message 'Test error message', got '%v'", errObj["message"])
+	}
+
+	if errObj["code"] != "INVALID_PARAMETER" {
+		t.Errorf("Expected code 'INVALID_PARAMETER', got '%v'", errObj["code"])
 	}
 }
 

@@ -332,13 +332,18 @@ func (m *UnifiedAuthMiddleware) logAuthFailure(r *http.Request, reason string, e
 	}
 }
 
-// writeAuthError writes a standardized authentication error response
+// writeAuthError writes a standardized authentication error response per SPEC_API.md
 func (m *UnifiedAuthMiddleware) writeAuthError(w http.ResponseWriter, statusCode int, errorType, message string) {
+	code := "UNAUTHORIZED"
+	if statusCode == http.StatusForbidden {
+		code = "FORBIDDEN"
+	}
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
-		"error":   errorType,
-		"message": message,
-		"status":  statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }

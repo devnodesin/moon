@@ -138,8 +138,9 @@ func TestUnifiedAuth_LegacyXAPIKeyHeader_Rejected(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "authentication_required" {
-		t.Errorf("Expected error 'authentication_required', got %v", resp["error"])
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj["code"])
 	}
 
 	// Verify NO deprecation headers (feature removed completely)
@@ -231,8 +232,12 @@ func TestUnifiedAuth_MissingAuthorizationHeader(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "authentication_required" {
-		t.Errorf("Expected error 'authentication_required', got %v", resp["error"])
+	if resp["error"] == nil {
+		t.Fatal("Expected error in response")
+	}
+	errObj := resp["error"].(map[string]any)
+	if errObj["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj["code"])
 	}
 }
 
@@ -265,8 +270,12 @@ func TestUnifiedAuth_InvalidTokenFormat(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "invalid_token_format" {
-		t.Errorf("Expected error 'invalid_token_format', got %v", resp["error"])
+	if resp["error"] == nil {
+		t.Fatal("Expected error in response")
+	}
+	errObj2 := resp["error"].(map[string]any)
+	if errObj2["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj2["code"])
 	}
 }
 
@@ -301,8 +310,12 @@ func TestUnifiedAuth_ExpiredJWT(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "invalid_credentials" {
-		t.Errorf("Expected error 'invalid_credentials', got %v", resp["error"])
+	if resp["error"] == nil {
+		t.Fatal("Expected error in response")
+	}
+	errObj3 := resp["error"].(map[string]any)
+	if errObj3["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj3["code"])
 	}
 }
 
@@ -337,8 +350,12 @@ func TestUnifiedAuth_InvalidAPIKey(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "invalid_credentials" {
-		t.Errorf("Expected error 'invalid_credentials', got %v", resp["error"])
+	if resp["error"] == nil {
+		t.Fatal("Expected error in response")
+	}
+	errObj4 := resp["error"].(map[string]any)
+	if errObj4["code"] != "UNAUTHORIZED" {
+		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj4["code"])
 	}
 }
 
@@ -383,8 +400,12 @@ func TestUnifiedAuth_InsufficientPermissions(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] != "forbidden" {
-		t.Errorf("Expected error 'forbidden', got %v", resp["error"])
+	if resp["error"] == nil {
+		t.Fatal("Expected error in response")
+	}
+	errObj5 := resp["error"].(map[string]any)
+	if errObj5["code"] != "FORBIDDEN" {
+		t.Errorf("Expected error code 'FORBIDDEN', got %v", errObj5["code"])
 	}
 }
 

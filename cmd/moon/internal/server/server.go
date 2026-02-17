@@ -418,13 +418,21 @@ func (s *Server) shouldBypassAuth(path string) bool {
 	return false
 }
 
-// writeAuthError writes an authentication error response.
+// writeAuthError writes an authentication error response per SPEC_API.md.
 func (s *Server) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
+	code := "UNAUTHORIZED"
+	if statusCode == http.StatusForbidden {
+		code = "FORBIDDEN"
+	} else if statusCode == http.StatusMethodNotAllowed {
+		code = "METHOD_NOT_ALLOWED"
+	}
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]any{
-		"error": message,
-		"code":  statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }
 
@@ -522,7 +530,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Always return HTTP 200, even if service is down
 	// Clients must check the "status" field to determine service health
-	s.writeJSON(w, http.StatusOK, response)
+	s.writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
 
 // corsPreflightHandler handles CORS preflight OPTIONS requests.
@@ -561,11 +569,26 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	}
 }
 
-// writeError writes a JSON error response
+// writeError writes a JSON error response per SPEC_API.md
 func (s *Server) writeError(w http.ResponseWriter, statusCode int, message string) {
+	code := "INTERNAL_ERROR"
+	switch statusCode {
+	case http.StatusBadRequest:
+		code = "INVALID_PARAMETER"
+	case http.StatusNotFound:
+		code = "NOT_FOUND"
+	case http.StatusMethodNotAllowed:
+		code = "METHOD_NOT_ALLOWED"
+	case http.StatusUnauthorized:
+		code = "UNAUTHORIZED"
+	case http.StatusForbidden:
+		code = "FORBIDDEN"
+	}
 	s.writeJSON(w, statusCode, map[string]any{
-		"error": message,
-		"code":  statusCode,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
 	})
 }
 

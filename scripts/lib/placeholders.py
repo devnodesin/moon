@@ -128,6 +128,7 @@ def extract_record_id_from_response(
     """
     Extract record ID from a create or list response.
     Checks common patterns like data.id, record.id, id, etc.
+    Also extracts meta.next cursor for pagination.
     
     Args:
         response_obj: Response JSON object
@@ -142,7 +143,7 @@ def extract_record_id_from_response(
     if "id" in response_obj:
         return response_obj["id"]
     
-    # Try data.id
+    # Try data.id (single object response)
     if "data" in response_obj and isinstance(response_obj["data"], dict):
         if "id" in response_obj["data"]:
             return response_obj["data"]["id"]
@@ -153,18 +154,24 @@ def extract_record_id_from_response(
             return response_obj["record"]["id"]
     
     # Try arrays in common field names
-    for array_key in ["apikeys", "users", "data", "records", "items"]:
+    for array_key in ["data", "records", "items"]:
         if array_key in response_obj:
             items = response_obj[array_key]
             if isinstance(items, list) and len(items) > 0:
-                # For users array, select second record if available, otherwise first
-                if array_key == "users" and len(items) > 1:
+                # For list responses, select second record if available (for user management tests)
+                if len(items) > 1:
                     selected_item = items[1]
                 else:
                     selected_item = items[0]
                 
                 if isinstance(selected_item, dict) and "id" in selected_item:
                     return selected_item["id"]
+    
+    # Try meta.next for pagination cursor
+    if "meta" in response_obj and isinstance(response_obj["meta"], dict):
+        next_cursor = response_obj["meta"].get("next")
+        if next_cursor:
+            return next_cursor
     
     # Try other common ID field names
     for key in ["_id", "ulid", "uuid"]:
@@ -197,7 +204,7 @@ def extract_record_ids_from_response(
     record_ids = []
     
     # Try arrays in common field names
-    for array_key in ["data", "records", "items", "apikeys", "users"]:
+    for array_key in ["data", "records", "items"]:
         if array_key in response_obj:
             items = response_obj[array_key]
             if isinstance(items, list):
@@ -243,7 +250,7 @@ def fetch_record_id_from_collection(
         if resp.status_code == 200:
             data = resp.json()
             # Try to find records in common response structures
-            for array_key in ["data", "records", "items", "apikeys", "users"]:
+            for array_key in ["data", "records", "items"]:
                 records = data.get(array_key, [])
                 if records and len(records) > 0:
                     # Try common ID field names
