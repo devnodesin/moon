@@ -629,9 +629,9 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
 
-		// Count should be 5 (full count), even though we only fetched 2
-		if count, _ := resp.Meta["count"].(float64); count != 5 {
-			t.Errorf("Expected count 5 (full count), got %v", resp.Meta["count"])
+		// Count reflects items in current page
+		if count, _ := resp.Meta["count"].(float64); count != 2 {
+			t.Errorf("Expected count 2 (page count), got %v", resp.Meta["count"])
 		}
 
 		if len(resp.Data) != 2 {

@@ -221,9 +221,11 @@ func TestCollectionsHandler_List_WithData(t *testing.T) {
 	var response map[string]any
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if count, ok := response["count"].(float64); ok {
-		if int(count) != 2 {
-			t.Errorf("Expected count 2, got %v", count)
+	if meta, ok := response["meta"].(map[string]any); ok {
+		if count, ok := meta["count"].(float64); ok {
+			if int(count) != 2 {
+				t.Errorf("Expected count 2, got %v", count)
+			}
 		}
 	}
 }
@@ -449,19 +451,21 @@ func TestCollectionsHandler_List_DetailedResponse(t *testing.T) {
 		t.Errorf("Expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response ListResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify count
-	if response.Count != 3 {
-		t.Errorf("Expected count 3, got %d", response.Count)
+	meta := response["meta"].(map[string]any)
+	if meta["count"] != float64(3) {
+		t.Errorf("Expected count 3, got %v", meta["count"])
 	}
 
 	// Verify collections array
-	if len(response.Collections) != 3 {
-		t.Fatalf("Expected 3 collections, got %d", len(response.Collections))
+	data := response["data"].([]any)
+	if len(data) != 3 {
+		t.Fatalf("Expected 3 collections, got %d", len(data))
 	}
 
 	// Verify each collection has correct name and record count
@@ -471,14 +475,16 @@ func TestCollectionsHandler_List_DetailedResponse(t *testing.T) {
 		"orders":    3,
 	}
 
-	for _, col := range response.Collections {
-		expectedCount, exists := expectedCounts[col.Name]
+	for _, item := range data {
+		col := item.(map[string]any)
+		name := col["name"].(string)
+		expectedCount, exists := expectedCounts[name]
 		if !exists {
-			t.Errorf("Unexpected collection: %s", col.Name)
+			t.Errorf("Unexpected collection: %s", name)
 			continue
 		}
-		if col.Records != expectedCount {
-			t.Errorf("Collection %s: expected %d records, got %d", col.Name, expectedCount, col.Records)
+		if col["records"] != float64(expectedCount) {
+			t.Errorf("Collection %s: expected %d records, got %v", name, expectedCount, col["records"])
 		}
 	}
 }
@@ -527,7 +533,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -569,7 +576,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -593,7 +601,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -619,7 +628,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -645,7 +655,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -672,7 +683,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}
@@ -699,7 +711,8 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 
 		var errResp map[string]any
 		json.NewDecoder(w.Body).Decode(&errResp)
-		if errStr, ok := errResp["error"].(string); ok {
+		if errObj, ok := errResp["error"].(map[string]any); ok {
+			errStr, _ := errObj["message"].(string)
 			if !strings.Contains(errStr, "system column") {
 				t.Errorf("Expected error to mention 'system column', got: %s", errStr)
 			}

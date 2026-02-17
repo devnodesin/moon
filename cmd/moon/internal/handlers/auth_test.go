@@ -78,10 +78,12 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		t.Errorf("Login() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp LoginResponse
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+	var wrapper map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
+
+	resp := decodeLoginData(t, wrapper)
 
 	if resp.AccessToken == "" {
 		t.Error("Login() access_token is empty")
@@ -234,10 +236,11 @@ func TestAuthHandler_Refresh_Success(t *testing.T) {
 
 	handler.Login(loginW, loginReq)
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(loginW.Body).Decode(&loginResp); err != nil {
+	var loginWrapper map[string]any
+	if err := json.NewDecoder(loginW.Body).Decode(&loginWrapper); err != nil {
 		t.Fatalf("failed to decode login response: %v", err)
 	}
+	loginResp := decodeLoginData(t, loginWrapper)
 
 	// Now test refresh
 	body := RefreshRequest{
@@ -255,10 +258,12 @@ func TestAuthHandler_Refresh_Success(t *testing.T) {
 		t.Errorf("Refresh() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 	}
 
-	var resp LoginResponse
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+	var refreshWrapper map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&refreshWrapper); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
+
+	resp := decodeLoginData(t, refreshWrapper)
 
 	if resp.AccessToken == "" {
 		t.Error("Refresh() access_token is empty")
@@ -339,10 +344,11 @@ func TestAuthHandler_GetMe_Success(t *testing.T) {
 
 	handler.Login(loginW, loginReq)
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(loginW.Body).Decode(&loginResp); err != nil {
+	var loginWrapper map[string]any
+	if err := json.NewDecoder(loginW.Body).Decode(&loginWrapper); err != nil {
 		t.Fatalf("failed to decode login response: %v", err)
 	}
+	loginResp := decodeLoginData(t, loginWrapper)
 
 	// Test GetMe with valid token
 	req := httptest.NewRequest(http.MethodGet, "/auth:me", nil)
@@ -360,7 +366,7 @@ func TestAuthHandler_GetMe_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	userInfo := resp["user"].(map[string]any)
+	userInfo := resp["data"].(map[string]any)
 	if userInfo["username"] != "testuser" {
 		t.Errorf("GetMe() username = %v, want %q", userInfo["username"], "testuser")
 	}
@@ -399,10 +405,11 @@ func TestAuthHandler_UpdateMe_Success(t *testing.T) {
 
 	handler.Login(loginW, loginReq)
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(loginW.Body).Decode(&loginResp); err != nil {
+	var loginWrapper map[string]any
+	if err := json.NewDecoder(loginW.Body).Decode(&loginWrapper); err != nil {
 		t.Fatalf("failed to decode login response: %v", err)
 	}
+	loginResp := decodeLoginData(t, loginWrapper)
 
 	// Test UpdateMe - update email
 	updateBody := UpdateMeRequest{
@@ -461,10 +468,11 @@ func TestAuthHandler_UpdateMe_ChangePassword(t *testing.T) {
 
 	handler.Login(loginW, loginReq)
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(loginW.Body).Decode(&loginResp); err != nil {
+	var loginWrapper map[string]any
+	if err := json.NewDecoder(loginW.Body).Decode(&loginWrapper); err != nil {
 		t.Fatalf("failed to decode login response: %v", err)
 	}
+	loginResp := decodeLoginData(t, loginWrapper)
 
 	// Test UpdateMe - change password
 	updateBody := UpdateMeRequest{
@@ -524,10 +532,11 @@ func TestAuthHandler_UpdateMe_WrongOldPassword(t *testing.T) {
 
 	handler.Login(loginW, loginReq)
 
-	var loginResp LoginResponse
-	if err := json.NewDecoder(loginW.Body).Decode(&loginResp); err != nil {
+	var loginWrapper map[string]any
+	if err := json.NewDecoder(loginW.Body).Decode(&loginWrapper); err != nil {
 		t.Fatalf("failed to decode login response: %v", err)
 	}
+	loginResp := decodeLoginData(t, loginWrapper)
 
 	// Test UpdateMe - change password with wrong old password
 	updateBody := UpdateMeRequest{
@@ -810,4 +819,18 @@ func TestGetClientIP(t *testing.T) {
 			}
 		})
 	}
+}
+
+// decodeLoginData extracts LoginResponse from the {"data": ..., "message": ...} wrapper.
+func decodeLoginData(t *testing.T, wrapper map[string]any) LoginResponse {
+	t.Helper()
+	dataBytes, err := json.Marshal(wrapper["data"])
+	if err != nil {
+		t.Fatalf("failed to marshal data field: %v", err)
+	}
+	var resp LoginResponse
+	if err := json.Unmarshal(dataBytes, &resp); err != nil {
+		t.Fatalf("failed to unmarshal LoginResponse: %v", err)
+	}
+	return resp
 }
