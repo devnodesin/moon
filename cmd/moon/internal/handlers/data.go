@@ -413,7 +413,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 	}
 
 	if !isBatch {
-		// Single-object mode (backward compatible)
+		// Single-object mode
 		h.createSingle(w, r, collectionName, collection, batchReq.Data)
 		return
 	}
@@ -423,7 +423,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 	h.createBatch(w, r, collectionName, collection, batchReq.Data, atomic)
 }
 
-// createSingle handles single-object create (backward compatible)
+// createSingle handles single-object create
 func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, collectionName string, collection *registry.Collection, rawData json.RawMessage) {
 	var data map[string]any
 	if err := json.Unmarshal(rawData, &data); err != nil {

@@ -70,7 +70,7 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 	// Create token service for authentication
 	accessExpiry := cfg.JWT.AccessExpiry
 	if accessExpiry == 0 {
-		accessExpiry = cfg.JWT.Expiry
+		accessExpiry = 900 // 15 minutes default
 	}
 	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
 
