@@ -46,11 +46,14 @@ def perform_login(
             current_password=password
         )
         
-        access_token = token_json.get("access_token")
+        # Tokens are inside the "data" wrapper per SPEC_API.md
+        data_obj = token_json.get("data", token_json)
+        
+        access_token = data_obj.get("access_token")
         if access_token:
             auth_state.update_access_token(access_token)
         
-        refresh_token = token_json.get("refresh_token")
+        refresh_token = data_obj.get("refresh_token")
         if refresh_token:
             auth_state.update_refresh_token(refresh_token)
         
@@ -130,8 +133,13 @@ def extract_tokens_from_response(
     if not response_obj or not isinstance(response_obj, dict):
         return None, None
     
-    access_token = response_obj.get("access_token")
-    refresh_token = response_obj.get("refresh_token")
+    # Tokens may be inside "data" wrapper per SPEC_API.md
+    data_obj = response_obj.get("data", response_obj)
+    if not isinstance(data_obj, dict):
+        data_obj = response_obj
+    
+    access_token = data_obj.get("access_token")
+    refresh_token = data_obj.get("refresh_token")
     
     return access_token, refresh_token
 

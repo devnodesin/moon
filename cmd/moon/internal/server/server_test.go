@@ -112,9 +112,14 @@ func TestHealthHandler(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+	var wrapper map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&wrapper); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	response, ok := wrapper["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
 	if response["status"] != "live" {
@@ -129,7 +134,7 @@ func TestHealthHandler(t *testing.T) {
 		t.Errorf("Expected version '1-test', got '%v'", response["version"])
 	}
 
-	// Ensure no other fields are present
+	// Ensure no other fields are present in data
 	if len(response) != 3 {
 		t.Errorf("Expected exactly 3 fields, got %d: %v", len(response), response)
 	}

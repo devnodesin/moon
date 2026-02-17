@@ -530,7 +530,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Always return HTTP 200, even if service is down
 	// Clients must check the "status" field to determine service health
-	s.writeJSON(w, http.StatusOK, response)
+	s.writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
 
 // corsPreflightHandler handles CORS preflight OPTIONS requests.
