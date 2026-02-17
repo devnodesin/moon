@@ -550,8 +550,13 @@ func TestAPIKeyMiddleware_WriteAuthError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response["error"] != "Test error" {
-		t.Errorf("Expected error 'Test error', got '%v'", response["error"])
+	errObj, ok := response["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected error to be a nested object, got %T", response["error"])
+	}
+
+	if errObj["message"] != "Test error" {
+		t.Errorf("Expected message 'Test error', got '%v'", errObj["message"])
 	}
 }
 

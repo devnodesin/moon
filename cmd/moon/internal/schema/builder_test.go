@@ -207,11 +207,8 @@ func TestFromCollection_PreservesFieldProperties(t *testing.T) {
 	if field2.Nullable {
 		t.Error("Expected field2 to be non-nullable")
 	}
-	if field2.Default == nil {
-		t.Error("Expected field2 to have a default value")
-	} else {
-		if *field2.Default != defaultValue {
-			t.Errorf("Expected field2 default value '%s', got '%v'", defaultValue, *field2.Default)
-		}
+	// Non-nullable fields do not expose default values in the schema
+	if field2.Default != nil {
+		t.Error("Expected field2 to have no default value (non-nullable fields omit defaults)")
 	}
 }

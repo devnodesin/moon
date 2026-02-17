@@ -319,12 +319,17 @@ func TestWriteError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response["error"] != "Test error message" {
-		t.Errorf("Expected error 'Test error message', got '%v'", response["error"])
+	errObj, ok := response["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected error to be a nested object, got %T", response["error"])
 	}
 
-	if response["code"].(float64) != float64(http.StatusBadRequest) {
-		t.Errorf("Expected code %d, got %v", http.StatusBadRequest, response["code"])
+	if errObj["message"] != "Test error message" {
+		t.Errorf("Expected message 'Test error message', got '%v'", errObj["message"])
+	}
+
+	if errObj["code"] != "INVALID_PARAMETER" {
+		t.Errorf("Expected code 'INVALID_PARAMETER', got '%v'", errObj["code"])
 	}
 }
 
