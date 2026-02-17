@@ -117,7 +117,7 @@ The `nullable` property controls API request validation and default value applic
 
 ### Collection Creation Defaults
 
-**Important:** Default values for columns are managed internally by the Moon backend and **cannot be set or modified via API requests** to `/collections:create` or `/collections:update`. Any request containing `default` or `default_value` fields will be rejected with a 400 Bad Request error.
+**Important:** Default values for columns are managed internally by the Moon backend and **cannot be set or modified via API requests** to `/collections:create` or `/collections:update`. Any request containing `default` fields will be rejected with a 400 Bad Request error.
 
 When collections are created, Moon automatically applies type-based default values for nullable fields at the database level.
 
@@ -138,8 +138,8 @@ When collections are created, Moon automatically applies type-based default valu
 
 **Default values cannot be set or modified via API endpoints:**
 
-- The `/collections:create` endpoint does NOT accept `default` or `default_value` fields in column definitions
-- The `/collections:update` endpoint does NOT accept `default` or `default_value` fields in `add_columns` or `modify_columns` operations
+- The `/collections:create` endpoint does NOT accept `default` fields in column definitions
+- The `/collections:update` endpoint does NOT accept `default` fields in `add_columns` or `modify_columns` operations
 - Any request containing these fields will be rejected with a 400 Bad Request error
 
 **Example of rejected request:**
@@ -203,7 +203,7 @@ Response:
         "name": "priority",
         "type": "integer",
         "nullable": true,
-        "default_value": "0"  // ✓ Visible in schema responses
+        "default": "0"  // ✓ Visible in schema responses
       }
     ]
   }
@@ -216,7 +216,7 @@ Response:
   - `nullable: false` → field **MUST** be provided in every API request (validation error if omitted)
   - `nullable: true` → field **MAY** be omitted from API requests (uses database default if omitted)
 
-- **`default_value` (Schema/Database - Read-Only):** The database column default value for nullable fields
+- **`default` (Schema/Database - Read-Only):** The database column default value for nullable fields
   - Automatically set by the backend for nullable fields
   - Enforced by the database layer (not application logic)
   - Only applies to nullable fields
@@ -225,7 +225,7 @@ Response:
 
 **Behavior Matrix:**
 
-| nullable | default_value | field omitted | field = null | Result |
+| nullable | default | field omitted | field = null | Result |
 |----------|---------------|---------------|--------------|---------|
 | `false` | N/A* | ✗ | ✗ | **Validation error** - field is required |
 | `true` | (type default) | ✓ | ✓ | Type default applied (if omitted), NULL (if explicit) |
@@ -480,47 +480,21 @@ The system uses YAML-only configuration with centralized defaults:
 - **Centralized Defaults:** All default values are defined in the `config.Defaults` struct to eliminate hardcoded literals
 - **Immutable State:** On startup, the configuration is parsed into a global, read-only `AppConfig` struct to prevent accidental runtime mutations and ensure thread safety
 
-### Configuration Structure
+> **📖 Configuration Reference**: See **[moon.conf](moon.conf)** in the project root for the complete, self-documented configuration file with all available options, defaults, and inline documentation.
 
-```yaml
-server:
-  host: "0.0.0.0" # Default: 0.0.0.0
-  port: 6006 # Default: 6006
-  prefix: "" # Default: "" (empty - no prefix)
+### Configuration Principles
 
-database:
-  connection: "sqlite" # Default: sqlite (options: sqlite, postgres, mysql)
-  database: "/opt/moon/sqlite.db" # Default: /opt/moon/sqlite.db
-  user: "" # Default: "" (empty for SQLite)
-  password: "" # Default: "" (empty for SQLite)
-  host: "0.0.0.0" # Default: 0.0.0.0
+- **Single Source:** `moon.conf` is the only configuration file - fully documented with inline comments
+- **Secure Defaults:** Most options have sensible defaults; only `jwt.secret` and database settings require customization
+- **Location:** Default `/etc/moon.conf` or custom path via `--config` flag
+- **Format:** YAML with inline documentation for all options
 
-logging:
-  path: "/var/log/moon" # Default: /var/log/moon
+### Quick Start
 
-jwt:
-  secret: "" # REQUIRED - must be set in config file
-  expiry: 3600 # Default: 3600 seconds (1 hour)
-
-apikey:
-  enabled: false # Default: false
-  header: "X-API-KEY" # Default: X-API-KEY
-
-recovery:
-  auto_repair: true # Default: true - automatically repair consistency issues
-  drop_orphans: false # Default: false - drop orphaned tables (if false, register them)
-  check_timeout: 5 # Default: 5 seconds - timeout for consistency checks
-
-pagination:
-  default_page_size: 15 # Default: 15 - returned when no limit specified
-  max_page_size: 200 # Default: 200 - maximum allowed page size
-
-limits:
-  max_collections: 1000 # Default: 1000 - maximum collections per server
-  max_columns_per_collection: 100 # Default: 100 - including system columns
-  max_filters_per_request: 20 # Default: 20 - filter parameters per request
-  max_sort_fields_per_request: 5 # Default: 5 - sort fields per request
-```
+1. Copy `moon.conf` to `/etc/moon.conf`
+2. Set `jwt.secret` to a secure random value (use `openssl rand -base64 32`)
+3. Configure database connection (SQLite is default)
+4. Start Moon: `moon --config /etc/moon.conf`
 
 ### Recovery and Consistency Checking
 

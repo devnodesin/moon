@@ -58,7 +58,7 @@ Moon provides comprehensive, auto-generated API documentation:
 
 - **HTML Documentation**: Visit `http://localhost:6006/doc/` in your browser for a complete, interactive API reference
 - **Markdown Documentation**: Access `http://localhost:6006/doc/llms-full.txt` for terminal-friendly or AI-agent documentation
-- Configuration: See `samples/moon.conf` for comprehensive, spec-compliant configuration
+- Configuration: See `moon.conf` in the project root for comprehensive, self-documented configuration
 
 ### Additional Resources
 

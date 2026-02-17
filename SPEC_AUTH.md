@@ -1039,79 +1039,33 @@ The following error codes are unique to authentication flows and not covered in 
 
 ## Configuration Reference
 
-Authentication configuration is managed via the `moon.conf` YAML file following SPEC.md conventions.
+> **📖 Complete Configuration**: See **[moon.conf](moon.conf)** in the project root for the complete, self-documented configuration file with all authentication options, defaults, security recommendations, and inline documentation.
 
-### Configuration Structure
+### Configuration Principles
 
+Authentication configuration is managed via the `moon.conf` YAML file:
+
+- **Location:** Default `/etc/moon.conf` or custom path via `--config` flag
+- **Format:** YAML with inline documentation
+- **Required:** `jwt.secret` must be set to a secure random string (min 32 chars)
+- **Security:** Never commit secrets to version control
+
+### Quick Configuration
+
+**Minimum Required:**
 ```yaml
-# JWT Configuration (Required)
 jwt:
-  secret: "your-secret-key-min-32-chars"  # REQUIRED - cryptographically secure random string
-  expiry: 3600                             # Access token expiry in seconds (default: 3600 = 1 hour)
-
-# API Key Configuration (Optional)
-apikey:
-  enabled: false                           # Enable API key authentication (default: false)
-
-# Authentication Security Settings (Optional)
-auth:
-  # Password policy
-  password:
-    min_length: 8                          # Minimum password length (default: 8)
-    require_uppercase: true                # Require uppercase letter (default: true)
-    require_lowercase: true                # Require lowercase letter (default: true)
-    require_number: true                   # Require number (default: true)
-    require_special: false                 # Require special character (default: false)
-  
-  # Rate limiting
-  rate_limit:
-    user_rpm: 100                          # Requests per minute for JWT users (default: 100)
-    apikey_rpm: 1000                       # Requests per minute for API keys (default: 1000)
-    login_attempts: 5                      # Failed login attempts before lockout (default: 5)
-    login_window: 900                      # Login attempt window in seconds (default: 900 = 15 min)
-  
-  # Refresh token settings
-  refresh_token:
-    expiry: 604800                         # Refresh token expiry in seconds (default: 604800 = 7 days)
-    max_per_user: 10                       # Max concurrent sessions per user (default: 10)
-  
-  # Bootstrap admin account (only needed for very first service start)
-  bootstrap_admin:
-    username: "admin"
-    email: "admin@example.com"
-    password: "change-me-on-first-login"   # Change immediately after first login
-
-# CORS Configuration (Optional)
-security:
-  cors:
-    enabled: true                          # Enable CORS (default: true)
-    allowed_origins:                       # List of allowed origins
-      - "https://app.example.com"
-      - "http://localhost:3000"            # Development only
-    allow_credentials: true                # Allow cookies/auth headers (default: true)
-    max_age: 3600                          # Preflight cache in seconds (default: 3600)
+  secret: "your-secret-key-min-32-chars"  # Generate with: openssl rand -base64 32
 ```
 
-### Configuration Validation
+**Common Options:**
+- `jwt.access_expiry`: Access token lifetime (default: 3600s / 1 hour)
+- `jwt.refresh_expiry`: Refresh token lifetime (default: 604800s / 7 days)
+- `apikey.enabled`: Enable API key authentication (default: false)
+- `rate_limit.user_rpm`: JWT user request limit (default: 100/min)
+- `rate_limit.apikey_rpm`: API key request limit (default: 1000/min)
+- `auth.bootstrap_admin`: First-time admin account setup (remove after creation)
 
-**Required Fields:**
-
-- `jwt.secret`: Must be at least 32 characters for security
-  - Generate with: `openssl rand -base64 32` (Linux/Mac)
-  - Generate with: `[Convert]::ToBase64String((1..32|%{Get-Random -Max 256}))` (PowerShell)
-
-**Optional Fields with Defaults:**
-
-- All other fields have sensible defaults defined in `config.Defaults` struct
-- Only specify fields you want to override
-
-**Security Recommendations:**
-
-- Never commit `jwt.secret` to version control
-- Use strong, randomly generated secrets (min 32 chars)
-- The `bootstrap_admin` section is only needed for the very first service start (when no admin exists). After the first successful startup and admin creation, **remove the `bootstrap_admin` section from your config file** to prevent accidental re-creation or exposure of bootstrap credentials.
-- Change bootstrap admin password immediately
-- Use HTTPS in production (HTTP for development only)
-- Restrict CORS origins in production (no wildcards)
+See `moon.conf` for all available options with detailed inline documentation.
 
 **Note:** Configuration loaded from YAML file only (no environment variables). See SPEC.md for general configuration patterns.

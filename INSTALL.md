@@ -38,7 +38,7 @@ mkdir -pv ./temp/docker-data
 sudo docker run -d \
   --name moon \
   -p 6006:6006 \
-  -v $(pwd)/samples/moon.conf:/etc/moon.conf:ro \
+  -v $(pwd)/moon.conf:/etc/moon.conf:ro \
   -v $(pwd)/temp/docker-data/data:/opt/moon \
   -v $(pwd)/temp/docker-data/log:/var/log/moon \
   moon:latest
@@ -101,7 +101,7 @@ openssl rand -base64 32
 
 ### Step 2: Configure Moon
 
-Edit `/etc/moon.conf` (or `samples/moon.conf` for Docker):
+Edit `/etc/moon.conf` (or `moon.conf` in project root for Docker):
 
 ```yaml
 # JWT Configuration (REQUIRED)

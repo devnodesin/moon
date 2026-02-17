@@ -227,7 +227,7 @@ install_binary() {
 install_config() {
     print_header "Installing Configuration File"
     
-    local src="samples/moon.conf"
+    local src="moon.conf"
     local dest="/etc/moon.conf"
     
     if [ ! -f "$src" ]; then
