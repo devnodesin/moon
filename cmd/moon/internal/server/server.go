@@ -116,7 +116,7 @@ func (s *Server) setupRoutes() {
 	// Create auth handler with login rate limiting
 	accessExpiry := s.config.JWT.AccessExpiry
 	if accessExpiry == 0 {
-		accessExpiry = s.config.JWT.Expiry // fallback to legacy config
+		accessExpiry = 900 // 15 minutes default
 	}
 	refreshExpiry := s.config.JWT.RefreshExpiry
 	if refreshExpiry == 0 {

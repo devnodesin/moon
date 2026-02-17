@@ -318,9 +318,9 @@ func TestDataHandler_Update_Success(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := UpdateDataRequest{
-		ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-		Data: map[string]any{
+	reqBody := map[string]any{
+		"data": map[string]any{
+			"id":    "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 			"name":  "Updated Product",
 			"price": 29,
 		},
@@ -355,9 +355,9 @@ func TestDataHandler_Update_NotFound(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := UpdateDataRequest{
-		ID: "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-		Data: map[string]any{
+	reqBody := map[string]any{
+		"data": map[string]any{
+			"id":   "01ARZ3NDEKTSV4RRFFQ69G5FBX",
 			"name": "Updated Product",
 		},
 	}
@@ -393,9 +393,8 @@ func TestDataHandler_Update_WithIDInData(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	// Test case where "id" is included in data map (should be allowed as system field)
-	reqBody := UpdateDataRequest{
-		ID: "01KGYMMW8ZFKRDH5ZVHQJ30RR8",
-		Data: map[string]any{
+	reqBody := map[string]any{
+		"data": map[string]any{
 			"id":    "01KGYMMW8ZFKRDH5ZVHQJ30RR8", // This should be allowed
 			"name":  "Chain Link Fence 2x2",
 			"brand": "Bestfence",
@@ -439,8 +438,8 @@ func TestDataHandler_Destroy_Success(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := DestroyDataRequest{
-		ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+	reqBody := map[string]any{
+		"data": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -470,8 +469,8 @@ func TestDataHandler_Destroy_NotFound(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := DestroyDataRequest{
-		ID: "01ARZ3NDEKTSV4RRFFQ69G5FBX",
+	reqBody := map[string]any{
+		"data": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -863,9 +862,9 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 
 	// Test Update
 	t.Run("Update", func(t *testing.T) {
-		reqBody := UpdateDataRequest{
-			ID: createdULID,
-			Data: map[string]any{
+		reqBody := map[string]any{
+			"data": map[string]any{
+				"id":    createdULID,
 				"name":  "Updated Product",
 				"price": 29,
 			},
@@ -884,8 +883,8 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 
 	// Test Destroy
 	t.Run("Destroy", func(t *testing.T) {
-		reqBody := DestroyDataRequest{
-			ID: createdULID,
+		reqBody := map[string]any{
+			"data": createdULID,
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -2089,9 +2088,9 @@ func TestDataHandler_NoPkidExposure(t *testing.T) {
 
 	// Test 4: Update operation response should not expose pkid
 	t.Run("Update_NoPkid", func(t *testing.T) {
-		reqBody := UpdateDataRequest{
-			ID: testID,
-			Data: map[string]any{
+		reqBody := map[string]any{
+			"data": map[string]any{
+				"id":    testID,
 				"name":  "Updated Product",
 				"price": "39.99",
 			},
