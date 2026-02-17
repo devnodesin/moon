@@ -580,8 +580,8 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
 
-		if resp.Total != 5 {
-			t.Errorf("Expected total 5, got %d", resp.Total)
+		if count, _ := resp.Meta["count"].(float64); count != 5 {
+			t.Errorf("Expected count 5, got %v", resp.Meta["count"])
 		}
 
 		if len(resp.Data) != 5 {
@@ -605,8 +605,8 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 		}
 
 		// 3 electronics products
-		if resp.Total != 3 {
-			t.Errorf("Expected total 3 for electronics, got %d", resp.Total)
+		if count, _ := resp.Meta["count"].(float64); count != 3 {
+			t.Errorf("Expected count 3 for electronics, got %v", resp.Meta["count"])
 		}
 
 		if len(resp.Data) != 3 {
@@ -629,9 +629,9 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
 
-		// Total should be 5 (full count), even though we only fetched 2
-		if resp.Total != 5 {
-			t.Errorf("Expected total 5 (full count), got %d", resp.Total)
+		// Count should be 5 (full count), even though we only fetched 2
+		if count, _ := resp.Meta["count"].(float64); count != 5 {
+			t.Errorf("Expected count 5 (full count), got %v", resp.Meta["count"])
 		}
 
 		if len(resp.Data) != 2 {
@@ -676,8 +676,8 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
 
-		if resp.Total != 0 {
-			t.Errorf("Expected total 0 for empty collection, got %d", resp.Total)
+		if count, _ := resp.Meta["count"].(float64); count != 0 {
+			t.Errorf("Expected count 0 for empty collection, got %v", resp.Meta["count"])
 		}
 
 		if len(resp.Data) != 0 {

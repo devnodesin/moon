@@ -1676,21 +1676,22 @@ name TEXT NOT NULL
 			// Verify cursor behavior
 			if pageNum < 5 {
 				// Not the last page - should have a cursor
-				if response.NextCursor == nil {
-					t.Fatalf("page %d: expected next_cursor, got nil", pageNum)
+				if response.Meta["next"] == nil {
+					t.Fatalf("page %d: expected next cursor, got nil", pageNum)
 				}
+				nextCursor := response.Meta["next"].(string)
 				// Verify cursor points to the ID of the record we just retrieved
 				if recordID, ok := response.Data[0]["id"].(string); ok {
-					if *response.NextCursor != recordID {
+					if nextCursor != recordID {
 						t.Errorf("page %d: cursor should be ID of last returned record (%s), got %s",
-							pageNum, recordID, *response.NextCursor)
+							pageNum, recordID, nextCursor)
 					}
 				}
-				cursor = response.NextCursor
+				cursor = &nextCursor
 			} else {
 				// Last page - should NOT have a cursor
-				if response.NextCursor != nil {
-					t.Errorf("page %d (last page): expected nil cursor, got %s", pageNum, *response.NextCursor)
+				if response.Meta["next"] != nil {
+					t.Errorf("page %d (last page): expected nil cursor, got %v", pageNum, response.Meta["next"])
 				}
 			}
 		}
@@ -1770,8 +1771,8 @@ name TEXT NOT NULL
 		}
 
 		// Should have null cursor (no more records)
-		if response.NextCursor != nil {
-			t.Errorf("expected nil cursor for single record, got %s", *response.NextCursor)
+		if response.Meta["next"] != nil {
+			t.Errorf("expected nil cursor for single record, got %v", response.Meta["next"])
 		}
 	})
 
@@ -1814,8 +1815,8 @@ name TEXT NOT NULL
 		}
 
 		// Should have null cursor
-		if response.NextCursor != nil {
-			t.Errorf("expected nil cursor for empty collection, got %s", *response.NextCursor)
+		if response.Meta["next"] != nil {
+			t.Errorf("expected nil cursor for empty collection, got %v", response.Meta["next"])
 		}
 	})
 
@@ -1876,8 +1877,8 @@ name TEXT NOT NULL
 		}
 
 		// Should have null cursor (no more records)
-		if response.NextCursor != nil {
-			t.Errorf("expected nil cursor when fetching exact number of records, got %s", *response.NextCursor)
+		if response.Meta["next"] != nil {
+			t.Errorf("expected nil cursor when fetching exact number of records, got %v", response.Meta["next"])
 		}
 	})
 
@@ -1914,10 +1915,11 @@ name TEXT NOT NULL
 
 			retrievedRecords = append(retrievedRecords, response.Data...)
 
-			if response.NextCursor == nil {
+			if response.Meta["next"] == nil {
 				break
 			}
-			cursor = response.NextCursor
+			nextCursor := response.Meta["next"].(string)
+			cursor = &nextCursor
 		}
 
 		// Verify we retrieved exactly 5 records
