@@ -18,17 +18,17 @@ curl -s -X POST "http://localhost:6006/apikeys:create" \
 
 ```json
 {
-  "message": "API key created successfully",
-  "warning": "Store this key securely. It will not be shown again.",
-  "apikey": {
-    "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
-    "name": "Integration Service",
-    "description": "Key for integration",
-    "role": "user",
+  "data": {
     "can_write": false,
-    "created_at": "2026-02-14T02:27:42Z"
+    "created_at": "2026-02-17T10:58:53Z",
+    "description": "Key for integration",
+    "id": "01KHNM1HRQBFQECV2RX8EEMVWH",
+    "key": "moon_live_bJoL6mveHqWBssN5jXWpqchOK2z2HI3QnwqgA5Xaxnyxw6Vn5VLXjRXj0ui0DLxH",
+    "name": "Integration Service",
+    "role": "user"
   },
-  "key": "moon_live_Vo3mGA1S7BgAsr6RXvDJ0XREvE56C8MMh4gZ80pSIEb75XgHCp7v5ssp1IsyKx9a"
+  "message": "API key created successfully",
+  "warning": "Store this key securely. It will not be shown again."
 }
 ```
 
@@ -43,33 +43,37 @@ curl -s -X GET "http://localhost:6006/apikeys:list" \
 
 ```json
 {
-  "apikeys": [
+  "data": [
     {
-      "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
-      "name": "Integration Service",
-      "description": "Key for integration",
-      "role": "user",
-      "can_write": false,
-      "created_at": "2026-02-14T02:27:42Z"
-    },
-    {
-      "id": "01KHCZKD3A972SFG4GX7P4ZNAJ",
+      "id": "01KHNGH8D21N949H4H7ZSC4JMH",
       "name": "Another Service",
       "description": "Another key for testing",
       "role": "user",
       "can_write": false,
-      "created_at": "2026-02-14T02:27:42Z"
+      "created_at": "2026-02-17T09:57:33Z"
+    },
+    {
+      "id": "01KHNM1HRQBFQECV2RX8EEMVWH",
+      "name": "Integration Service",
+      "description": "Key for integration",
+      "role": "user",
+      "can_write": false,
+      "created_at": "2026-02-17T10:58:53Z"
     }
   ],
-  "next_cursor": null,
-  "limit": 15
+  "meta": {
+    "count": 2,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
 ### Get API Key
 
 ```bash
-curl -s -X GET "http://localhost:6006/apikeys:get?id=01KHCZKCR7MHB0Q69KM63D6AXF" \
+curl -s -X GET "http://localhost:6006/apikeys:get?id=01KHNM1HRQBFQECV2RX8EEMVWH" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -77,13 +81,13 @@ curl -s -X GET "http://localhost:6006/apikeys:get?id=01KHCZKCR7MHB0Q69KM63D6AXF"
 
 ```json
 {
-  "apikey": {
-    "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
+  "data": {
+    "id": "01KHNM1HRQBFQECV2RX8EEMVWH",
     "name": "Integration Service",
     "description": "Key for integration",
     "role": "user",
     "can_write": false,
-    "created_at": "2026-02-14T02:27:42Z"
+    "created_at": "2026-02-17T10:58:53Z"
   }
 }
 ```
@@ -93,7 +97,7 @@ curl -s -X GET "http://localhost:6006/apikeys:get?id=01KHCZKCR7MHB0Q69KM63D6AXF"
 ***Note:*** Update metadata fields (name, description, can_write) without changing the API key itself. The key remains valid. To generate a new key, use the rotation action.
 
 ```bash
-curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6AXF" \
+curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHNM1HRQBFQECV2RX8EEMVWH" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '
@@ -109,15 +113,15 @@ curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6
 
 ```json
 {
-  "message": "API key updated successfully",
-  "apikey": {
-    "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
+  "data": {
+    "id": "01KHNM1HRQBFQECV2RX8EEMVWH",
     "name": "Updated Service Name",
     "description": "Updated description",
     "role": "user",
     "can_write": true,
-    "created_at": "2026-02-14T02:27:42Z"
-  }
+    "created_at": "2026-02-17T10:58:53Z"
+  },
+  "message": "API key updated successfully"
 }
 ```
 
@@ -126,7 +130,7 @@ curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6
 Use `rotate` to securely generate a new API key and invalidate the old one in a single step, minimizing overlap between valid keys.
 
 ```bash
-curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6AXF" \
+curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHNM1HRQBFQECV2RX8EEMVWH" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '
@@ -140,24 +144,20 @@ curl -s -X POST "http://localhost:6006/apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6
 
 ```json
 {
-  "message": "API key rotated successfully",
-  "warning": "Store this key securely. It will not be shown again.",
-  "apikey": {
-    "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
-    "name": "Updated Service Name",
-    "description": "Updated description",
-    "role": "user",
-    "can_write": true,
-    "created_at": "2026-02-14T02:27:42Z"
+  "data": {
+    "id": "01KHNM1HRQBFQECV2RX8EEMVWH",
+    "key": "moon_live_a5184k1gXaqGztjUJ5lsLSi7zsY3fZCuVJxpq7t6arsjb84hT5WnmSwZWUwPoCzk",
+    "name": "Updated Service Name"
   },
-  "key": "moon_live_9wAtNeHqBdYmQaf3Dvm8YhVM4FK880X4dj5dqFSqLJ6qJmApxHuYe6gqkI3ipgKG"
+  "message": "API key rotated successfully",
+  "warning": "Store this key securely. The old key is now invalid."
 }
 ```
 
 ### Delete API Key
 
 ```bash
-curl -s -X POST "http://localhost:6006/apikeys:destroy?id=01KHCZKCR7MHB0Q69KM63D6AXF" \
+curl -s -X POST "http://localhost:6006/apikeys:destroy?id=01KHNM1HRQBFQECV2RX8EEMVWH" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 

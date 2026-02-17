@@ -17,7 +17,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "id": "01KHNM1QV3XBT15NAY0MBGB2TF",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -25,15 +25,18 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "id": "01KHNM1R4SCJWN4V3RK5GV48R2",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
   ],
-  "total": 2,
-  "next_cursor": null,
-  "limit": 15
+  "meta": {
+    "count": 2,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
@@ -56,7 +59,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "id": "01KHNM1R07TDVJH8JJZKWV36NT",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -64,7 +67,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "id": "01KHNM1R4SCJWN4V3RK5GV48R2",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -72,15 +75,18 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "id": "01KHNM1QV3XBT15NAY0MBGB2TF",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
     }
   ],
-  "total": 3,
-  "next_cursor": null,
-  "limit": 15
+  "meta": {
+    "count": 3,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
@@ -103,15 +109,18 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "id": "01KHNM1QV3XBT15NAY0MBGB2TF",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
     }
   ],
-  "total": 1,
-  "next_cursor": null,
-  "limit": 15
+  "meta": {
+    "count": 1,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
@@ -132,24 +141,27 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 {
   "data": [
     {
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "id": "01KHNM1QV3XBT15NAY0MBGB2TF",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "id": "01KHNM1R07TDVJH8JJZKWV36NT",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "id": "01KHNM1R4SCJWN4V3RK5GV48R2",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
   ],
-  "total": 3,
-  "next_cursor": null,
-  "limit": 15
+  "meta": {
+    "count": 3,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
@@ -170,7 +182,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "id": "01KHNM1QV3XBT15NAY0MBGB2TF",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -178,15 +190,18 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "id": "01KHNM1R07TDVJH8JJZKWV36NT",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
-  "total": 3,
-  "next_cursor": "01KHCZKSPHB01TBEWKYQDKG5KS",
-  "limit": 2
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": "01KHNM1R07TDVJH8JJZKWV36NT",
+    "prev": null
+  }
 }
 ```
 
@@ -197,7 +212,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
  (Response includes `next_cursor` when more results are available.)
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:list?after=01KHCZKSBQV1KH69AA6PVS12MM&limit=1" \
+curl -s -X GET "http://localhost:6006/products:list?after=01KHNM1QV3XBT15NAY0MBGB2TF&limit=1" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -209,14 +224,17 @@ curl -s -X GET "http://localhost:6006/products:list?after=01KHCZKSBQV1KH69AA6PVS
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "id": "01KHNM1R07TDVJH8JJZKWV36NT",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
     }
   ],
-  "total": 3,
-  "next_cursor": "01KHCZKSPHB01TBEWKYQDKG5KS",
-  "limit": 1
+  "meta": {
+    "count": 1,
+    "limit": 1,
+    "next": "01KHNM1R07TDVJH8JJZKWV36NT",
+    "prev": null
+  }
 }
 ```

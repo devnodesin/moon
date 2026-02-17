@@ -43,7 +43,7 @@ curl -s -X POST "http://localhost:6006/collections:create" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -96,13 +96,22 @@ curl -s -X GET "http://localhost:6006/collections:list" \
 
 ```json
 {
-  "collections": [
+  "data": [
+    {
+      "name": "catalog",
+      "records": 2
+    },
     {
       "name": "products",
       "records": 0
     }
   ],
-  "count": 1
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": null,
+    "prev": null
+  }
 }
 ```
 
@@ -117,7 +126,7 @@ curl -s -X GET "http://localhost:6006/collections:get?name=products" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -182,7 +191,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -253,7 +262,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -325,7 +334,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -393,7 +402,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {
@@ -471,7 +480,7 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 
 ```json
 {
-  "collection": {
+  "data": {
     "name": "products",
     "columns": [
       {

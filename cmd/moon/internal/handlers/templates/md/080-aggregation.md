@@ -9,7 +9,9 @@ curl -s -X GET "http://localhost:6006/products:count" \
 
 ```json
 {
-  "value": 3
+  "data": {
+    "value": 3
+  }
 }
 ```
 
@@ -24,7 +26,9 @@ curl -s -X GET "http://localhost:6006/products:sum?field=quantity" \
 
 ```json
 {
-  "value": 85
+  "data": {
+    "value": 85
+  }
 }
 ```
 
@@ -39,7 +43,9 @@ curl -s -X GET "http://localhost:6006/products:avg?field=quantity" \
 
 ```json
 {
-  "value": 28.333333333333332
+  "data": {
+    "value": 28.333333333333332
+  }
 }
 ```
 
@@ -54,7 +60,9 @@ curl -s -X GET "http://localhost:6006/products:min?field=quantity" \
 
 ```json
 {
-  "value": 10
+  "data": {
+    "value": 10
+  }
 }
 ```
 
@@ -69,6 +77,8 @@ curl -s -X GET "http://localhost:6006/products:max?field=quantity" \
 
 ```json
 {
-  "value": 55
+  "data": {
+    "value": 55
+  }
 }
 ```

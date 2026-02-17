@@ -8,8 +8,10 @@ curl -s -X GET "http://localhost:6006/health" | jq .
 
 ```json
 {
-  "name": "moon",
-  "status": "live",
-  "version": "1.0"
+  "data": {
+    "name": "moon",
+    "status": "live",
+    "version": "1.0"
+  }
 }
 ```
