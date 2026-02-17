@@ -42,10 +42,10 @@ print_header() {
 check_root() {
     print_info "Checking for root privileges..."
     if [ "$EUID" -ne 0 ]; then
-        print_error "This script must be run as root."
+        echo "Insufficient privileges."
         echo ""
-        echo "Please run this script with sudo:"
-        echo "  sudo ./install.sh"
+        echo "Try running this script with sudo:"
+        echo "  sudo ./samples/install.sh"
         echo ""
         exit 1
     fi
@@ -227,7 +227,7 @@ install_binary() {
 install_config() {
     print_header "Installing Configuration File"
     
-    local src="moon.conf"
+    local src="$(dirname "$0")/../moon.conf"
     local dest="/etc/moon.conf"
     
     if [ ! -f "$src" ]; then

@@ -11,6 +11,7 @@
 
 ## Quick Start
 
+
 Clone, build, and install:
 
 ```bash
@@ -23,14 +24,13 @@ cd moon
 Moon can be run in a Docker container for consistent, portable deployments.
 
 ```bash
-# Build Docker Image
-# From the repository root:
 sudo docker build -t moon:latest .
 ```
 
 This creates a minimal Docker image using a multi-stage build:
 
 ```bash
+
 # Prepare host directories
 mkdir -pv ./temp/docker-data
 
@@ -45,25 +45,27 @@ sudo docker run -d \
 ```
 
 ```bash
+
 ## Stop / Remove any existing container (ignore errors if not present)
 sudo docker stop moon && sudo docker rm -f moon
 ```
 
 ## Host Installation
 
-Use the provided installation script:
+
+Use the provided installation scripts (now in the `samples/` directory):
 
 ```bash
-sudo ./build.sh
-sudo ./install.sh
+sudo ./samples/build.sh
+sudo ./samples/install.sh
 ```
 
-The build script: `build.sh`
+The build script: `samples/build.sh`
 
 - Compiles the Moon binary using Docker
 - Version information is defined in the codebase as constants
 
-This script: `install.sh`
+The install script: `samples/install.sh`
 
 - Creates moon system user
 - Sets up directories (`/opt/moon`, `/var/log/moon`, `/var/lib/moon`)
@@ -100,6 +102,7 @@ openssl rand -base64 32
 ```
 
 ### Step 2: Configure Moon
+
 
 Edit `/etc/moon.conf` (or `moon.conf` in project root for Docker):
 

@@ -4,10 +4,10 @@
 set -e
 
 if [ "$EUID" -ne 0 ]; then
-    echo "This script must be run as root."
+    echo "Insufficient privileges."
     echo ""
-    echo "Please run this script with sudo:"
-    echo "  sudo ./build.sh"
+    echo "Try running this script with sudo:"
+    echo "  sudo ./samples/build.sh"
     echo ""
     exit 1
 fi
