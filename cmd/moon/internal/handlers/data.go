@@ -338,7 +338,7 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 	response := DataListResponse{
 		Data: data,
 		Meta: map[string]any{
-			"count": total,
+			"count": len(data),
 			"limit": limit,
 			"next":  nextCursor,
 			"prev":  nil,
