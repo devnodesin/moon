@@ -36,6 +36,29 @@ func NewDataHandler(db database.Driver, reg *registry.SchemaRegistry, cfg *confi
 	}
 }
 
+// buildPlaceholder returns the SQL placeholder for the given dialect and index.
+// For PostgreSQL, it returns $1, $2, etc. For SQLite/MySQL, it returns ?.
+func buildPlaceholder(dialect database.DialectType, index int) string {
+	if dialect == database.DialectPostgres {
+		return fmt.Sprintf("$%d", index)
+	}
+	return "?"
+}
+
+// buildPlaceholders returns a slice of SQL placeholders for the given dialect.
+// For count placeholders starting at startIndex.
+func buildPlaceholders(dialect database.DialectType, count, startIndex int) []string {
+	placeholders := make([]string, count)
+	for i := 0; i < count; i++ {
+		if dialect == database.DialectPostgres {
+			placeholders[i] = fmt.Sprintf("$%d", startIndex+i)
+		} else {
+			placeholders[i] = "?"
+		}
+	}
+	return placeholders
+}
+
 // DataListRequest represents query parameters for list operation
 type DataListRequest struct {
 	Limit  int               `json:"limit"`
@@ -347,13 +370,8 @@ func (h *DataHandler) Get(w http.ResponseWriter, r *http.Request, collectionName
 	}
 
 	// Build SELECT query using ULID
-	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", collectionName)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id = %s", collectionName, buildPlaceholder(h.db.Dialect(), 1))
 	args := []any{idStr}
-
-	// Adjust placeholder style based on dialect
-	if h.db.Dialect() == database.DialectPostgres {
-		query = fmt.Sprintf("SELECT * FROM %s WHERE id = $1", collectionName)
-	}
 
 	// Execute query
 	ctx := r.Context()
@@ -442,26 +460,15 @@ func (h *DataHandler) createSingle(w http.ResponseWriter, r *http.Request, colle
 
 	// Build INSERT query including ULID
 	columns := []string{"id"}
-	placeholders := []string{}
+	placeholders := []string{buildPlaceholder(h.db.Dialect(), 1)}
 	values := []any{ulid}
-	i := 1
-
-	if h.db.Dialect() == database.DialectPostgres {
-		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-	} else {
-		placeholders = append(placeholders, "?")
-	}
-	i++
+	i := 2
 
 	for _, col := range collection.Columns {
 		if val, ok := data[col.Name]; ok {
 			// Field is present in request - use it
 			columns = append(columns, col.Name)
-			if h.db.Dialect() == database.DialectPostgres {
-				placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-			} else {
-				placeholders = append(placeholders, "?")
-			}
+			placeholders = append(placeholders, buildPlaceholder(h.db.Dialect(), i))
 			values = append(values, val)
 			i++
 		}
