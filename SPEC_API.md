@@ -109,21 +109,7 @@ Check API service health and version information.
 - **Health check**: No authentication required. Use for monitoring and uptime checks
 - **Version tracking**: The version field in health response indicates the current API version
 
-### Error Response
-
-```json
-{
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Authentication required"
-  }
-}
-```
-
-**Common error codes:**
-
-- `UNAUTHORIZED`: Missing or invalid authentication (for `/doc:refresh`)
-- `NOT_FOUND`: Documentation format not available
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
 ## Authentication Endpoints
 
@@ -313,23 +299,7 @@ Invalidate current session and refresh token.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
-### Error Response
-
-```json
-{
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid credentials"
-  }
-}
-```
-
-**Common error codes:**
-
-- `UNAUTHORIZED`: Invalid credentials or expired token
-- `INVALID_PARAMETER`: Missing required fields
-- `VALIDATION_ERROR`: Invalid email format or weak password
-- `FORBIDDEN`: Insufficient permissions
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
 ## Standard Response Pattern for `:list` Endpoints
 
@@ -403,24 +373,252 @@ GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5&limit=15
 - **Cursor format**: Cursors are ULIDs pointing to specific records.
 - **Invalid cursor**: Returns error `RECORD_NOT_FOUND` if the cursor doesn't exist.
 
-### Error Response
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
-When an error occurs, the API returns a structured error response:
+## Query Options
+
+Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. These options allow you to retrieve specific subsets of data based on your criteria.
+
+| Query Option              | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `?column[operator]=value` | Filter records by column values using comparison operators   |
+| `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending order) |
+| `?q={term}`               | Full-text search across all text columns                     |
+| `?fields={field1,field2}` | Select specific fields to return (`id` is always included)   |
+| `?limit={number}`         | Limit the number of records returned (default: 15, max: 100) |
+| `?after={cursor}`         | Get records after the specified cursor                       |
+
+### Filtering
+
+**Query Option:** `?column[operator]=value`
+
+**Supported Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
+
+**Example:**
+
+```sh
+GET /products:list?quantity[gt]=5&brand[eq]=Wow
+```
+
+**Response (200 OK):**
 
 ```json
 {
-  "error": {
-    "code": "RECORD_NOT_FOUND",
-    "message": "The requested cursor does not exist"
+  "data": [
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    },
+    {
+      "brand": "Wow",
+      "details": "Full HD monitor",
+      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "price": "199.99",
+      "quantity": 20,
+      "title": "Monitor 21 inch"
+    }
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 15,
+    "next": null,
+    "prev": null
   }
 }
 ```
 
-**Common Error Codes:**
+### Sorting
 
-- `RECORD_NOT_FOUND`: Invalid cursor or resource doesn't exist.
-- `INVALID_PARAMETER`: Invalid limit value (e.g., exceeds max of 100).
-- `UNAUTHORIZED`: Missing or invalid authentication.
+**Query Option:** `?sort={-field1,field2}`
+
+Sort by `field` (ascending) or `-field` (descending). Multiple fields can be specified.
+
+**Example:**
+
+```sh
+GET /products:list?sort=-quantity,title
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "brand": "Orange",
+      "details": "Gaming keyboard",
+      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "price": "19.99",
+      "quantity": 55,
+      "title": "USB Keyboard"
+    },
+    {
+      "brand": "Wow",
+      "details": "Full HD monitor",
+      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "price": "199.99",
+      "quantity": 20,
+      "title": "Monitor 21 inch"
+    },
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    }
+  ],
+  "meta": {
+    "count": 3,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
+}
+```
+
+### Full-Text Search
+
+**Query Option:** `?q={search_term}`
+
+Searches across all string/text fields in the collection.
+
+**Example:**
+
+```sh
+GET /products:list?q=mouse
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    }
+  ],
+  "meta": {
+    "count": 1,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
+}
+```
+
+### Field Selection
+
+**Query Option:** `?fields={field1,field2}`
+
+Returns only the specified fields (plus `id`, which is always included).
+
+**Example:**
+
+```sh
+GET /products:list?fields=quantity,title
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    },
+    {
+      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "quantity": 55,
+      "title": "USB Keyboard"
+    },
+    {
+      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
+      "quantity": 20,
+      "title": "Monitor 21 inch"
+    }
+  ],
+  "meta": {
+    "count": 3,
+    "limit": 15,
+    "next": null,
+    "prev": null
+  }
+}
+```
+
+### Limit
+
+**Query Option:** `?limit={number}`
+
+**Example:**
+
+```sh
+GET /products:list?limit=2
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    },
+    {
+      "brand": "Orange",
+      "details": "Gaming keyboard",
+      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "price": "19.99",
+      "quantity": 55,
+      "title": "USB Keyboard"
+    }
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": "01KHCZKSPHB01TBEWKYQDKG5KS",
+    "prev": null
+  }
+}
+```
+
+### Pagination
+
+**Query Option:** `?after={cursor}`
+
+Refer to the `:list` endpoint documentation for detailed pagination behavior.
+
+### Combined Query Examples
+
+Query parameters can be combined to perform complex queries. Here are some examples:
+
+```sh
+# Filter, sort, and limit
+GET /products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5
+
+# Search with category filter and field selection
+GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
+
+# Multiple filters with pagination
+GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEK
 
 ## Standard Response Pattern for `:get` Endpoints
 
@@ -493,22 +691,7 @@ GET /collections:get?name=products
 - **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
 - **404 error**: Returns `RECORD_NOT_FOUND` if the resource doesn't exist.
 
-### Error Response
-
-```json
-{
-  "error": {
-    "code": "RECORD_NOT_FOUND",
-    "message": "User with id '01KHCZGWWRBQBREMG0K23C6C5H' not found"
-  }
-}
-```
-
-**Common Error Codes:**
-
-- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist.
-- `INVALID_PARAMETER`: Missing or invalid `id` or `name` parameter.
-- `UNAUTHORIZED`: Missing or invalid authentication.
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
 ## Standard Response Pattern for `:create` Endpoints
 
@@ -693,25 +876,7 @@ Multiple records:
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
 
-### Error Response
-
-**Full Failure (No Records Created):**
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "All records failed validation"
-  }
-}
-```
-
-**Common Error Codes:**
-
-- `VALIDATION_ERROR`: Invalid input or constraint violation.
-- `DUPLICATE_RECORD`: Resource with unique field already exists.
-- `INVALID_PARAMETER`: Missing required fields.
-- `UNAUTHORIZED`: Missing or invalid authentication.
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
 ## Standard Response Pattern for `:destroy` Endpoints
 
@@ -813,25 +978,7 @@ Multiple records:
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
 
-### Error Response
-
-**Full Failure (No Records Deleted):**
-
-```json
-{
-  "error": {
-    "code": "RECORD_NOT_FOUND",
-    "message": "No records found with provided IDs"
-  }
-}
-```
-
-**Common Error Codes:**
-
-- `RECORD_NOT_FOUND`: Resource with specified ID/name doesn't exist.
-- `INVALID_PARAMETER`: Missing required `id`, `name`, or `data` parameter.
-- `UNAUTHORIZED`: Missing or invalid authentication.
-- `FORBIDDEN`: Cannot delete protected resource.
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
 ## Standard Response Pattern for `:update` Endpoints
 
@@ -1083,273 +1230,11 @@ POST /products:sum?field=quantity
 - `/products:sum?field=quantity&brand[eq]=Wow"`
 - `/products:max?field=quantity`
 
-for **error handling** refer [Error Response ](#error-response )
+**Error Response:** For details on error handling, see [Error Response](#error-response).
 
-## Query Options
-
-Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. These options allow you to retrieve specific subsets of data based on your criteria.
-
-| Query Option              | Description                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| `?column[operator]=value` | Filter records by column values using comparison operators   |
-| `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending order) |
-| `?q={term}`               | Full-text search across all text columns                     |
-| `?fields={field1,field2}` | Select specific fields to return (`id` is always included)   |
-| `?limit={number}`         | Limit the number of records returned (default: 15, max: 100) |
-| `?after={cursor}`         | Get records after the specified cursor                       |
-
-### Filtering
-
-**Query Option:** `?column[operator]=value`
-
-**Supported Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
-
-**Example:**
-
-```bash
-GET "/products:list?quantity[gt]=5&brand[eq]=Wow"
 ```
 
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Wow",
-      "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "price": "29.99",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    },
-    {
-      "brand": "Wow",
-      "details": "Full HD monitor",
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
-      "price": "199.99",
-      "quantity": 20,
-      "title": "Monitor 21 inch"
-    }
-  ],
-  "meta": {
-    "count": 2,
-    "limit": 15,
-    "next": null,
-    "prev": null
-  }
-}
-```
-
-### Sorting
-
-**Query Option:** `?sort={-field1,field2}`
-
-Sort by `field` (ascending) or `-field` (descending). Multiple fields can be specified.
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Orange",
-      "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
-      "price": "19.99",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    },
-    {
-      "brand": "Wow",
-      "details": "Full HD monitor",
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
-      "price": "199.99",
-      "quantity": 20,
-      "title": "Monitor 21 inch"
-    },
-    {
-      "brand": "Wow",
-      "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "price": "29.99",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    }
-  ],
-  "meta": {
-    "count": 3,
-    "limit": 15,
-    "next": null,
-    "prev": null
-  }
-}
-```
-
-### Full-Text Search
-
-**Query Option:** `?q={search_term}`
-
-Searches across all string/text fields in the collection.
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Wow",
-      "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "price": "29.99",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    }
-  ],
-  "meta": {
-    "count": 1,
-    "limit": 15,
-    "next": null,
-    "prev": null
-  }
-}
-```
-
-### Field Selection
-
-**Query Option:** `?fields={field1,field2}`
-
-Returns only the specified fields (plus `id`, which is always included).
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    },
-    {
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    },
-    {
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
-      "quantity": 20,
-      "title": "Monitor 21 inch"
-    }
-  ],
-  "meta": {
-    "count": 3,
-    "limit": 15,
-    "next": null,
-    "prev": null
-  }
-}
-```
-
-### Limit
-
-**Query Option:** `?limit={number}`
-
-**Example:**
-
-```bash
-curl -s -X GET "http://localhost:6006/products:list?limit=2" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Wow",
-      "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "price": "29.99",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    },
-    {
-      "brand": "Orange",
-      "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
-      "price": "19.99",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    }
-  ],
-  "meta": {
-    "count": 2,
-    "limit": 2,
-    "next": "01KHCZKSPHB01TBEWKYQDKG5KS",
-    "prev": null
-  }
-}
-```
-
-### Pagination
-
-**Query Option:** `?after={cursor}`
-
-Refer to the `:list` endpoint documentation for detailed pagination behavior.
-
-### Combined Query Examples
-
-Query parameters can be combined to perform complex queries. Here are some examples:
-
-**Filter, sort, and limit:**
-
-```bash
-curl -g "http://localhost:6006/products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Search with category filter and field selection:**
-
-```bash
-curl -g "http://localhost:6006/products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Multiple filters with pagination:**
-
-```bash
-curl -g "http://localhost:6006/products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEK" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-
-
-
-
-## Error Response 
+## Error Response
 
 The Moon API uses a simple, consistent error handling approach:
 
@@ -1367,13 +1252,12 @@ When an error occurs, the API responds with the appropriate HTTP status code and
 
 The API strictly follows standard HTTP semantics. Only the codes listed below are permitted; do not use any others.
 
-| Code  | Meaning                 |
-| ----- | ----------------------- |
-| `400` | Invalid request like Validation error, invalid parameter, malformed request         |
-| `401` | Authentication required |
-| `404` | Resource not found      |
-| `500` | Server error            |
-
+| Code  | Meaning                                                                     |
+| ----- | --------------------------------------------------------------------------- |
+| `400` | Invalid request like Validation error, invalid parameter, malformed request |
+| `401` | Authentication required                                                     |
+| `404` | Resource not found                                                          |
+| `500` | Server error                                                                |
 
 ### Examples
 
@@ -1411,8 +1295,8 @@ The API strictly follows standard HTTP semantics. Only the codes listed below ar
 
 ### Design Principles
 
-* The HTTP status code is the only machine-readable error signal.
-* The `message` field is intended for direct display to users.
-* Clients are not expected to parse or branch on error types.
-* All error responses contain only the `message` field.
-* No additional error metadata is returned.
+- The HTTP status code is the only machine-readable error signal.
+- The `message` field is intended for direct display to users.
+- Clients are not expected to parse or branch on error types.
+- All error responses contain only the `message` field.
+- No additional error metadata is returned.
