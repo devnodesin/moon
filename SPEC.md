@@ -1,6 +1,26 @@
 # Moon - Dynamic Headless Engine
 
-This document outlines the design for a high-performance, API-first backend built in **Go**. The system allows for real-time, migration-less database management via REST APIs using a **custom-action pattern** and **in-memory schema caching**.
+This document outlines the architecture and design for a high-performance, API-first backend built in **Go**. The system allows for real-time, migration-less database management via REST APIs using a **custom-action pattern** and **in-memory schema caching**.
+
+> **📖 API Reference**: For complete API documentation including all endpoints, request/response formats, query options, and error codes, see **[SPEC_API.md](SPEC_API.md)**.
+>
+> **🔐 Authentication**: For authentication flows, JWT tokens, API keys, roles, and permissions, see **[SPEC_AUTH.md](SPEC_AUTH.md)**.
+
+## Table of Contents
+
+1. [System Philosophy](#1-system-philosophy)
+2. [Data Types](#data-types)
+3. [Default Values](#default-values)
+4. [Validation Constraints](#validation-constraints)
+5. [API Standards](#api-standards)
+6. [Configuration Architecture](#configuration-architecture)
+7. [API Endpoint Specification](#2-api-endpoint-specification)
+8. [Database Schema Design](#database-schema-design)
+9. [Interface & Integration](#interface--integration)
+10. [Authentication & Authorization](#authentication--authorization)
+11. [Design for AI Maintainability](#4-design-for-ai-maintainability)
+12. [Persistence Layer & Agnosticism](#5-persistence-layer--agnosticism)
+13. [End-User Testing](#6-end-user-testing)
 
 ## 1. System Philosophy
 
@@ -383,7 +403,7 @@ cors:
   allow_credentials: true
   max_age: 3600
   
-  # Endpoint-specific CORS registration (PRD-058)
+  # Endpoint-specific CORS registration
   endpoints:
     - path: "/health"
       pattern_type: "exact"
@@ -404,7 +424,7 @@ cors:
 
 **Note:** Only GET, POST, and OPTIONS methods are supported by the Moon server. Including other methods (PUT, DELETE, PATCH) in the `allowed_methods` configuration will not enable them on the server.
 
-**CORS Endpoint Registration (PRD-058):**
+**CORS Endpoint Registration:**
 
 Moon supports dynamic CORS endpoint registration with pattern matching:
 
@@ -527,13 +547,13 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 
 - The `/health` endpoint provides health check information for liveness and readiness checks
 - Returns a JSON response with four fields:
-  - `status`: Service health status (`ok` or `degraded`)
+  - `status`: Service health status (`ok` or `down`)
   - `database`: Database connectivity status (`ok` or `error`)
   - `version`: Service version string (e.g., `1.0.0`)
   - `timestamp`: ISO 8601 timestamp of the health check
-- Always returns HTTP 200, even when the service is degraded
+- Always returns HTTP 200, even when the service is down
 - Clients must check the `status` field to determine service health
-- Does not expose internal details like database type, collection count, or consistency status
+- Should not expose internal details like database type, collection count, or consistency status
 
 **Example health response:**
 
@@ -541,18 +561,11 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 {
   "status": "ok",
   "database": "ok",
-  "version": "1.0.0",
+  "moon": "1.0.0",
   "timestamp": "2026-02-03T13:58:53Z"
 }
 ```
 
-```json
-{
-  "status": "live",
-  "name": "moon",
-  "version": "1.99"
-}
-```
 
 ### Running Modes
 
@@ -567,10 +580,11 @@ Before the server starts, Moon performs filesystem preflight checks:
 #### Console Mode (Default)
 
 ```bash
-moon --config /etc/moon.conf
+moon 
 ```
 
 - Runs in foreground attached to terminal
+- The `--config /{path}/moon.conf` flag is optional. If not provided, Moon will attempt to load the configuration from the default location `/etc/moon.conf`.
 - Logs output to both stdout/stderr AND log file (`/var/log/moon/main.log` or path specified in config)
 - Stdout logs use console format (colorized, human-readable)
 - File logs use simple format (`[LEVEL](TIMESTAMP): {MESSAGE}`)
@@ -579,9 +593,9 @@ moon --config /etc/moon.conf
 #### Daemon Mode
 
 ```bash
-moon --daemon --config /etc/moon.conf
+moon --daemon
 # or shorthand
-moon -d --config /etc/moon.conf
+moon -d
 ```
 
 - Runs as background daemon process
@@ -597,8 +611,8 @@ The system uses a strict pattern to ensure that AI agents and developers can int
 - **RESTful API:** A standardized API following strict predictable patterns, making it easy for AI to generate documentation.
 - **Configurable Prefix:** All API endpoints are mounted under a configurable URL prefix (default: empty string).
   - Default (no prefix): `/health`, `/collections:list`, `/{collection}:list`
-  - With `/api/v1` prefix: `/api/v1/health`, `/api/v1/collections:list`, `/api/v1/{collection}:list`
   - With custom prefix: `/{prefix}/health`, `/{prefix}/collections:list`, `/{prefix}/{collection}:list`
+  - Example With `/api/v1` prefix: `/api/v1/health`, `/api/v1/collections:list`, `/api/v1/{collection}:list`
 
 ### A. Schema Management (`/collections`)
 
@@ -616,29 +630,16 @@ These endpoints manage the database tables and metadata.
 | `POST /collections:update`  | `POST` | Modify table columns (add/remove/rename).              |
 | `POST /collections:destroy` | `POST` | Drop the table and purge it from the cache.            |
 
-#### Collections List Response Format (PRD-065)
+#### Collections List Response Format
 
 The `GET /collections:list` endpoint returns detailed information about each collection, including record counts.
 
-**Response Format:**
-```json
-{
-  "collections": [
-    { "name": "customers", "records": 150 },
-    { "name": "products", "records": 42 },
-    { "name": "orders", "records": 328 }
-  ],
-  "count": 3
-}
-```
+> **📖 Complete Format**: See [SPEC_API.md § Collections Endpoints](SPEC_API.md) for full response schema and examples.
 
-**Fields:**
-- `collections` (array): Array of collection objects, each containing:
-  - `name` (string): The collection name
-  - `records` (integer): Total number of records in the collection. Returns `-1` if count cannot be retrieved (e.g., database error). A value of 0 indicates an empty collection, while -1 specifically indicates an error condition.
-- `count` (integer): Total number of collections returned
-
-**Note:** This is a breaking change from the previous format which returned collection names as a simple string array. Clients must be updated to consume the new object-based format.
+**Response includes:**
+- `collections` (array): Collection objects with `name` and `records` count
+- `count` (integer): Total number of collections
+- `records` value: 0 for empty collections, -1 if count cannot be retrieved (database error)
 
 ### B. Data Access (`/{collectionName}`)
 
@@ -657,242 +658,25 @@ These endpoints manage the records within a specific collection.
 | `POST /{name}:update`  | `POST` | Update an existing record.                         |
 | `POST /{name}:destroy` | `POST` | Delete a record from the table.                    |
 
-#### Batch Operations (PRD-064)
+#### Batch Operations
 
-The `:create`, `:update`, and `:destroy` endpoints support both **single-object** and **batch** modes, allowing you to process multiple records in a single request. This feature reduces network overhead and improves throughput for bulk operations.
+The `:create`, `:update`, and `:destroy` endpoints support both **single-object** and **batch** modes.
 
-> **See SPEC_API.md** for complete batch operation documentation including request/response formats, atomic mode, error handling, and detailed examples.
+> **📖 Complete Documentation**: See [SPEC_API.md § Batch Operations](SPEC_API.md) for detailed request/response formats, atomic mode, error handling, examples, and configuration.
 
-**Overview:**
+**Key Features:**
+- **Automatic Detection:** Array = batch mode, object = single mode
+- **Best-Effort (Default):** Process each record independently, return HTTP 207 with per-record results
+- **Atomic Mode:** `?atomic=true` - all succeed or all fail (transaction)
+- **Size Limits:** Default 50 records, 2MB payload (configurable)
+- **Backward Compatible:** Single-object requests unchanged
 
-- **Automatic Detection:** The server detects batch mode by inspecting the request body. If the body is a JSON array, batch processing is triggered. If it's a single JSON object, single-object mode is used.
-- **Best-Effort Mode (Default):** Batch operations are best-effort by default (atomic=false), unless ?atomic=true is passed. Each record is processed independently, and the server returns `HTTP 207 Multi-Status` with individual success/error details for each record.
-- **Atomic Mode:** Set `?atomic=true` to enable atomic/transactional processing. All operations succeed or all fail. If any record fails validation or processing, the entire batch is rejected with a `400 Bad Request` response.
-- **Size Limits:** Batches are subject to configurable limits to prevent resource exhaustion:
-  - **Max Batch Size:** Default 50 records per request (configurable via `batch.max_size`)
-  - **Max Payload Size:** Default 2MB (configurable via `batch.max_payload_bytes`)
-- **Backward Compatibility:** Single-object requests continue to work exactly as before. Batch mode is an additive feature.
-
-**Request Format:**
-
-Single-object mode (original behavior):
-```json
-{
-  "name": "Alice",
-  "email": "alice@example.com"
-}
-```
-
-Batch mode (array of objects):
-```json
-[
-  {"name": "Alice", "email": "alice@example.com"},
-  {"name": "Bob", "email": "bob@example.com"},
-  {"name": "Charlie", "email": "charlie@example.com"}
-]
-```
-
-**Query Parameters:**
-
-- `atomic` (boolean, default: `false`)
-  - `true`: All operations succeed or all fail (returns `200 OK` or `400 Bad Request`)
-  - `false`: Best-effort processing (returns `207 Multi-Status` with per-record results)
-
-**Response Codes:**
-
-- `200 OK`: Atomic mode - all records processed successfully
-- `207 Multi-Status`: Best-effort mode - partial success (some records succeeded, some failed)
-- `400 Bad Request`: Atomic mode - at least one record failed validation or processing
-- `413 Payload Too Large`: Batch size or payload size limit exceeded
-- `422 Unprocessable Entity`: Request body is not valid JSON or empty array
-
-**Examples:**
-
-**1. Batch Create (Atomic Mode - All Succeed):**
-
-```bash
-curl -X POST https://api.example.com/users:create \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"name": "Alice", "email": "alice@example.com"},
-    {"name": "Bob", "email": "bob@example.com"}
-  ]'
-```
-
-Response (HTTP 201 Created):
-```json
-{
-  "data": [
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAA",
-      "name": "Alice",
-      "email": "alice@example.com",
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T10:30:00Z"
-    },
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FBB",
-      "name": "Bob",
-      "email": "bob@example.com",
-      "created_at": "2024-01-15T10:30:01Z",
-      "updated_at": "2024-01-15T10:30:01Z"
-    }
-  ],
-  "message": "2 records created successfully"
-}
-```
-
-**2. Batch Create (Best-Effort Mode - Default):**
-
-```bash
-curl -X POST https://api.example.com/users:create \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"name": "Alice", "email": "alice@example.com"},
-    {"name": "X", "email": "invalid"},
-    {"name": "Bob", "email": "bob@example.com"}
-  ]'
-```
-
-Response (HTTP 207 Multi-Status):
-```json
-{
-  "results": [
-    {
-      "index": 0,
-      "status": "created",
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAA",
-      "data": {
-        "id": "01ARZ3NDEKTSV4RRFFQ69G5FAA",
-        "name": "Alice",
-        "email": "alice@example.com",
-        "created_at": "2024-01-15T10:30:00Z",
-        "updated_at": "2024-01-15T10:30:00Z"
-      }
-    },
-    {
-      "index": 1,
-      "status": "failed",
-      "error_code": "validation_error",
-      "error_message": "validation failed: name must be at least 3 characters, email format invalid"
-    },
-    {
-      "index": 2,
-      "status": "created",
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FBB",
-      "data": {
-        "id": "01ARZ3NDEKTSV4RRFFQ69G5FBB",
-        "name": "Bob",
-        "email": "bob@example.com",
-        "created_at": "2024-01-15T10:30:01Z",
-        "updated_at": "2024-01-15T10:30:01Z"
-      }
-    }
-  ],
-  "summary": {
-    "total": 3,
-    "succeeded": 2,
-    "failed": 1
-  }
-}
-```
-
-**3. Batch Update (Atomic Mode):**
-
-```bash
-curl -X POST https://api.example.com/users:update \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"id": "01ARZ3NDEKTSV4RRFFQ69G5FAA", "name": "Alice Updated"},
-    {"id": "01ARZ3NDEKTSV4RRFFQ69G5FBB", "name": "Bob Updated"}
-  ]'
-```
-
-Response (HTTP 200 OK):
-```json
-{
-  "data": [
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAA",
-      "name": "Alice Updated",
-      "email": "alice@example.com",
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T11:45:00Z"
-    },
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FBB",
-      "name": "Bob Updated",
-      "email": "bob@example.com",
-      "created_at": "2024-01-15T10:30:01Z",
-      "updated_at": "2024-01-15T11:45:01Z"
-    }
-  ],
-  "message": "2 records updated successfully"
-}
-```
-
-**4. Batch Destroy (Atomic Mode):**
-
-```bash
-curl -X POST https://api.example.com/users:destroy \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"data": ["01ARZ3NDEKTSV4RRFFQ69G5FAA", "01ARZ3NDEKTSV4RRFFQ69G5FBB"]}'
-```
-
-Response (HTTP 200 OK):
-```json
-{
-  "message": "2 records deleted successfully"
-}
-```
-
-**5. Batch Size Exceeded Error:**
-
-```bash
-curl -X POST https://api.example.com/users:create \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[... 501 records ...]'
-```
-
-Response (HTTP 413 Payload Too Large):
-```json
-{
-  "error": "batch size exceeds maximum allowed (50)",
-  "details": "received 51 records, maximum is 50"
-}
-```
-
-**Note:** The actual batch size limit is configurable via `batch.max_size` in the configuration file. The default is 50 records.
-
-**Backward Compatibility:**
-
-- **No Breaking Changes:** Existing single-object requests continue to work exactly as before.
-- **Array Detection:** The server automatically detects batch mode by checking if the request body is a JSON array.
-- **Single-Object Response:** Single-object requests return the original response format (a single object, not an array).
-- **Opt-In Batch Mode:** Clients must explicitly send an array to trigger batch processing.
-
-**Configuration Options:**
-
-Configure batch operation limits in your configuration file:
-
+**Configuration:**
 ```yaml
 batch:
-  max_size: 50               # Maximum records per batch request (default: 50)
-  max_payload_bytes: 2097152 # Maximum payload size in bytes (default: 2,097,152 for 2MB)
+  max_size: 50               # Maximum records per batch
+  max_payload_bytes: 2097152 # Maximum payload (2MB)
 ```
-
-**Performance Considerations:**
-
-- Batch operations are processed in a single database transaction (atomic mode) or as individual transactions (best-effort mode).
-- For large batches, consider using pagination to stay within size and payload limits.
-- Monitor memory usage when processing large batches with complex objects.
-- Best-effort mode (default, `atomic=false`) may be slower due to per-record transaction overhead.
-- Atomic mode (`atomic=true`) offers better performance for successful batches but fails entirely on any error.
 
 #### Identifiers
 
@@ -902,101 +686,27 @@ batch:
 - The internal `pkid` column is never exposed via the API.
 - System columns (`pkid`, `id`) are automatically created and protected from modification, deletion, or renaming.
 
-#### Advanced Query Parameters for `/{name}:list`
+#### Query Parameters
 
 The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection.
 
-> **See SPEC_API.md** for complete query documentation including all operators, pagination details, field selection, full-text search, and combined query examples.
+> **📖 Complete Documentation**: See [SPEC_API.md § Query Options](SPEC_API.md) for all operators, pagination, field selection, full-text search, and examples.
 
-**Filtering:**
+**Filtering:** `?column[operator]=value` (operators: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `in`, `null`)  
+**Sorting:** `?sort=field` or `?sort=-field` (descending), multiple: `?sort=-created_at,name`  
+**Search:** `?q=searchterm` (searches all text columns)  
+**Fields:** `?fields=field1,field2` (select specific fields)  
+**Pagination:** `?after=<ulid>&limit=N` (cursor-based)
 
-- Syntax: `?column[operator]=value`
-- Operators:
-  - Comparison: `eq` (equal), `ne` (not equal), `gt` (greater than), `lt` (less than), `gte` (greater/equal), `lte` (less/equal)
-  - Pattern matching: `like` (SQL LIKE pattern with %), `contains` (substring, case-sensitive), `icontains` (substring, case-insensitive), `startswith`, `endswith`
-  - List: `in` (comma-separated values, e.g., `?status[in]=active,pending`)
-  - Null checks: `null` (is NULL), `notnull` (is NOT NULL)
-- Example: `?price[gt]=100&category[eq]=electronics&title[contains]=widget`
-- Multiple filters are combined with AND logic
-- Maximum 20 filters per request
-
-**Sorting:**
-
-- Syntax: `?sort=field` (ascending) or `?sort=-field` (descending)
-- Multiple fields: `?sort=-created_at,name` (comma-separated, max 5 fields)
-- Example: `?sort=-price,name`
-
-**Full-Text Search:**
-
-- Syntax: `?q=searchterm`
-- Searches across all text/string columns with OR logic
-- Example: `?q=laptop`
-- Can be combined with filters and sorting
-
-**Field Selection:**
-
-- Syntax: `?fields=field1,field2`
-- Returns only requested fields (id always included)
-- Example: `?fields=name,price`
-- Reduces payload size for large tables
-
-**Cursor Pagination:**
-
-- Syntax: `?after=<id>` (ULID value from the `id` column)
-- Returns `next_cursor` in the response when more results are available
-- Example: `?after=01ARZ3NDEKTSV4RRFFQ69G5FBX`
-
-**List Response Format:**
-
-The list endpoint returns a JSON object with the following fields:
-
-```json
-{
-  "data": [...],
-  "total": 42,
-  "next_cursor": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-  "limit": 15
-}
-```
-
-- `data`: Array of records matching the query
-- `total`: Total count of records matching all filters (independent of limit/cursor)
-- `next_cursor`: ULID cursor for next page, or null if no more data
-- `limit`: Current page size
-
-**Combined Example:**
-
-```
-GET /products:list?q=laptop&price[gt]=500&title[contains]=pro&sort=-price&fields=name,price&limit=10
-```
+**Example:** `GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10`
 
 #### Schema Retrieval
 
-To retrieve the schema (field names, types, and constraints) for a specific collection, use the dedicated schema endpoint:
+Retrieve collection schema using `GET /{collection}:schema`.
 
-**Endpoint:** `GET /{collection}:schema`
+> **📖 Complete Documentation**: See [SPEC_API.md § Schema Endpoint](SPEC_API.md) for full response format and field properties.
 
-**Response Format:**
-```json
-{
-  "collection": "products",
-  "fields": [
-    { "name": "id", "type": "string", "nullable": false, "readonly": true },
-    { "name": "title", "type": "string", "nullable": false },
-    { "name": "price", "type": "integer", "nullable": false },
-    { "name": "description", "type": "string", "nullable": true }
-  ],
-  "total": 42
-}
-```
-
-**Field Properties:**
-- `name`: The field name
-- `type`: The data type (string, integer, decimal, boolean, datetime, json)
-- `nullable`: Whether the field can be null
-- `readonly`: (Optional) Set to `true` for server-generated fields like `id` that cannot be modified by clients. This field is omitted for editable fields.
-
-The `total` field contains the total number of records currently in the collection. It is always included in the schema response.
+**Response includes:** Collection name, field definitions (name, type, nullable, readonly), and total record count.
 
 **Authentication:** Required (Bearer token or API key)
 
@@ -1012,311 +722,99 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" https://api.example.com/products:s
 
 ### C. Aggregation Operations (`/{collectionName}`)
 
-These endpoints provide server-side aggregation for analytics without fetching full datasets.
+Server-side aggregation for analytics without fetching full datasets.
 
-> **See SPEC_API.md** for complete aggregation documentation including all operations (count, sum, avg, min, max), filtering, and response formats.
+> **📖 Complete Documentation**: See [SPEC_API.md § Aggregation Operations](SPEC_API.md) for all operations, filtering, response formats, and examples.
 
-| Endpoint                    | Method | Purpose                                |
-| --------------------------- | ------ | -------------------------------------- |
-| `GET /{name}:count`         | `GET`  | Count records in the collection.       |
-| `GET /{name}:sum?field=...` | `GET`  | Sum values of a numeric field.         |
-| `GET /{name}:avg?field=...` | `GET`  | Calculate average of a numeric field.  |
-| `GET /{name}:min?field=...` | `GET`  | Find minimum value of a numeric field. |
-| `GET /{name}:max?field=...` | `GET`  | Find maximum value of a numeric field. |
+| Endpoint                    | Purpose                                |
+| --------------------------- | -------------------------------------- |
+| `GET /{name}:count`         | Count records                          |
+| `GET /{name}:sum?field=...` | Sum numeric field values               |
+| `GET /{name}:avg?field=...` | Calculate average of numeric field     |
+| `GET /{name}:min?field=...` | Find minimum value of numeric field    |
+| `GET /{name}:max?field=...` | Find maximum value of numeric field    |
 
-**Parameters:**
-
-- `field` (query): Required for `:sum`, `:avg`, `:min`, `:max`. Must be a numeric field (`integer` or `decimal`).
-- Filtering: All aggregation endpoints support the same filtering syntax as `:list` (e.g., `?price[gt]=100`)
-- Filters are applied at the database level before aggregation
-
-**Response Format:**
-
-```json
-{
-  "value": <number>
-}
-```
-
-**Note:** Both `integer` and `decimal` type fields support aggregation. Results preserve precision for decimal calculations.
-
-**Examples:**
-
-```bash
-# Count all orders
-GET /orders:count
-# Response: {"value": 150}
-
-# Sum total sales (decimal field)
-GET /orders:sum?field=total
-# Response: {"value": 15750.50}
-
-# Average order value for completed orders
-GET /orders:avg?field=total&status[eq]=completed
-# Response: {"value": 125.75}
-
-# Find highest order amount
-GET /orders:max?field=total
-# Response: {"value": 999.99}
-```
-
-**Validation:**
-
-- Collection must exist
-- Field must exist in the collection schema
-- Field must be numeric type (integer) for `:sum`, `:avg`, `:min`, `:max`
-- Invalid field or missing field parameter returns `400 Bad Request`
-- Unknown collection returns `404 Not Found`
+**Key Features:**
+- Supports filtering (same syntax as `:list`)
+- Works with `integer` and `decimal` types
+- Returns `{"value": <number>}` format
+- Database-level processing for performance
 
 ### D. Documentation Endpoints
 
-Moon provides human- and AI-readable documentation endpoints that automatically reflect the current API state.
+Moon provides auto-generated documentation endpoints.
 
-**Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
+> **📖 Complete Documentation**: See [SPEC_API.md § Documentation Endpoints](SPEC_API.md) for all formats and caching details.
 
-| Endpoint                     | Method | Purpose                                                              |
-| ---------------------------- | ------ | -------------------------------------------------------------------- |
-| `GET /doc/`                  | `GET`  | Retrieve HTML documentation (single-page, styled)                    |
-| `GET /doc/llms.md`           | `GET`  | Retrieve Markdown documentation (for AI agents and markdown readers) |
-| `GET /doc/llms.txt`          | `GET`  | Retrieve Markdown documentation (text format, alias to llms.md)      |
-| `GET /doc/llms.json`         | `GET`  | Retrieve JSON appendix for machine consumption                       |
-| `POST /doc:refresh`          | `POST` | Clear cached documentation and force regeneration                    |
+| Endpoint                     | Purpose                                    |
+| ---------------------------- | ------------------------------------------ |
+| `GET /doc/`                  | HTML documentation                         |
+| `GET /doc/llms.md`           | Markdown for AI agents                     |
+| `GET /doc/llms.txt`          | Text format (alias)                        |
+| `GET /doc/llms.json`         | JSON schema for machine consumption        |
+| `POST /doc:refresh`          | Clear cache and regenerate                 |
 
-**Features:**
-
-- Generic documentation with `{collection}` placeholders
-- Lists currently available collections
-- Includes all endpoint categories (schema, data, aggregation)
-- Quickstart guide with 5-step workflow
-- Comprehensive examples with curl commands (with and without jq)
-- Filtering, sorting, pagination, and field selection documentation
-- Error response format and common status codes
-- Table of contents for easy navigation
-- Separate JSON appendix at `/doc/llms.json` for machine-readable spec
-
-**JSON Appendix Structure:**
-
-The `/doc/llms.json` endpoint provides a structured, machine-readable specification with:
-
-- Service metadata (name, version, base URL)
-- Authentication configuration and modes
-- Complete endpoint listing with methods and parameters
-- Data types with SQL mappings and examples
-- Registered collections with field definitions
-- Query operators and aggregation functions nested under `data_access`:
-  - `data_access.query`: Query operators, syntax, pagination, search
-  - `data_access.aggregation`: Supported functions and numeric types
-- HTTP status codes
-- Rate limiting configuration
-- CORS settings
-- AIP standards compliance
-
-**Caching:**
-
-- Documentation is generated once and cached in memory
-- Responses include `Cache-Control`, `ETag`, and `Last-Modified` headers
-- Supports conditional caching with `If-None-Match` (returns 304 Not Modified)
-- Cache can be cleared using `POST /doc:refresh`
-
-**Response Headers:**
-
-- HTML: `Content-Type: text/html; charset=utf-8`
-- Markdown: `Content-Type: text/markdown; charset=utf-8`
-- JSON: `Content-Type: application/json; charset=utf-8`
-
-**Error Handling:**
-
-The `/doc/llms.json` endpoint includes proper error handling:
-- Returns HTTP 404 if JSON appendix is missing
-- Returns HTTP 500 if JSON serialization fails
-- Error responses include descriptive messages for debugging
-- Both: `Cache-Control: public, max-age=3600`
+**Features:** Automatic collection discovery, curl examples, query documentation, caching with ETag/Last-Modified headers.
 
 ### E. Collection Column Operations
 
-The `POST /collections:update` endpoint supports comprehensive column lifecycle management through four operation types that can be combined in a single request.
+The `POST /collections:update` endpoint manages column lifecycle (add, remove, rename, modify).
 
-**Operation Order:**
-Operations are executed in the following order: rename → modify → add → remove
+> **📖 Complete Documentation**: See [SPEC_API.md § Collection Update Endpoint](SPEC_API.md) for request formats, operation order, and examples.
 
-**IMPORTANT RULES**
-- System columns (`pkid`, `id`) are automatically created and protected from modification, deletion, or renaming.
-- The internal `pkid` column (auto-increment integer) is never exposed via the API.
-- API responses expose the `id` column (ULID string) directly.
+**Key Rules:**
+- System columns (`pkid`, `id`) are protected
+- Operations execute in order: rename → modify → add → remove
+- All operations can be combined in a single request
+- Registry atomically updated after successful DDL
+- Validation before execution; rollback on failure
 
-**Request Body Structure:**
+## Database Schema Design
 
-```json
-{
-  "name": "collection_name",
-  "add_columns": [...],      // Optional: Add new columns
-  "remove_columns": [...],   // Optional: Remove existing columns
-  "rename_columns": [...],   // Optional: Rename existing columns
-  "modify_columns": [...]    // Optional: Modify column types/constraints
-}
-```
+### In-Memory Schema Registry
 
-**Add Columns:**
+The server maintains a **sync.Map** cache of collection schemas for zero-latency validation.
 
-```json
-{
-  "name": "products",
-  "add_columns": [
-    {
-      "name": "category",
-      "type": "string",
-      "nullable": true,
-      "unique": false
-    }
-  ]
-}
-```
+**Data Flow:**
+1. **Ingress:** Router parses `/:name:action`
+2. **Validation:** Check in-memory registry; validate JSON against cached schema
+3. **SQL Generation:** Build parameterized SQL statement
+4. **Persistence:** Execute against database (PostgreSQL/MySQL/SQLite)
+5. **Reactive Cache:** Refresh registry entry on schema changes
 
-**Remove Columns:**
+**Schema Cache Structure:**
+- Collection name → field definitions (name, type, nullable, unique)
+- System columns (`pkid`, `id`) automatically included
+- Cache refreshed on collection create/update/destroy
 
-```json
-{
-  "name": "products",
-  "remove_columns": ["old_field", "deprecated_column"]
-}
-```
+### Identifiers
 
-- Column must exist in collection
+- **External ID:** ULID (exposed via API as `id` field)
+- **Internal ID:** Auto-increment integer (`pkid`, never exposed)
+- System columns automatically created and protected
 
-**Rename Columns:**
+## Interface & Integration
 
-```json
-{
-  "name": "products",
-  "rename_columns": [
-    {
-      "old_name": "description",
-      "new_name": "details"
-    }
-  ]
-}
-```
+**Documentation:** Auto-generated docs via `/doc/` (HTML), `/doc/llms.md` (Markdown), `/doc/llms.json` (JSON)  
+**Security Middleware:** JWT and API Key validation with role-based authorization  
+**Advanced Controls:** Per-endpoint permissions, protected/unprotected path lists
 
-- New name must not conflict with existing columns
-- Old column must exist
-
-**Modify Columns:**
-
-```json
-{
-  "name": "products",
-  "modify_columns": [
-    {
-      "name": "price",
-      "type": "integer",
-      "nullable": false,
-      "unique": false
-    }
-  ]
-}
-```
-
-- Column must exist
-- Type changes should be compatible with existing data
-
-**Combined Operations Example:**
-
-```json
-{
-  "name": "products",
-  "rename_columns": [{ "old_name": "stock", "new_name": "quantity" }],
-  "modify_columns": [{ "name": "price", "type": "integer", "nullable": false }],
-  "add_columns": [{ "name": "brand", "type": "string", "nullable": true }],
-  "remove_columns": ["deprecated_field"]
-}
-```
-
-**Validation & Error Handling:**
-
-- All operations are validated before execution
-- Registry is atomically updated only after successful DDL execution
-- On failure, registry is rolled back to previous state
-- Descriptive errors returned for invalid operations
-- System columns (`pkid`, `id`) are automatically created and protected from modification, deletion, or renaming.
-- The internal `pkid` column (auto-increment integer) is never exposed via the API.
-- API responses expose the `id` column (ULID string) directly.
-
-**Database Dialect Support:**
-
-- SQLite: DROP COLUMN (3.35.0+), RENAME COLUMN (3.25.0+)
-- PostgreSQL: Full support for all operations
-- MySQL: Full support for all operations
-- Note: SQLite MODIFY COLUMN has limited support and may require table recreation
-
-## 3. Architecture: The Dynamic Data Flow
-
-The server acts as a "Smart Bridge" between the user and the database.
-
-1. **Ingress:** The Go router (e.g., Gin) parses the path `/:name:action`.
-2. **Validation:** The server checks the **In-Memory Registry**. If the collection exists in RAM, it validates the JSON body fields against the cached column types.
-3. **SQL Generation:** A dynamic query builder generates a sanitized, parameterized SQL statement.
-4. **Persistence:** The query is executed against the database (PostgreSQL, MySQL, or SQLite).
-5. **Reactive Cache:** If the action was a schema change (e.g., `:update` on collections), the server immediately refreshes that specific map entry in the registry.
-
-## Interface & Integration Layer
-
-- **Documentation Endpoints:** Human- and AI-readable documentation is available via `/doc/` (HTML), `/doc/llms.md` (Markdown), `/doc/llms.txt` (Markdown text), and `/doc/llms.json` (JSON) endpoints (see Section 2.D for details).
-- **Middleware Security:** A high-speed JWT and API Key layer that enforces simple allow/deny permissions per endpoint before the request reaches the dynamic handlers.
-- **Advanced Auth Controls:**
-  - JWT role-based authorization per path
-  - API key permissions per endpoint (read/write/delete/admin)
-  - Protected/unprotected path lists and protect-by-default mode
+> **📖 Details**: See [SPEC_AUTH.md](SPEC_AUTH.md) for authentication flows and [SPEC_API.md](SPEC_API.md) for all endpoints.
 
 ## Authentication & Authorization
 
-Moon requires authentication for all API endpoints except `/health`. Two authentication methods are supported:
+> **📖 Complete Specification**: See [SPEC_AUTH.md](SPEC_AUTH.md) for detailed authentication flows, JWT tokens, API keys, roles, permissions, and security configuration.
 
-### Authentication Methods
+**Authentication Methods:**
 
-| Method | Header | Use Case | Rate Limit |
-|--------|--------|----------|------------|
-| **JWT** | `Authorization: Bearer <token>` | Interactive users (web/mobile) | 100 req/min |
-| **API Key** | `Authorization: Bearer moon_live_*` | Machine-to-machine integrations | 1000 req/min |
+| Method | Header Format | Use Case | Rate Limit |
+|--------|--------------|----------|------------|
+| JWT | `Authorization: Bearer <token>` | Interactive users | 100 req/min |
+| API Key | `Authorization: Bearer moon_live_*` | Machine-to-machine | 1000 req/min |
 
-### Roles and Permissions
-
-Moon supports three roles with configurable write permissions:
-
-| Role | Manage Users/Keys | Manage Collections | Read Data | Write Data |
-|------|-------------------|-------------------|-----------|------------|
-| **admin** | ✓ | ✓ | ✓ | ✓ |
-| **user** | ✗ | ✗ | ✓ | if `can_write: true` |
-| **readonly** | ✗ | ✗ | ✓ | ✗ |
-
-- **admin**: Full system access including user management, collection schema changes, and all data operations. The `can_write` flag is ignored for admin role (always has write access).
-- **user**: Read access to all collections; write access controlled by `can_write` flag (default: true for user role)
-- **readonly**: Read-only access to all collections; cannot write data even if `can_write` flag is set to true
-
-### Protected Endpoints
-
-| Category | Endpoints | Admin | User (read-only) | User (can_write) |
-|----------|-----------|-------|------------------|------------------|
-| Health | `/health` | ✓ (no auth) | ✓ (no auth) | ✓ (no auth) |
-| Auth | `/auth:*` | ✓ | ✓ | ✓ |
-| Collections | `/collections:list`, `/collections:get` | ✓ | ✓ | ✓ |
-| Collections | `/collections:create`, `/collections:update`, `/collections:destroy` | ✓ | ✗ | ✗ |
-| Data Read | `/{name}:list`, `/{name}:get`, `/{name}:count/sum/avg/min/max` | ✓ | ✓ | ✓ |
-| Data Write | `/{name}:create`, `/{name}:update`, `/{name}:destroy` | ✓ | ✗ | ✓ |
-| Users | `/users:*` | ✓ | ✗ | ✗ |
-| API Keys | `/apikeys:*` | ✓ | ✗ | ✗ |
-
-### Rate Limits
-
-- **JWT Users**: 100 requests/minute
-- **API Keys**: 1000 requests/minute  
-- **Login Attempts**: 5 per 15 minutes per IP/username
-
-Rate limit headers included in responses:
-- `X-RateLimit-Limit`: Maximum requests allowed
-- `X-RateLimit-Remaining`: Requests remaining in window
-- `X-RateLimit-Reset`: Unix timestamp when limit resets
-
-> **📖 For detailed authentication specification**, see [SPEC_AUTH.md](SPEC_AUTH.md)
+**Roles:** `admin` (full access), `user` (read + optional write), `readonly` (read-only)  
+**Permissions:** Role-based with `can_write` flag for user role  
+**Rate Limits:** Per-user/key with headers (`X-RateLimit-*`)
 
 ## 4. Design for AI Maintainability
 
@@ -1333,25 +831,8 @@ Rate limit headers included in responses:
 - **Database Type Fixed at Startup:** The database type is selected at server startup and cannot be changed at runtime.
 - **Single-Tenant Focus:** Optimized as a high-speed core for a single application, ensuring maximum simplicity and maintainability.
 
-## 6. End-User Testing (with curl)
+## 6. End-User Testing
 
-For most API endpoints, simple curl-based testing is sufficient and recommended for end users:
-
-- Authenticate (if required) by passing JWT/API keys in headers.
-- Send requests to any endpoint (e.g., create, update, list, delete).
-- Provide JSON payloads with `-d` and set `Content-Type: application/json`.
-- Inspect HTTP status codes and response bodies for validation.
-- Adjust URLs based on configured prefix (default: no prefix).
-
-**Examples:**
-
-```sh
-# Without prefix (default)
-curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/products:create
-
-# With /api/v1 prefix
-curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/api/v1/products:create
-
-# With custom prefix
-curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"field":"value"}' http://localhost:6006/moon/api/products:create
-```
+**Recommended:** Use curl for endpoint testing with JWT/API key authentication  
+**Payloads:** JSON via `-d` flag with `Content-Type: application/json`  
+**Prefix Support:** All endpoints respect configured URL prefix (default: none)
