@@ -29,6 +29,11 @@ def parse_args() -> argparse.Namespace:
         default='./tests',
         help='Directory containing test JSON files (default: ./tests)'
     )
+    parser.add_argument(
+        '-s', '--server',
+        default=None,
+        help='Server URL to use for all tests (overrides serverURL in JSON files)'
+    )
     return parser.parse_args()
 
 
@@ -94,6 +99,10 @@ def process_test_file(test_file: str, args: argparse.Namespace) -> None:
     """Process a single test file."""
     # Load test suite
     test_suite = load_test_suite(test_file)
+    
+    # Override serverURL if --server parameter is provided
+    if args.server:
+        test_suite.serverURL = args.server
     
     # Perform health check
     health_url = f"{test_suite.serverURL}{test_suite.prefix}{test_suite.health}"
