@@ -201,211 +201,54 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 ### Password Policy
 
 **Requirements:**
+- Minimum 8 characters (configurable)
+- Must include: uppercase, lowercase, number
+- Optional special characters (configurable)
+- Passwords hashed with bcrypt (cost factor: 12)
 
-- Minimum 8 characters (configurable per deployment)
-- Must include: uppercase letter, lowercase letter, number
-- Optionally require special characters (configurable, default: not required)
-- **Supported special characters:** 30+ standard special characters including `!@#$%^&*()_+-=[]{}|;:,.<>?`
-- No common passwords or dictionary words (implementation recommended)
+**Enforcement:** User creation, password change, and admin password reset.
 
-**Enforcement Contexts:**
-
-The password policy is applied and validated in the following scenarios:
-- User creation (via `POST /users:create`)
-- Password change (via `POST /auth:me` with `password` field)
-- Password reset (via `POST /users:update` with `action: reset_password`)
-
-**Validation:** All password policy violations return detailed error messages indicating which requirements were not met (e.g., "Password must contain at least one uppercase letter").
-
-**Storage:**
-
-- All passwords hashed using `bcrypt` (Go standard: `golang.org/x/crypto/bcrypt`)
-- Cost factor: 12 (recommended for balance of security and performance)
-- Salts automatically generated per password
-
-**Password Changes:**
-
-- Password change forces immediate re-authentication
-- All active sessions (refresh tokens) invalidated
-- User must login again with new password
-
-### Password Reset
-
-**Admin-Initiated Reset:**
-
-- Only admins can reset user passwords (no self-service)
-- Admin calls `POST /users:update?id={user_id}` with `{"action": "reset_password", "new_password": "..."}`
-- All user's existing sessions immediately invalidated
-- User notified of password reset (if email configured)
-- User must authenticate with new password
-
-**Security Considerations:**
-
-- No "forgot password" self-service (reduces attack surface)
-- Admins must authenticate before resetting passwords
-- All password reset actions logged for audit trail
+**Password Reset:** Admin-only via `POST /users:update` with `action: reset_password`. Invalidates all user sessions.
 
 ### Validation Constraints
 
-**User Constraints:**
-
-- **Email:** Must be valid RFC-compliant email format
-- **Username:** Unique across all users
-- **Role:** Must be one of: `admin`, `user`, `readonly`
-- **Default can_write:** `true` for user role, `false` for readonly role
-
-**API Key Constraints:**
-
-- **Name:** 3-100 characters, must be unique
-- **Description:** Maximum 500 characters (optional)
-- **Role:** Must be one of: `admin`, `user`, `readonly`
-- **Default can_write:** `false` for all roles
-- **Key Format:** `moon_live_` prefix + 64 base62 characters
-
-**Last Admin Protection:**
-
-- System prevents deleting or demoting the last admin user
-- Ensures at least one admin always exists for system management
-- Admin cannot modify their own role to prevent self-lockout
-
-**Cascade Delete Behavior:**
-
-- Deleting a user automatically removes all associated refresh tokens
-- Ensures no orphaned sessions remain after user deletion
-- Implemented at application level, not database foreign key cascade
+**Users:** Email (RFC-compliant), unique username, role (`admin`, `user`, `readonly`)  
+**API Keys:** Name (3-100 chars, unique), role, key format (`moon_live_` + 64 base62 chars)  
+**Protection:** Cannot delete/demote last admin. Admin cannot modify own role.  
+**Cascade:** Deleting user removes all refresh tokens.
 
 ### Rate Limiting
 
-**Per-User (JWT):**
-
-- 100 requests per minute per user
-- Failed login attempts: 5 attempts per 15 minutes per IP/username combination
-- Returns `429 Too Many Requests` when limit exceeded
-- Counter resets after time window expires
-
-**Per-API Key:**
-
-- 1000 requests per minute per key
-- Returns `429 Too Many Requests` when limit exceeded
-- No failed attempt limit (keys are either valid or invalid)
-
-**Implementation:**
-
-- Uses in-memory rate limit tracking (token bucket or sliding window)
-- Rate limits applied after authentication, before authorization
-- Rate limit headers included in responses:
-  - `X-RateLimit-Limit`: Maximum requests allowed
-  - `X-RateLimit-Remaining`: Requests remaining in current window
-  - `X-RateLimit-Reset`: Unix timestamp when limit resets
+**Limits:** 100 req/min per JWT user, 1000 req/min per API key, 5 failed login attempts per 15 min  
+**Headers:** `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`  
+**Response:** `429 Too Many Requests` when exceeded
 
 ### Session Management
 
-**JWT Sessions:**
+**Sessions:** Multiple concurrent sessions per user. Each login creates unique refresh token.  
+**Refresh Tokens:** Single-use, stored in database, invalidated after use. New token issued on refresh.  
+**Invalidation:** Logout (current session only), password change (all sessions), admin revoke (`revoke_sessions` action).  
+**Cleanup:** Expired tokens should be purged periodically.
 
-- Multiple concurrent sessions allowed per user
-- Each login creates new refresh token (stored in database)
-- Each device/client maintains separate session
-- Logout invalidates only current session's refresh token
-- Other sessions remain active until they expire or logout
+### First Admin Bootstrap
 
-**Refresh Token Storage:**
-
-- Stored in database with: user_pkid, token_hash, expires_at, created_at, last_used_at
-- Tokens are single-use: invalidated immediately after successful refresh
-- New refresh token issued with each successful refresh
-- **Expired Token Cleanup:** Expired tokens should be purged from the database periodically via a scheduled cleanup job (implementation recommended but not automatic)
-
-**Token Invalidation:**
-
-- **User logout:** Invalidates current session's refresh token only
-- **Password change:** Invalidates all user's refresh tokens (forced re-login)
-- **Admin revoke:** Admin can revoke all user sessions via `POST /users:update?id={user_id}` with `{"action": "revoke_sessions"}`
-- **API keys:** Remain valid until explicitly destroyed via `/apikeys:destroy`
-
-### First Admin Account Bootstrap
-
-**On First Service Start (Bootstrap Only):**
-
-1. On the very first service start, check if any admin users exist in the database.
-2. If no admin exists:
-   - Check config file for `auth.bootstrap_admin` section:
-
-     ```yaml
-     auth:
-       bootstrap_admin:
-         username: "admin"
-         email: "admin@example.com"
-         password: "change-me-on-first-login"
-     ```
-
-   - If bootstrap config is present, create the initial admin user from config.
-   - If bootstrap config is absent, server logs a warning and requires manual admin creation via direct database access or setup script.
-3. If any admin already exists, skip bootstrap (the `bootstrap_admin` config is ignored).
-
-**Security Notes:**
-
-- The `bootstrap_admin` section is only required for the very first service start (when no admin exists).
-- After the first successful startup and admin creation, **remove the `bootstrap_admin` section from your config file**. It is not needed for normal operation and should not remain in production configuration.
-- Change the bootstrap admin password immediately after first login.
-- Never commit bootstrap credentials to version control.
+On first start, if no admin exists, create from `auth.bootstrap_admin` config section. Remove config section after first login and change password immediately. Never commit credentials to version control.
 
 ### Security Best Practices
 
-**Transport Security:**
-
-- All endpoints require HTTPS in production (HTTP redirect recommended)
-- TLS 1.2 or higher required
-- Strong cipher suites only (no weak ciphers)
-
-**Token Storage:**
-
-- JWTs stored in httpOnly cookies (web) or secure storage (mobile)
-- Never store tokens in localStorage or sessionStorage (XSS vulnerability)
-- API keys stored securely in environment variables or secret management systems
-
-**Secrets Management:**
-
-- API keys never logged in application logs
-- API keys never returned in list/get responses (only metadata)
-- JWT secrets stored in config file with restricted file permissions (chmod 600)
-- Database passwords stored in config file with restricted file permissions
-
-**CORS Configuration:**
-
-- Configured via config file: `security.cors.allowed_origins`
-- Supports wildcards for development only: `["http://localhost:*"]`
-- Production should specify exact origins: `["https://app.example.com"]`
-- Credentials allowed only for specified origins (no wildcard with credentials)
-
-**Audit Logging:**
-
-- All authentication attempts logged (success and failure)
-- All admin actions logged (user/apikey management)
-- All rate limit violations logged
-- Logs include: timestamp, user/key identifier, action, IP address, user agent
-- Sensitive data (passwords, tokens) never logged
+**Transport:** HTTPS required in production (TLS 1.2+)  
+**Token Storage:** httpOnly cookies (web), secure storage (mobile). Never use localStorage/sessionStorage.  
+**Secrets:** Never log API keys/passwords. Store JWT secret with restricted permissions (chmod 600).  
+**CORS:** Configure via `security.cors.allowed_origins`. No wildcards in production.  
+**Audit:** Log all auth attempts, admin actions, rate limit violations. Never log sensitive data.
 
 ## Server Implementation
 
-### Middleware Execution Order
+### Middleware Order
 
-The middleware pipeline executes in strict order to ensure security and correctness:
+1. CORS → 2. Rate Limiting → 3. Authentication → 4. Authorization → 5. Validation → 6. Logging → 7. Handler → 8. Error Handling
 
-1. **CORS Middleware:** Handle cross-origin requests, set appropriate headers
-2. **Rate Limiting Middleware:** Check and enforce rate limits before processing request
-3. **Authentication Middleware:** Extract and validate JWT or API key, add user/key info to context
-4. **Authorization Middleware:** Check role and permissions against required access level
-5. **Request Validation Middleware:** Validate request body, query params, and path params
-6. **Logging Middleware:** Log request details (method, path, status, duration)
-7. **Handler:** Execute business logic
-8. **Error Handling Middleware:** Catch panics and format error responses
-
-**Implementation Notes:**
-
-- Authentication middleware checks for both JWT and API key (JWT takes precedence)
-- Authorization middleware reads user/key info from context (populated by authentication)
-- Rate limiting uses user ID (JWT) or API key ID for per-entity limits
-- All middleware supports graceful error handling and proper HTTP status codes
+JWT takes precedence over API key. Rate limiting uses user/key ID.
 
 ### Database Schema
 
@@ -467,20 +310,7 @@ CREATE INDEX idx_apikeys_id ON apikeys(id);
 CREATE INDEX idx_apikeys_hash ON apikeys(key_hash);
 ```
 
-**rate_limits Table (Optional - In-Memory Recommended):**
-
-```sql
-CREATE TABLE rate_limits (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  entity_id TEXT NOT NULL,                -- User ULID or API key ULID
-  entity_type TEXT NOT NULL,              -- "user" or "apikey"
-  window_start TIMESTAMP NOT NULL,
-  request_count INTEGER DEFAULT 0,
-  PRIMARY KEY (entity_id, window_start)
-);
-
-CREATE INDEX idx_rate_limits_entity ON rate_limits(entity_id, window_start);
-```
+**Note:** Rate limiting uses in-memory tracking (token bucket or sliding window). Database storage optional.
 
 ## API Endpoints
 
@@ -509,25 +339,24 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
 ```json
 {
-  "access_token": "eyJhbGc...",
-  "refresh_token": "eyJhbGc...",
-  "expires_in": 3600,
-  "token_type": "Bearer",
-  "user": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user@example.com",
-    "email": "user@example.com",
-    "role": "user",
-    "can_write": false
-  }
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 3600,
+    "token_type": "Bearer",
+    "user": {
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "username": "user@example.com",
+      "email": "user@example.com",
+      "role": "user",
+      "can_write": false
+    }
+  },
+  "message": "Login successful"
 }
 ```
 
-**Error Responses:**
-
-- `400 Bad Request`: Missing or invalid fields
-- `401 Unauthorized`: Invalid credentials
-- `429 Too Many Requests`: Too many failed login attempts
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format and codes. Common codes: `INVALID_CREDENTIALS` (401), `MISSING_REQUIRED_FIELD` (400), `RATE_LIMIT_EXCEEDED` (429).
 
 ---
 
@@ -557,10 +386,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `400 Bad Request`: Missing refresh token
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `MISSING_REQUIRED_FIELD` (400).
 
 ---
 
@@ -580,17 +406,17 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "access_token": "eyJhbGc...",
-  "refresh_token": "eyJhbGc...",
-  "expires_in": 3600,
-  "token_type": "Bearer"
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 3600,
+    "token_type": "Bearer"
+  },
+  "message": "Token refreshed successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid, expired, or already-used refresh token
-- `400 Bad Request`: Missing refresh token
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `EXPIRED_TOKEN` (401), `REVOKED_TOKEN` (401), `MISSING_REQUIRED_FIELD` (400).
 
 ---
 
@@ -608,19 +434,19 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "username": "user@example.com",
-  "email": "user@example.com",
-  "role": "user",
-  "can_write": false,
-  "created_at": "2024-01-15T10:30:00Z",
-  "last_login_at": "2024-01-16T14:20:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "username": "user@example.com",
+    "email": "user@example.com",
+    "role": "user",
+    "can_write": false,
+    "created_at": "2024-01-15T10:30:00Z",
+    "last_login_at": "2024-01-16T14:20:00Z"
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401).
 
 ---
 
@@ -655,20 +481,19 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "username": "user@example.com",
-  "email": "newemail@example.com",
-  "role": "user",
-  "can_write": false,
-  "updated_at": "2024-01-16T15:00:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "username": "user@example.com",
+    "email": "newemail@example.com",
+    "role": "user",
+    "can_write": false,
+    "updated_at": "2024-01-16T15:00:00Z"
+  },
+  "message": "Profile updated successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid access token or incorrect current password
-- `400 Bad Request`: Invalid email format or password doesn't meet policy
-- `409 Conflict`: Email already in use
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `EMAIL_EXISTS` (409).
 
 **Notes:**
 
@@ -699,7 +524,7 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "users": [
+  "data": [
     {
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "username": "admin",
@@ -719,14 +544,18 @@ Authorization: Bearer <admin_access_token>
       "last_login_at": "2024-01-15T14:20:00Z"
     }
   ],
-  "next_cursor": "01ARZ3NDEKTSV4RRFFQ69G5FBX"
+  "meta": {
+    "count": 2,
+    "limit": 50,
+    "next": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
+    "prev": null
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints) for pagination details.
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403).
 
 ---
 
@@ -748,22 +577,22 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "username": "user1",
-  "email": "user1@example.com",
-  "role": "user",
-  "can_write": false,
-  "created_at": "2024-01-12T10:30:00Z",
-  "updated_at": "2024-01-15T11:00:00Z",
-  "last_login_at": "2024-01-15T14:20:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "username": "user1",
+    "email": "user1@example.com",
+    "role": "user",
+    "can_write": false,
+    "created_at": "2024-01-12T10:30:00Z",
+    "updated_at": "2024-01-15T11:00:00Z",
+    "last_login_at": "2024-01-15T14:20:00Z"
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `404 Not Found`: User does not exist
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404).
 
 ---
 
@@ -793,21 +622,21 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "username": "newuser",
-  "email": "newuser@example.com",
-  "role": "user",
-  "can_write": false,
-  "created_at": "2024-01-16T15:30:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "role": "user",
+    "can_write": false,
+    "created_at": "2024-01-16T15:30:00Z"
+  },
+  "message": "User created successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `400 Bad Request`: Missing required fields or invalid data
-- `409 Conflict`: Username or email already exists
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `VALIDATION_ERROR` (400), `USERNAME_EXISTS` (409), `EMAIL_EXISTS` (409).
 
 ---
 
@@ -855,21 +684,21 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "username": "user1",
-  "email": "user1@example.com",
-  "role": "user",
-  "can_write": true,
-  "updated_at": "2024-01-16T16:00:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "username": "user1",
+    "email": "user1@example.com",
+    "role": "user",
+    "can_write": true,
+    "updated_at": "2024-01-16T16:00:00Z"
+  },
+  "message": "User updated successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `404 Not Found`: User does not exist
-- `400 Bad Request`: Invalid action or data
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404), `INVALID_ACTION` (400).
 
 **Notes:**
 
@@ -897,16 +726,16 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "message": "User deleted successfully",
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+  },
+  "message": "User deleted successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role or attempting to delete last admin
-- `404 Not Found`: User does not exist
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404).
 
 **Notes:**
 
@@ -936,7 +765,7 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "apikeys": [
+  "data": [
     {
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "name": "Production Service",
@@ -956,14 +785,18 @@ Authorization: Bearer <admin_access_token>
       "last_used_at": "2024-01-16T15:00:00Z"
     }
   ],
-  "next_cursor": "01ARZ3NDEKTSV4RRFFQ69G5FBX"
+  "meta": {
+    "count": 2,
+    "limit": 50,
+    "next": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
+    "prev": null
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
 
 **Notes:**
 
@@ -989,21 +822,21 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "name": "Production Service",
-  "description": "Main API integration",
-  "role": "user",
-  "can_write": true,
-  "created_at": "2024-01-10T10:00:00Z",
-  "last_used_at": "2024-01-16T14:30:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "name": "Production Service",
+    "description": "Main API integration",
+    "role": "user",
+    "can_write": true,
+    "created_at": "2024-01-10T10:00:00Z",
+    "last_used_at": "2024-01-16T14:30:00Z"
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `404 Not Found`: API key does not exist
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
 
 ---
 
@@ -1032,23 +865,23 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "name": "New Service",
-  "description": "Optional description",
-  "role": "user",
-  "can_write": false,
-  "key": "moon_live_abc123...xyz789",
-  "created_at": "2024-01-16T16:30:00Z",
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "name": "New Service",
+    "description": "Optional description",
+    "role": "user",
+    "can_write": false,
+    "key": "moon_live_abc123...xyz789",
+    "created_at": "2024-01-16T16:30:00Z"
+  },
+  "message": "API key created successfully",
   "warning": "Store this key securely. It will not be shown again."
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `400 Bad Request`: Missing required fields or invalid data
-- `409 Conflict`: API key name already exists
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `VALIDATION_ERROR` (400), `APIKEY_NAME_EXISTS` (409).
 
 **Notes:**
 
@@ -1094,12 +927,15 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "name": "Updated Service Name",
-  "description": "Updated description",
-  "role": "user",
-  "can_write": true,
-  "updated_at": "2024-01-16T17:00:00Z"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "name": "Updated Service Name",
+    "description": "Updated description",
+    "role": "user",
+    "can_write": true,
+    "updated_at": "2024-01-16T17:00:00Z"
+  },
+  "message": "API key updated successfully"
 }
 ```
 
@@ -1107,20 +943,20 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "name": "Production Service",
-  "key": "moon_live_def456...uvw012",
-  "created_at": "2024-01-16T17:00:00Z",
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "name": "Production Service",
+    "key": "moon_live_def456...uvw012",
+    "created_at": "2024-01-16T17:00:00Z"
+  },
+  "message": "API key rotated successfully",
   "warning": "Store this key securely. The old key is now invalid."
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `404 Not Found`: API key does not exist
-- `400 Bad Request`: Invalid action or data
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `RECORD_NOT_FOUND` (404), `INVALID_ACTION` (400).
 
 **Notes:**
 
@@ -1147,50 +983,22 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "message": "API key deleted successfully",
-  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+  "data": {
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+  },
+  "message": "API key deleted successfully"
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid or missing access token
-- `403 Forbidden`: User does not have admin role
-- `404 Not Found`: API key does not exist
+> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
+>
+> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
 
 ---
 
-## Error Responses
+## Authentication-Specific Error Codes
 
-All authentication endpoints return consistent JSON error format following SPEC.md conventions.
-
-### Error Response Format
-
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": {}
-  }
-}
-```
-
-### Common HTTP Status Codes
-
-| Status Code | Name | When Used |
-|-------------|------|-----------|
-| 200 | OK | Request succeeded |
-| 201 | Created | Resource created successfully |
-| 400 | Bad Request | Invalid request data (missing fields, validation errors) |
-| 401 | Unauthorized | Missing, invalid, or expired credentials |
-| 403 | Forbidden | Valid credentials but insufficient permissions |
-| 404 | Not Found | Resource does not exist |
-| 409 | Conflict | Resource conflict (duplicate username/email/name) |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Server-side error (should be rare) |
-
-### Error Code Reference
+The following error codes are unique to authentication flows and not covered in SPEC_API.md. For standard error codes and HTTP status codes, see [SPEC_API.md](SPEC_API.md).
 
 **Authentication Errors (401):**
 
@@ -1212,17 +1020,8 @@ All authentication endpoints return consistent JSON error format following SPEC.
 
 **Validation Errors (400):**
 
-- `MISSING_REQUIRED_FIELD`: Required field missing from request body
-- `INVALID_FIELD_VALUE`: Field value does not meet requirements
-- `INVALID_EMAIL_FORMAT`: Email address format invalid
 - `WEAK_PASSWORD`: Password does not meet security policy
-- `INVALID_ROLE`: Role must be "admin" or "user"
-- `INVALID_ACTION`: Action parameter not recognized
-
-**Resource Errors (404):**
-
-- `USER_NOT_FOUND`: User with specified ID does not exist
-- `APIKEY_NOT_FOUND`: API key with specified ID does not exist
+- `INVALID_ROLE`: Role must be "admin", "user", or "readonly"
 
 **Conflict Errors (409):**
 
@@ -1232,58 +1031,11 @@ All authentication endpoints return consistent JSON error format following SPEC.
 
 **Rate Limit Errors (429):**
 
-- `RATE_LIMIT_EXCEEDED`: Too many requests from this user/API key
 - `LOGIN_ATTEMPTS_EXCEEDED`: Too many failed login attempts
 
-### Example Error Responses
+> **📖 Standard Error Format**: All errors follow the `{error: {code, message}}` format defined in [SPEC_API.md](SPEC_API.md).
 
-**Invalid Credentials:**
-
-```json
-{
-  "error": {
-    "code": "INVALID_CREDENTIALS",
-    "message": "Invalid username or password"
-  }
-}
-```
-
-**Insufficient Permissions:**
-
-```json
-{
-  "error": {
-    "code": "INSUFFICIENT_PERMISSIONS",
-    "message": "This action requires admin role"
-  }
-}
-```
-
-**Validation Error:**
-
-```json
-{
-  "error": {
-    "code": "WEAK_PASSWORD",
-    "message": "Password must be at least 8 characters and include uppercase, lowercase, and number",
-    "details": {
-      "min_length": 8,
-      "required": ["uppercase", "lowercase", "number"]
-    }
-  }
-}
-```
-
-**Rate Limit Exceeded:**
-
-```json
-{
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests. Please try again in 45 seconds."
-  }
-}
-```
+---
 
 ## Configuration Reference
 
@@ -1362,145 +1114,4 @@ security:
 - Use HTTPS in production (HTTP for development only)
 - Restrict CORS origins in production (no wildcards)
 
-### Configuration Loading Order
-
-1. Load defaults from `config.Defaults` struct
-2. Load values from config file (if exists)
-3. Validate required fields (jwt.secret)
-4. Apply normalization (paths, prefixes)
-5. Store in immutable global `AppConfig`
-
-**Note:** Environment variables are NOT supported. All configuration must be in YAML file (SPEC.md requirement).
-
-## Implementation Checklist
-
-### Phase 1: Database Schema & Core Auth
-
-- [ ] Create database migrations for `users`, `refresh_tokens`, `apikeys` tables
-- [ ] Implement user model with bcrypt password hashing
-- [ ] Implement refresh token model with SHA-256 hashing
-- [ ] Implement API key model with SHA-256 hashing
-- [ ] Add database indexes for performance
-- [ ] Implement bootstrap admin account creation logic
-
-### Phase 2: JWT Authentication
-
-- [ ] Implement JWT token generation (access + refresh)
-- [ ] Implement JWT token validation middleware
-- [ ] Implement `POST /auth:login` endpoint
-- [ ] Implement `POST /auth:logout` endpoint
-- [ ] Implement `POST /auth:refresh` endpoint
-- [ ] Implement `GET /auth:me` endpoint
-- [ ] Implement `POST /auth:me` endpoint
-- [ ] Add JWT rate limiting (100 req/min per user)
-
-### Phase 3: API Key Authentication
-
-- [ ] Implement API key generation (cryptographically secure)
-- [ ] Implement API key validation middleware
-- [ ] Add API key rate limiting (1000 req/min per key)
-- [ ] Implement authentication priority (JWT > API key)
-- [ ] Add API key last_used_at tracking
-
-### Phase 4: User Management
-
-- [ ] Implement `GET /users:list` endpoint
-- [ ] Implement `GET /users:get` endpoint
-- [ ] Implement `POST /users:create` endpoint
-- [ ] Implement `POST /users:update` endpoint (role, can_write, reset_password, revoke_sessions)
-- [ ] Implement `POST /users:destroy` endpoint
-- [ ] Add validation: cannot delete last admin
-- [ ] Add validation: cannot modify self role
-
-### Phase 5: API Key Management
-
-- [ ] Implement `GET /apikeys:list` endpoint
-- [ ] Implement `GET /apikeys:get` endpoint
-- [ ] Implement `POST /apikeys:create` endpoint
-- [ ] Implement `POST /apikeys:update` endpoint (metadata, rotate)
-- [ ] Implement `POST /apikeys:destroy` endpoint
-- [ ] Add validation: API key format (64 chars base62)
-
-### Phase 6: Authorization & Middleware
-
-- [ ] Implement role-based authorization middleware
-- [ ] Implement `can_write` permission checking for user role
-- [ ] Add authorization checks to all collection endpoints
-- [ ] Add authorization checks to all data endpoints
-- [ ] Protect admin-only endpoints (users, apikeys)
-
-### Phase 7: Security & Rate Limiting
-
-- [ ] Implement rate limiting middleware (in-memory token bucket)
-- [ ] Add rate limit headers (X-RateLimit-*)
-- [ ] Implement login attempt rate limiting (5 per 15 min)
-- [ ] Add CORS middleware configuration
-- [ ] Implement audit logging for auth events
-- [ ] Add password validation (policy enforcement)
-
-### Phase 8: Testing
-
-- [ ] Unit tests for JWT generation/validation
-- [ ] Unit tests for API key hashing/validation
-- [ ] Unit tests for password hashing/validation
-- [ ] Integration tests for all auth endpoints
-- [ ] Integration tests for all user management endpoints
-- [ ] Integration tests for all API key management endpoints
-- [ ] Authorization tests (role-based access)
-- [ ] Rate limiting tests
-- [ ] Security tests (invalid tokens, expired tokens, etc.)
-
-### Phase 9: Documentation & Scripts
-
-- [ ] Update INSTALL.md with authentication setup
-- [ ] Create auth test scripts in `scripts/`
-- [ ] Add curl examples for all auth endpoints
-- [ ] Document configuration options
-- [ ] Add security best practices guide
-- [ ] Create admin user management guide
-
-### Phase 10: Integration
-
-- [ ] Integrate auth middleware with existing server routes
-- [ ] Update server.go to include auth routes
-- [ ] Update config.go to include auth configuration
-- [ ] Add auth endpoints to documentation generator
-- [ ] Ensure backward compatibility with existing features
-- [ ] Performance testing with auth enabled
-
-## Alignment with SPEC.md
-
-This authentication design fully aligns with SPEC.md principles:
-
-✅ **AIP-136 Custom Actions:** All auth endpoints use colon separator (`:action` pattern)
-✅ **Configuration Architecture:** YAML-only config with centralized defaults (no env vars)
-✅ **Database Schema:** Uses ULID for external IDs, auto-increment for internal
-✅ **API Consistency:** Follows same error response format as data endpoints
-✅ **Middleware Order:** Auth/authz integrated into existing middleware pipeline
-✅ **Test-Driven Development:** Comprehensive test coverage required before implementation
-✅ **Security First:** bcrypt passwords, SHA-256 API keys, rate limiting, audit logging
-✅ **Single Responsibility:** Clear separation between authentication, authorization, and business logic
-
-**No Breaking Changes:**
-
-- Existing collection and data endpoints remain unchanged
-- Authentication is opt-in (JWT secret required to enable)
-- API key authentication is optional (disabled by default)
-- All existing features continue to work without authentication
-- Middleware can be selectively applied to specific routes
-
-**Database Compatibility:**
-
-- Auth tables use same conventions as existing tables
-- SQLite, PostgreSQL, and MySQL all supported
-- Uses dialect-agnostic SQL generation
-- Indexes follow existing patterns
-
-**Operational Compatibility:**
-
-- Auth config follows existing YAML structure
-- Logging follows existing patterns
-- Health endpoint remains unchanged
-- Recovery and consistency checks unaffected
-
----
+**Note:** Configuration loaded from YAML file only (no environment variables). See SPEC.md for general configuration patterns.
