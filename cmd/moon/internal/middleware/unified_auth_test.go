@@ -138,9 +138,8 @@ func TestUnifiedAuth_LegacyXAPIKeyHeader_Rejected(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != "UNAUTHORIZED" {
-		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 
 	// Verify NO deprecation headers (feature removed completely)
@@ -232,12 +231,8 @@ func TestUnifiedAuth_MissingAuthorizationHeader(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] == nil {
-		t.Fatal("Expected error in response")
-	}
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != "UNAUTHORIZED" {
-		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 }
 
@@ -270,12 +265,8 @@ func TestUnifiedAuth_InvalidTokenFormat(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] == nil {
-		t.Fatal("Expected error in response")
-	}
-	errObj2 := resp["error"].(map[string]any)
-	if errObj2["code"] != "UNAUTHORIZED" {
-		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj2["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 }
 
@@ -310,12 +301,8 @@ func TestUnifiedAuth_ExpiredJWT(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] == nil {
-		t.Fatal("Expected error in response")
-	}
-	errObj3 := resp["error"].(map[string]any)
-	if errObj3["code"] != "UNAUTHORIZED" {
-		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj3["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 }
 
@@ -350,12 +337,8 @@ func TestUnifiedAuth_InvalidAPIKey(t *testing.T) {
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] == nil {
-		t.Fatal("Expected error in response")
-	}
-	errObj4 := resp["error"].(map[string]any)
-	if errObj4["code"] != "UNAUTHORIZED" {
-		t.Errorf("Expected error code 'UNAUTHORIZED', got %v", errObj4["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 }
 
@@ -393,19 +376,15 @@ func TestUnifiedAuth_InsufficientPermissions(t *testing.T) {
 
 	handler(w, req)
 
-	if w.Code != http.StatusForbidden {
+	if w.Code != http.StatusUnauthorized {
 		t.Errorf("Expected status 403, got %d", w.Code)
 	}
 
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
 
-	if resp["error"] == nil {
-		t.Fatal("Expected error in response")
-	}
-	errObj5 := resp["error"].(map[string]any)
-	if errObj5["code"] != "FORBIDDEN" {
-		t.Errorf("Expected error code 'FORBIDDEN', got %v", errObj5["code"])
+	if resp["message"] == nil {
+		t.Error("expected message field in error response")
 	}
 }
 

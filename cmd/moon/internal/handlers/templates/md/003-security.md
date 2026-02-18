@@ -19,8 +19,7 @@ When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), yo
 
 ```json
 {
-  "error": "Rate limit exceeded. Try again later.",
-  "code": 429
+  "message": "rate limit exceeded"
 }
 ```
 

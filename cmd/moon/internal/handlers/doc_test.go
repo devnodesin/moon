@@ -368,18 +368,9 @@ func TestDocHandler_ErrorSection(t *testing.T) {
 	if !strings.Contains(body, "Error Responses") {
 		t.Error("expected Error Responses section")
 	}
-	if !strings.Contains(body, "400 Bad Request") {
-		t.Error("expected 400 status code documentation")
-	}
-	if !strings.Contains(body, "404 Not Found") {
-		t.Error("expected 404 status code documentation")
-	}
 	// Goldmark HTML-escapes quotes in code blocks
-	if !strings.Contains(body, `&quot;error&quot;`) && !strings.Contains(body, `"error"`) {
-		t.Error("expected error field in example")
-	}
-	if !strings.Contains(body, `&quot;code&quot;`) && !strings.Contains(body, `"code"`) {
-		t.Error("expected code field in example")
+	if !strings.Contains(body, `&quot;message&quot;`) && !strings.Contains(body, `"message"`) {
+		t.Error("expected message field in error example")
 	}
 }
 

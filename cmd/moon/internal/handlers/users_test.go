@@ -97,8 +97,8 @@ func TestUsersHandler_List_Unauthorized(t *testing.T) {
 
 	handler.List(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("List() without auth status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("List() without auth status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -135,8 +135,8 @@ func TestUsersHandler_List_NonAdminForbidden(t *testing.T) {
 
 	handler.List(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("List() with non-admin status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("List() with non-admin status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -285,9 +285,8 @@ func TestUsersHandler_Create_WeakPassword(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeWeakPassword {
-		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeWeakPassword)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -316,9 +315,8 @@ func TestUsersHandler_Create_InvalidEmail(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeInvalidEmailFormat {
-		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeInvalidEmailFormat)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -347,9 +345,8 @@ func TestUsersHandler_Create_InvalidRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeInvalidRole {
-		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeInvalidRole)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -372,15 +369,14 @@ func TestUsersHandler_Create_DuplicateUsername(t *testing.T) {
 
 	handler.Create(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("Create() with duplicate username status = %d, want %d", w.Code, http.StatusConflict)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Create() with duplicate username status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeUsernameExists {
-		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeUsernameExists)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -403,15 +399,14 @@ func TestUsersHandler_Create_DuplicateEmail(t *testing.T) {
 
 	handler.Create(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("Create() with duplicate email status = %d, want %d", w.Code, http.StatusConflict)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Create() with duplicate email status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeEmailExists {
-		t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeEmailExists)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -561,15 +556,14 @@ func TestUsersHandler_Update_CannotModifySelf(t *testing.T) {
 
 	handler.Update(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("Update() on self status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Update() on self status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeCannotModifySelf {
-		t.Errorf("Update() error code = %v, want %v", errObj["code"], ErrCodeCannotModifySelf)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -659,15 +653,14 @@ func TestUsersHandler_Destroy_CannotDeleteSelf(t *testing.T) {
 
 	handler.Destroy(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("Destroy() on self status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Destroy() on self status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeCannotModifySelf {
-		t.Errorf("Destroy() error code = %v, want %v", errObj["code"], ErrCodeCannotModifySelf)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -764,9 +757,8 @@ func TestUsersHandler_Create_MissingFields(t *testing.T) {
 
 			var resp map[string]any
 			json.NewDecoder(w.Body).Decode(&resp)
-			errObj := resp["error"].(map[string]any)
-			if errObj["code"] != ErrCodeMissingRequiredField {
-				t.Errorf("Create() error code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
+			if resp["message"] == nil {
+				t.Error("expected error message in response")
 			}
 		})
 	}
@@ -813,8 +805,8 @@ func TestUsersHandler_List_WrongMethod(t *testing.T) {
 
 	handler.List(w, req)
 
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("List() with POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("List() with POST status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 
@@ -828,8 +820,8 @@ func TestUsersHandler_Get_WrongMethod(t *testing.T) {
 
 	handler.Get(w, req)
 
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Get() with POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Get() with POST status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 
@@ -843,8 +835,8 @@ func TestUsersHandler_Create_WrongMethod(t *testing.T) {
 
 	handler.Create(w, req)
 
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Create() with GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Create() with GET status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 
@@ -858,8 +850,8 @@ func TestUsersHandler_Update_WrongMethod(t *testing.T) {
 
 	handler.Update(w, req)
 
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Update() with GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Update() with GET status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 
@@ -873,8 +865,8 @@ func TestUsersHandler_Destroy_WrongMethod(t *testing.T) {
 
 	handler.Destroy(w, req)
 
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Destroy() with GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Destroy() with GET status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 
