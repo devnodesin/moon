@@ -2,6 +2,8 @@
 
 This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
 
+
+
 ## Documentation and Health Endpoints
 
 ### Documentation Endpoints
@@ -110,6 +112,8 @@ Check API service health and version information.
 - **Version tracking**: The version field in health response indicates the current API version
 
 **Error Response:** For details on error handling, see [Error Response](#error-response).
+
+
 
 ## Authentication Endpoints
 
@@ -301,9 +305,10 @@ Invalidate current session and refresh token.
 
 **Error Response:** For details on error handling, see [Error Response](#error-response).
 
+
 ## Standard Response Pattern for `:list` Endpoints
 
-List endpoints return paginated collections of resources.
+List endpoints return paginated collections of resources. All list endpoints share a consistent request/response pattern described in this section.
 
 **Applicable Endpoints:**
 
@@ -312,9 +317,8 @@ List endpoints return paginated collections of resources.
 - List Collections: `GET /collections:list`
 - List Collection Records: `GET /{collection_name}:list`
 
-### Response Structure
-
-All list endpoints return a consistent JSON structure with two main sections: `data` (the array of records) and `meta` (pagination information).
+**Response Structure:**
+Every list endpoint returns a JSON object with two top-level keys: `data` and `meta`.
 
 ```json
 {
@@ -334,65 +338,99 @@ All list endpoints return a consistent JSON structure with two main sections: `d
 }
 ```
 
-### Pagination
+- `data` - An array of resource objects. Each record always includes an `id` field (ULID), except collections which use `name` as the identifier.
+- `meta` - Pagination metadata for the current page.
+  - `count` (integer): Number of records returned in this response
+  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 100.
+  - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
+  - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
 
-The API uses **unidirectional cursor-based pagination**. The `after` parameter always returns records that come after the specified cursor.
+### Query Parameters
 
-**Example Usage:**
+The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `search`, and `field selection`.
+
+Parameters can be combined freely. See [Query Parameters Examples](#query-parameters-examples) at the end of this section.
+
+#### Pagination
+
+For pagination use parameter `?after={cursor}` to return records after the specified ULID cursor. Omit this parameter to start from the first page.
+
+This API uses cursor-based pagination. Each response includes `meta.next` and `meta.prev` cursors, both of which are used with the `?after` parameter.
 
 ```sh
-# First page
-GET /products:list?limit=15
+# First page (no cursor needed)
+GET /products:list
 
-# Next page - use meta.next cursor
-GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F&limit=15
-
-# Previous page - use meta.prev cursor
-GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5&limit=15
+# Next page — use meta.next, meta.prev, or any valid record id from the previous response
+GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 ```
 
-**How It Works:**
+**Notes:**
 
-- `meta.next`: Cursor pointing to the last record in the current page. Using this with `after` returns the next page.
-- `meta.prev`: Cursor pointing to a record before the current page. Using this with `after` returns the previous page.
-- Both cursors use the same `after` parameter for simplicity and consistency.
+- `meta.prev` is `null` on the first page and `meta.next` is `null` on the last page.
+- Records are always returned in chronological order (by ULID/creation time).
+- For `?after={cursor}`, the cursor must always be a record's id (ULID). It can be:
+  - A valid id of an existing record,
+  - The value of `meta.prev` from the current response,
+  - The value of `meta.next` from the current response.
+- When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
+- If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response) section.
 
-### Parameters
+#### Limit
 
-| Parameter | Type    | Description                                      |
-| --------- | ------- | ------------------------------------------------ |
-| `limit`   | integer | Number of items per page (default: 15, max: 100) |
-| `after`   | string  | ULID cursor - returns records after this cursor  |
+Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.
 
-### Important Notes
+```sh
+GET /products:list?limit=2
+```
 
-- **Null cursors**: `prev` is `null` on the first page; `next` is `null` on the last page.
-- **Sort order**: Records are always returned in consistent chronological order (by ULID/creation time).
-- **No cursor**: Omitting `after` returns the first page.
-- **ID requirement**: Each record in `data` must include an `id` field (ULID), except for collections which use `name` as the identifier.
-- **Cursor format**: Cursors are ULIDs pointing to specific records.
-- **Invalid cursor**: Returns error `RECORD_NOT_FOUND` if the cursor doesn't exist.
+**Response (200 OK):**
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+```json
+{
+  "data": [
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    },
+    {
+      "brand": "Orange",
+      "details": "Gaming keyboard",
+      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
+      "price": "19.99",
+      "quantity": 55,
+      "title": "USB Keyboard"
+    }
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": "01KHCZKSPHB01TBEWKYQDKG5KS",
+    "prev": null
+  }
+}
+```
 
-## Query Options
+---
 
-Query parameters for filtering, sorting, searching, field selection, and pagination when listing records. These options allow you to retrieve specific subsets of data based on your criteria.
+#### Filtering
 
-| Query Option              | Description                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| `?column[operator]=value` | Filter records by column values using comparison operators   |
-| `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending order) |
-| `?q={term}`               | Full-text search across all text columns                     |
-| `?fields={field1,field2}` | Select specific fields to return (`id` is always included)   |
-| `?limit={number}`         | Limit the number of records returned (default: 15, max: 100) |
-| `?after={cursor}`         | Get records after the specified cursor                       |
+Filter results by column value using the syntax `?{column_name}[operator]=value`. You can combine multiple filters in a single request.
 
-### Filtering
+**Supported operators:**
 
-**Query Option:** `?column[operator]=value`
-
-**Supported Operators:** `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`
+- `eq`: Equal to
+- `ne`: Not equal to
+- `gt`: Greater than
+- `lt`: Less than
+- `gte`: Greater than or equal to
+- `lte`: Less than or equal to
+- `like`: Pattern match. Use `%` as a wildcard, e.g. `brand[like]=Wo%`
+- `in`: Matches any value in a comma-separated list, e.g. `brand[in]=Wow,Orange`
 
 **Example:**
 
@@ -431,17 +469,17 @@ GET /products:list?quantity[gt]=5&brand[eq]=Wow
 }
 ```
 
-### Sorting
+---
 
-**Query Option:** `?sort={-field1,field2}`
+#### Sorting
 
-Sort by `field` (ascending) or `-field` (descending). Multiple fields can be specified.
-
-**Example:**
+Use `?sort={field1,-field2,...}` to sort by one or more fields. Prefix a field name with `-` for descending order. Separate multiple fields with commas.
 
 ```sh
 GET /products:list?sort=-quantity,title
 ```
+
+Above sorts by `quantity` descending, then by `title` ascending.
 
 **Response (200 OK):**
 
@@ -482,13 +520,11 @@ GET /products:list?sort=-quantity,title
 }
 ```
 
-### Full-Text Search
+---
 
-**Query Option:** `?q={search_term}`
+#### Full-Text Search
 
-Searches across all string/text fields in the collection.
-
-**Example:**
+Use `?q` to search across all string and text fields in the collection.
 
 ```sh
 GET /products:list?q=mouse
@@ -517,13 +553,11 @@ GET /products:list?q=mouse
 }
 ```
 
-### Field Selection
+---
 
-**Query Option:** `?fields={field1,field2}`
+#### Field Selection
 
-Returns only the specified fields (plus `id`, which is always included).
-
-**Example:**
+Return only the fields you need. `id` is always included.
 
 ```sh
 GET /products:list?fields=quantity,title
@@ -534,21 +568,9 @@ GET /products:list?fields=quantity,title
 ```json
 {
   "data": [
-    {
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    },
-    {
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    },
-    {
-      "id": "01KHCZKT086EEB3EKM3PZ3N2Q0",
-      "quantity": 20,
-      "title": "Monitor 21 inch"
-    }
+    { "id": "01KHCZKSBQV1KH69AA6PVS12MM", "quantity": 10, "title": "Wireless Mouse" },
+    { "id": "01KHCZKSPHB01TBEWKYQDKG5KS", "quantity": 55, "title": "USB Keyboard" },
+    { "id": "01KHCZKT086EEB3EKM3PZ3N2Q0", "quantity": 20, "title": "Monitor 21 inch" }
   ],
   "meta": {
     "count": 3,
@@ -559,66 +581,28 @@ GET /products:list?fields=quantity,title
 }
 ```
 
-### Limit
+---
 
-**Query Option:** `?limit={number}`
+#### Combined Examples
 
-**Example:**
-
-```sh
-GET /products:list?limit=2
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "brand": "Wow",
-      "details": "Ergonomic wireless mouse",
-      "id": "01KHCZKSBQV1KH69AA6PVS12MM",
-      "price": "29.99",
-      "quantity": 10,
-      "title": "Wireless Mouse"
-    },
-    {
-      "brand": "Orange",
-      "details": "Gaming keyboard",
-      "id": "01KHCZKSPHB01TBEWKYQDKG5KS",
-      "price": "19.99",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    }
-  ],
-  "meta": {
-    "count": 2,
-    "limit": 2,
-    "next": "01KHCZKSPHB01TBEWKYQDKG5KS",
-    "prev": null
-  }
-}
-```
-
-### Pagination
-
-**Query Option:** `?after={cursor}`
-
-Refer to the `:list` endpoint documentation for detailed pagination behavior.
-
-### Combined Query Examples
-
-Query parameters can be combined to perform complex queries. Here are some examples:
+All query parameters can be combined in a single request.
 
 ```sh
-# Filter, sort, and limit
+# Filter by price range, sort descending, limit results
 GET /products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5
 
-# Search with category filter and field selection
+# Full-text search with a brand filter, returning only select fields
 GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
 
-# Multiple filters with pagination
-GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01ARZ3NDEK
+# Multi-filter with pagination
+GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
+```
+
+### Error Handling
+
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+
+
 
 ## Standard Response Pattern for `:get` Endpoints
 
@@ -691,7 +675,11 @@ GET /collections:get?name=products
 - **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
 - **404 error**: Returns `RECORD_NOT_FOUND` if the resource doesn't exist.
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
+
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+
+
 
 ## Standard Response Pattern for `:create` Endpoints
 
@@ -876,7 +864,10 @@ Multiple records:
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
+
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+
 
 ## Standard Response Pattern for `:destroy` Endpoints
 
@@ -978,7 +969,11 @@ Multiple records:
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
+
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+
+
 
 ## Standard Response Pattern for `:update` Endpoints
 
@@ -1186,29 +1181,30 @@ Response includes new `key` field:
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
 
-## Aggregation Operations
+### Error Handling
 
-Traditional analytics and reporting often require downloading large datasets to the client for processing, which is inefficient and slow—especially when counting, summing, or calculating averages across millions of records.
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+
+
+## Aggregation Operations
 
 Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
 
-**Server-Side Aggregation Endpoints:**
+**Aggregation Endpoints:**
 
-| Endpoint              | Method | Description                                   |
-| --------------------- | ------ | --------------------------------------------- |
-| `/{collection}:count` | GET    | Count records                                 |
-| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
-| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
-| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
-| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
+- Count Records: `GET /{collection_name}:count`
+- Sum Numeric Field: `GET /{collection_name}:sum` (requires `?field=...`)
+- Average Numeric Field: `GET /{collection_name}:avg` (requires `?field=...`)
+- Minimum Value: `GET /{collection_name}:min` (requires `?field=...`)
+- Maximum Value: `GET /{collection_name}:max` (requires `?field=...`)
 
 **Note:**
 
-- Replace `{collection}` with your collection name.
+- Replace `{collection_name}` with your collection name.
 - Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
 - Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
 
-**Example Request**
+**Example Request:**
 
 ```sh
 POST /products:sum?field=quantity
@@ -1230,17 +1226,26 @@ POST /products:sum?field=quantity
 - `/products:sum?field=quantity&brand[eq]=Wow"`
 - `/products:max?field=quantity`
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
 
-```
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
-## Error Response
 
-The Moon API uses a simple, consistent error handling approach:
+## Standard Error Response
 
-- Errors are indicated by standard **HTTP status codes** (for machines).
-- Each error response includes only a single **`message`** field (for humans).
-- No internal error codes are used.
+The API uses a simple, consistent error handling approach and strictly follows standard HTTP semantics.
+
+- `400`: Invalid request (validation error, invalid parameter, malformed request)
+- `401`: Authentication required
+- `404`: Resource not found
+- `500`: Server error
+
+- Only the codes listed above are permitted; do not use any others.
+- Errors are indicated by standard HTTP status codes (for machines).
+- Each error response includes only a single `message` field (for humans), intended for direct display to users.
+- No internal error codes or additional error metadata are used.
+- The HTTP status code is the only machine-readable error signal.
+- Clients are not expected to parse or branch on error types.
 
 When an error occurs, the API responds with the appropriate HTTP status code and a JSON body:
 
@@ -1249,15 +1254,6 @@ When an error occurs, the API responds with the appropriate HTTP status code and
   "message": "A human-readable description of the error"
 }
 ```
-
-The API strictly follows standard HTTP semantics. Only the codes listed below are permitted; do not use any others.
-
-| Code  | Meaning                                                                     |
-| ----- | --------------------------------------------------------------------------- |
-| `400` | Invalid request like Validation error, invalid parameter, malformed request |
-| `401` | Authentication required                                                     |
-| `404` | Resource not found                                                          |
-| `500` | Server error                                                                |
 
 ### Examples
 
@@ -1293,10 +1289,4 @@ The API strictly follows standard HTTP semantics. Only the codes listed below ar
 }
 ```
 
-### Design Principles
 
-- The HTTP status code is the only machine-readable error signal.
-- The `message` field is intended for direct display to users.
-- Clients are not expected to parse or branch on error types.
-- All error responses contain only the `message` field.
-- No additional error metadata is returned.
