@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -127,7 +128,7 @@ func (h *APIKeysHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, "admin access required", ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -189,7 +190,7 @@ func (h *APIKeysHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, "admin access required", ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -197,7 +198,7 @@ func (h *APIKeysHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	keyID := r.URL.Query().Get("id")
 	if keyID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
@@ -208,7 +209,7 @@ func (h *APIKeysHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if apiKey == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "API key not found", ErrCodeAPIKeyNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("API key with id '%s' not found", keyID))
 		return
 	}
 
@@ -226,43 +227,46 @@ func (h *APIKeysHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, "admin access required", ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
-	var req CreateAPIKeyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var wrapper struct {
+		Data CreateAPIKeyRequest `json:"data"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	req := wrapper.Data
 
 	ctx := r.Context()
 
 	// Validate required fields
 	if req.Name == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "name is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
 	if req.Role == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "role is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "role is required")
 		return
 	}
 
 	// Validate name length
 	if len(req.Name) < MinKeyNameLength || len(req.Name) > MaxKeyNameLength {
-		writeErrorWithCode(w, http.StatusBadRequest, "name must be between 3 and 100 characters", ErrCodeInvalidKeyName)
+		writeError(w, http.StatusBadRequest, "name must be between 3 and 100 characters")
 		return
 	}
 
 	// Validate description length
 	if len(req.Description) > MaxDescriptionLength {
-		writeErrorWithCode(w, http.StatusBadRequest, "description must not exceed 500 characters", ErrCodeInvalidFieldValue)
+		writeError(w, http.StatusBadRequest, "description must not exceed 500 characters")
 		return
 	}
 
 	// Validate role
 	if !IsValidAPIKeyRole(req.Role) {
-		writeErrorWithCode(w, http.StatusBadRequest, "role must be 'admin' or 'user'", ErrCodeInvalidRole)
+		writeError(w, http.StatusBadRequest, "role must be 'admin' or 'user'")
 		return
 	}
 
@@ -273,7 +277,7 @@ func (h *APIKeysHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if exists {
-		writeErrorWithCode(w, http.StatusConflict, "API key name already exists", ErrCodeAPIKeyNameExists)
+		writeError(w, http.StatusBadRequest, "API key name already exists")
 		return
 	}
 
@@ -331,7 +335,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, "admin access required", ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -339,7 +343,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	keyID := r.URL.Query().Get("id")
 	if keyID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
@@ -356,7 +360,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if apiKey == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "API key not found", ErrCodeAPIKeyNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("API key with id '%s' not found", keyID))
 		return
 	}
 
@@ -389,7 +393,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Handle invalid action
 	if req.Action != "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "invalid action", ErrCodeInvalidAction)
+		writeError(w, http.StatusBadRequest, "invalid action")
 		return
 	}
 
@@ -399,7 +403,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Name != nil {
 		// Validate name length
 		if len(*req.Name) < MinKeyNameLength || len(*req.Name) > MaxKeyNameLength {
-			writeErrorWithCode(w, http.StatusBadRequest, "name must be between 3 and 100 characters", ErrCodeInvalidKeyName)
+			writeError(w, http.StatusBadRequest, "name must be between 3 and 100 characters")
 			return
 		}
 
@@ -410,7 +414,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if exists {
-			writeErrorWithCode(w, http.StatusConflict, "API key name already exists", ErrCodeAPIKeyNameExists)
+			writeError(w, http.StatusBadRequest, "API key name already exists")
 			return
 		}
 
@@ -421,7 +425,7 @@ func (h *APIKeysHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Description != nil {
 		// Validate description length
 		if len(*req.Description) > MaxDescriptionLength {
-			writeErrorWithCode(w, http.StatusBadRequest, "description must not exceed 500 characters", ErrCodeInvalidFieldValue)
+			writeError(w, http.StatusBadRequest, "description must not exceed 500 characters")
 			return
 		}
 		apiKey.Description = *req.Description
@@ -460,7 +464,7 @@ func (h *APIKeysHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, "admin access required", ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -468,7 +472,7 @@ func (h *APIKeysHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 
 	keyID := r.URL.Query().Get("id")
 	if keyID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
@@ -479,7 +483,7 @@ func (h *APIKeysHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if apiKey == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "API key not found", ErrCodeAPIKeyNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("API key with id '%s' not found", keyID))
 		return
 	}
 

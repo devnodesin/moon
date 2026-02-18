@@ -70,12 +70,8 @@ func TestDefaultValues_Integration(t *testing.T) {
 	}
 
 	// 2. Insert record with only required fields (nullable fields should use database defaults)
-	insertReq := CreateDataRequest{
-		Data: map[string]any{
-			"name":  "Test Product",
-			"price": 99,
-			// All nullable fields omitted - should get database defaults
-		},
+	insertReq := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product", "price": 99}]`),
 	}
 	insertBody, _ := json.Marshal(insertReq)
 	insertHTTPReq := httptest.NewRequest(http.MethodPost, "/test_products:create", bytes.NewReader(insertBody))
@@ -87,16 +83,22 @@ func TestDefaultValues_Integration(t *testing.T) {
 	}
 
 	// 3. Verify the response includes only provided fields (defaults are not in response)
-	var insertResp CreateDataResponse
-	if err := json.NewDecoder(insertW.Body).Decode(&insertResp); err != nil {
+	var insertRespRaw map[string]any
+	if err := json.NewDecoder(insertW.Body).Decode(&insertRespRaw); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
+	insertData := insertRespRaw["data"].([]any)
+	if len(insertData) == 0 {
+		t.Fatal("expected at least one record in insert response")
+	}
+	insertRespItem := insertData[0].(map[string]any)
+
 	// Check provided fields are in response
-	if name, exists := insertResp.Data["name"]; !exists || name != "Test Product" {
+	if name, exists := insertRespItem["name"]; !exists || name != "Test Product" {
 		t.Errorf("name: expected 'Test Product', got %v", name)
 	}
-	if price, exists := insertResp.Data["price"]; !exists || price != float64(99) {
+	if price, exists := insertRespItem["price"]; !exists || price != float64(99) {
 		t.Errorf("price: expected 99, got %v", price)
 	}
 
@@ -148,18 +150,8 @@ func TestDefaultValues_Integration(t *testing.T) {
 	}
 
 	// 4. Verify we can override defaults by providing values
-	insertReq2 := CreateDataRequest{
-		Data: map[string]any{
-			"name":     "Product 2",
-			"status":   "active", // override custom default
-			"price":    150,
-			"stock":    5, // override custom default
-			"discount": "5.50",
-			"featured": true,  // override global default
-			"verified": false, // override custom default
-			"metadata": `{"key":"value"}`,
-			"notes":    "Some notes",
-		},
+	insertReq2 := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Product 2", "status": "active", "price": 150, "stock": 5, "discount": "5.50", "featured": true, "verified": false, "metadata": "{\"key\":\"value\"}", "notes": "Some notes"}]`),
 	}
 	insertBody2, _ := json.Marshal(insertReq2)
 	insertHTTPReq2 := httptest.NewRequest(http.MethodPost, "/test_products:create", bytes.NewReader(insertBody2))
@@ -170,17 +162,22 @@ func TestDefaultValues_Integration(t *testing.T) {
 		t.Fatalf("Failed to insert second record: %s", insertW2.Body.String())
 	}
 
-	var insertResp2 CreateDataResponse
-	if err := json.NewDecoder(insertW2.Body).Decode(&insertResp2); err != nil {
+	var insertResp2Raw map[string]any
+	if err := json.NewDecoder(insertW2.Body).Decode(&insertResp2Raw); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	// Verify overrides worked
-	if insertResp2.Data["status"] != "active" {
-		t.Errorf("status should be overridden to 'active', got %v", insertResp2.Data["status"])
+	insertResp2Data := insertResp2Raw["data"].([]any)
+	if len(insertResp2Data) == 0 {
+		t.Fatal("expected at least one record in second insert response")
 	}
-	if insertResp2.Data["verified"] != false {
-		t.Errorf("verified should be overridden to false, got %v", insertResp2.Data["verified"])
+	insertResp2Item := insertResp2Data[0].(map[string]any)
+	if insertResp2Item["status"] != "active" {
+		t.Errorf("status should be overridden to 'active', got %v", insertResp2Item["status"])
+	}
+	if insertResp2Item["verified"] != false {
+		t.Errorf("verified should be overridden to false, got %v", insertResp2Item["verified"])
 	}
 }
 
@@ -249,24 +246,29 @@ func TestDefaultValues_BatchCreate(t *testing.T) {
 		t.Fatalf("Failed to batch insert: %s", batchW.Body.String())
 	}
 
-	var batchResp BatchCreateResponse
-	if err := json.NewDecoder(batchW.Body).Decode(&batchResp); err != nil {
+	var batchRespRaw map[string]any
+	if err := json.NewDecoder(batchW.Body).Decode(&batchRespRaw); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if len(batchResp.Data) != 3 {
-		t.Fatalf("Expected 3 records, got %d", len(batchResp.Data))
+	batchData := batchRespRaw["data"].([]any)
+	if len(batchData) != 3 {
+		t.Fatalf("Expected 3 records, got %d", len(batchData))
 	}
 
 	// Verify only provided fields are in response
 	// Item 1 and 3 should NOT have count in response (it was omitted, database default applied)
-	if _, exists := batchResp.Data[0]["count"]; exists {
+	item0 := batchData[0].(map[string]any)
+	item1 := batchData[1].(map[string]any)
+	item2 := batchData[2].(map[string]any)
+
+	if _, exists := item0["count"]; exists {
 		t.Errorf("Item 1: count should not be in response (was omitted)")
 	}
-	if count := batchResp.Data[1]["count"]; count != float64(5) {
+	if count := item1["count"]; count != float64(5) {
 		t.Errorf("Item 2: expected count 5, got %v", count)
 	}
-	if _, exists := batchResp.Data[2]["count"]; exists {
+	if _, exists := item2["count"]; exists {
 		t.Errorf("Item 3: count should not be in response (was omitted)")
 	}
 

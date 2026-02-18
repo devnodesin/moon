@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
@@ -162,10 +161,8 @@ func TestDataHandler_Create_CollectionNotFound(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name": "Test",
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -198,11 +195,8 @@ func TestDataHandler_Create_Success(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name":  "Test Product",
-			"price": 19,
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product", "price": 19}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -215,13 +209,19 @@ func TestDataHandler_Create_Success(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
 	}
 
-	var response CreateDataResponse
+	var response map[string]any
 	json.NewDecoder(w.Body).Decode(&response)
 
+	data, ok := response["data"].([]any)
+	if !ok || len(data) == 0 {
+		t.Fatalf("expected data array with at least one item")
+	}
+
 	// ID is now a ULID string
-	idStr, ok := response.Data["id"].(string)
+	item := data[0].(map[string]any)
+	idStr, ok := item["id"].(string)
 	if !ok {
-		t.Fatalf("expected id to be string, got %T", response.Data["id"])
+		t.Fatalf("expected id to be string, got %T", item["id"])
 	}
 	if len(idStr) != 26 {
 		t.Errorf("expected ULID (26 chars), got %d chars: %v", len(idStr), idStr)
@@ -242,11 +242,8 @@ func TestDataHandler_Create_MissingRequiredField(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name": "Test Product",
-			// missing required field "price" - should fail validation
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -256,14 +253,17 @@ func TestDataHandler_Create_MissingRequiredField(t *testing.T) {
 	handler.Create(w, req, "products")
 
 	// With new behavior, missing required fields should fail
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	// Verify error message mentions the missing field
-	respBody := w.Body.String()
-	if !strings.Contains(respBody, "price") || !strings.Contains(respBody, "missing") {
-		t.Errorf("error message should mention missing required field 'price', got: %s", respBody)
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+
+	// Verify the item failed due to missing required field
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure for missing required field 'price', got %v", meta["failed"])
 	}
 }
 
@@ -281,11 +281,8 @@ func TestDataHandler_Create_InvalidFieldType(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name":  "Test Product",
-			"price": "not a number", // wrong type
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product", "price": "not a number"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -294,8 +291,15 @@ func TestDataHandler_Create_InvalidFieldType(t *testing.T) {
 
 	handler.Create(w, req, "products")
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
+	}
+
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure for invalid field type, got %v", meta["failed"])
 	}
 }
 
@@ -319,10 +323,8 @@ func TestDataHandler_Update_Success(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": map[string]any{
-			"id":    "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-			"name":  "Updated Product",
-			"price": 29,
+		"data": []map[string]any{
+			{"id": "01ARZ3NDEKTSV4RRFFQ69G5FAV", "name": "Updated Product", "price": 29},
 		},
 	}
 	body, _ := json.Marshal(reqBody)
@@ -356,9 +358,8 @@ func TestDataHandler_Update_NotFound(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": map[string]any{
-			"id":   "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-			"name": "Updated Product",
+		"data": []map[string]any{
+			{"id": "01ARZ3NDEKTSV4RRFFQ69G5FBX", "name": "Updated Product"},
 		},
 	}
 	body, _ := json.Marshal(reqBody)
@@ -368,8 +369,16 @@ func TestDataHandler_Update_NotFound(t *testing.T) {
 
 	handler.Update(w, req, "products")
 
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)
+	// In best-effort mode, not-found items count as failures, so response is 200 with failed=1
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure for not-found record, got %v", meta["failed"])
 	}
 }
 
@@ -394,10 +403,12 @@ func TestDataHandler_Update_WithIDInData(t *testing.T) {
 
 	// Test case where "id" is included in data map (should be allowed as system field)
 	reqBody := map[string]any{
-		"data": map[string]any{
-			"id":    "01KGYMMW8ZFKRDH5ZVHQJ30RR8", // This should be allowed
-			"name":  "Chain Link Fence 2x2",
-			"brand": "Bestfence",
+		"data": []map[string]any{
+			{
+				"id":    "01KGYMMW8ZFKRDH5ZVHQJ30RR8", // This should be allowed
+				"name":  "Chain Link Fence 2x2",
+				"brand": "Bestfence",
+			},
 		},
 	}
 	body, _ := json.Marshal(reqBody)
@@ -411,14 +422,19 @@ func TestDataHandler_Update_WithIDInData(t *testing.T) {
 		t.Errorf("expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	// Verify response
-	var resp UpdateDataResponse
+	// Verify response contains the updated record in data array
+	var resp map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.Data["id"] != "01KGYMMW8ZFKRDH5ZVHQJ30RR8" {
-		t.Errorf("expected id '01KGYMMW8ZFKRDH5ZVHQJ30RR8', got %v", resp.Data["id"])
+	data, ok := resp["data"].([]any)
+	if !ok || len(data) == 0 {
+		t.Fatalf("expected data array with at least one item")
+	}
+	item := data[0].(map[string]any)
+	if item["id"] != "01KGYMMW8ZFKRDH5ZVHQJ30RR8" {
+		t.Errorf("expected id '01KGYMMW8ZFKRDH5ZVHQJ30RR8', got %v", item["id"])
 	}
 }
 
@@ -439,7 +455,7 @@ func TestDataHandler_Destroy_Success(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		"data": []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -470,7 +486,7 @@ func TestDataHandler_Destroy_NotFound(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
+		"data": []string{"01ARZ3NDEKTSV4RRFFQ69G5FBX"},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -479,8 +495,16 @@ func TestDataHandler_Destroy_NotFound(t *testing.T) {
 
 	handler.Destroy(w, req, "products")
 
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)
+	// In best-effort mode, not-found is treated as a failure, so 200 with failed=1
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure for not-found record, got %v", meta["failed"])
 	}
 }
 
@@ -635,10 +659,8 @@ func TestDataHandler_PostgresDialect(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name": "Test",
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -665,11 +687,8 @@ func TestDataHandler_Create_UnknownField(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"name":          "Test",
-			"unknown_field": "value",
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test", "unknown_field": "value"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -678,8 +697,15 @@ func TestDataHandler_Create_UnknownField(t *testing.T) {
 
 	handler.Create(w, req, "products")
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	// Unknown field causes validation failure in best-effort mode (1 failure)
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
+	}
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure for unknown field, got %v", meta["failed"])
 	}
 }
 
@@ -706,12 +732,8 @@ func TestDataHandler_Create_IgnoresClientProvidedULID(t *testing.T) {
 
 	// Client attempts to provide an ID
 	clientProvidedID := "01AAAAAAAAAAAAAAAAAAAAAAA"
-	reqBody := CreateDataRequest{
-		Data: map[string]any{
-			"id":    clientProvidedID,
-			"name":  "Test Product",
-			"price": 19,
-		},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"id": "` + clientProvidedID + `", "name": "Test Product", "price": 19}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -724,13 +746,19 @@ func TestDataHandler_Create_IgnoresClientProvidedULID(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
 	}
 
-	var response CreateDataResponse
+	var response map[string]any
 	json.NewDecoder(w.Body).Decode(&response)
 
+	data, ok := response["data"].([]any)
+	if !ok || len(data) == 0 {
+		t.Fatalf("expected data array with at least one item")
+	}
+	item := data[0].(map[string]any)
+
 	// Verify the response contains a ULID
-	idStr, ok := response.Data["id"].(string)
+	idStr, ok := item["id"].(string)
 	if !ok {
-		t.Fatalf("expected id to be string, got %T", response.Data["id"])
+		t.Fatalf("expected id to be string, got %T", item["id"])
 	}
 	if len(idStr) != 26 {
 		t.Errorf("expected ULID (26 chars), got %d chars: %v", len(idStr), idStr)
@@ -805,11 +833,8 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 
 	// Test Create
 	t.Run("Create", func(t *testing.T) {
-		reqBody := CreateDataRequest{
-			Data: map[string]any{
-				"name":  "Test Product",
-				"price": 19,
-			},
+		reqBody := BatchCreateDataRequest{
+			Data: json.RawMessage(`[{"name": "Test Product", "price": 19}]`),
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -822,9 +847,13 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 			t.Errorf("expected status %d, got %d. Body: %s", http.StatusCreated, w.Code, w.Body.String())
 		}
 
-		var response CreateDataResponse
+		var response map[string]any
 		json.NewDecoder(w.Body).Decode(&response)
-		if idStr, ok := response.Data["id"].(string); ok {
+		data := response["data"].([]any)
+		if len(data) == 0 {
+			t.Fatal("expected at least one record in data array")
+		}
+		if idStr, ok := data[0].(map[string]any)["id"].(string); ok {
 			createdULID = idStr
 		}
 	})
@@ -863,10 +892,8 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 	// Test Update
 	t.Run("Update", func(t *testing.T) {
 		reqBody := map[string]any{
-			"data": map[string]any{
-				"id":    createdULID,
-				"name":  "Updated Product",
-				"price": 29,
+			"data": []map[string]any{
+				{"id": createdULID, "name": "Updated Product", "price": 29},
 			},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -884,7 +911,7 @@ func TestDataHandler_Integration_SQLite(t *testing.T) {
 	// Test Destroy
 	t.Run("Destroy", func(t *testing.T) {
 		reqBody := map[string]any{
-			"data": createdULID,
+			"data": []string{createdULID},
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -1613,10 +1640,8 @@ name TEXT NOT NULL
 	// Insert 5 test records
 	recordIDs := make([]string, 5)
 	for i := 0; i < 5; i++ {
-		reqBody := CreateDataRequest{
-			Data: map[string]any{
-				"name": fmt.Sprintf("Record %d", i+1),
-			},
+		reqBody := BatchCreateDataRequest{
+			Data: json.RawMessage(fmt.Sprintf(`[{"name": "Record %d"}]`, i+1)),
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -1629,11 +1654,15 @@ name TEXT NOT NULL
 			t.Fatalf("failed to create record %d: status %d, body: %s", i+1, w.Code, w.Body.String())
 		}
 
-		var response CreateDataResponse
+		var response map[string]any
 		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 			t.Fatalf("failed to decode create response: %v", err)
 		}
-		if idStr, ok := response.Data["id"].(string); ok {
+		data := response["data"].([]any)
+		if len(data) == 0 {
+			t.Fatalf("failed to get ID from create response")
+		}
+		if idStr, ok := data[0].(map[string]any)["id"].(string); ok {
 			recordIDs[i] = idStr
 		} else {
 			t.Fatalf("failed to get ID from create response")
@@ -1741,10 +1770,8 @@ name TEXT NOT NULL
 		reg.Set(singleCollection)
 
 		// Insert one record
-		reqBody := CreateDataRequest{
-			Data: map[string]any{
-				"name": "Single Record",
-			},
+		reqBody := BatchCreateDataRequest{
+			Data: json.RawMessage(`[{"name": "Single Record"}]`),
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -1842,10 +1869,8 @@ name TEXT NOT NULL
 
 		// Insert exactly 2 records
 		for i := 0; i < 2; i++ {
-			reqBody := CreateDataRequest{
-				Data: map[string]any{
-					"name": fmt.Sprintf("Exact Record %d", i+1),
-				},
+			reqBody := BatchCreateDataRequest{
+				Data: json.RawMessage(fmt.Sprintf(`[{"name": "Exact Record %d"}]`, i+1)),
 			}
 			body, _ := json.Marshal(reqBody)
 
@@ -2056,9 +2081,8 @@ func TestDataHandler_NoPkidExposure(t *testing.T) {
 	// Test 3: Create operation response should not expose pkid
 	t.Run("Create_NoPkid", func(t *testing.T) {
 		reqBody := map[string]any{
-			"data": map[string]any{
-				"name":  "New Product",
-				"price": "19.99",
+			"data": []map[string]any{
+				{"name": "New Product", "price": "19.99"},
 			},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -2073,17 +2097,23 @@ func TestDataHandler_NoPkidExposure(t *testing.T) {
 			return
 		}
 
-		var response CreateDataResponse
+		var response map[string]any
 		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
 
+		data := response["data"].([]any)
+		if len(data) == 0 {
+			t.Fatal("expected at least one record in data array")
+		}
+		item := data[0].(map[string]any)
+
 		// Check that pkid is NOT in the response
-		if _, exists := response.Data["pkid"]; exists {
+		if _, exists := item["pkid"]; exists {
 			t.Error("pkid should NOT be exposed in API response")
 		}
 		// Verify id IS present
-		if _, exists := response.Data["id"]; !exists {
+		if _, exists := item["id"]; !exists {
 			t.Error("id should be present in API response")
 		}
 	})
@@ -2091,10 +2121,8 @@ func TestDataHandler_NoPkidExposure(t *testing.T) {
 	// Test 4: Update operation response should not expose pkid
 	t.Run("Update_NoPkid", func(t *testing.T) {
 		reqBody := map[string]any{
-			"data": map[string]any{
-				"id":    testID,
-				"name":  "Updated Product",
-				"price": "39.99",
+			"data": []map[string]any{
+				{"id": testID, "name": "Updated Product", "price": "39.99"},
 			},
 		}
 		body, _ := json.Marshal(reqBody)
@@ -2109,17 +2137,23 @@ func TestDataHandler_NoPkidExposure(t *testing.T) {
 			return
 		}
 
-		var response UpdateDataResponse
+		var response map[string]any
 		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
 
+		data := response["data"].([]any)
+		if len(data) == 0 {
+			t.Fatal("expected at least one record in data array")
+		}
+		item := data[0].(map[string]any)
+
 		// Check that pkid is NOT in the response
-		if _, exists := response.Data["pkid"]; exists {
+		if _, exists := item["pkid"]; exists {
 			t.Error("pkid should NOT be exposed in API response")
 		}
 		// Verify id IS present
-		if _, exists := response.Data["id"]; !exists {
+		if _, exists := item["id"]; !exists {
 			t.Error("id should be present in API response")
 		}
 	})

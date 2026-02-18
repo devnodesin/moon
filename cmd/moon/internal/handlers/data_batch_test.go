@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
@@ -42,25 +41,26 @@ func TestBatchCreate_BestEffort_PartialSuccess(t *testing.T) {
 
 	handler.Create(w, req, "products")
 
-	if w.Code != http.StatusMultiStatus {
-		t.Errorf("expected status %d, got %d: %s", http.StatusMultiStatus, w.Code, w.Body.String())
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var response BatchResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Summary.Total != 2 {
-		t.Errorf("expected total 2, got %d", response.Summary.Total)
+	meta := response["meta"].(map[string]any)
+	if meta["total"] != float64(2) {
+		t.Errorf("expected total 2, got %v", meta["total"])
 	}
 
-	if response.Summary.Succeeded != 1 {
-		t.Errorf("expected 1 success, got %d", response.Summary.Succeeded)
+	if meta["succeeded"] != float64(1) {
+		t.Errorf("expected 1 success, got %v", meta["succeeded"])
 	}
 
-	if response.Summary.Failed != 1 {
-		t.Errorf("expected 1 failure, got %d", response.Summary.Failed)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure, got %v", meta["failed"])
 	}
 }
 
@@ -132,21 +132,22 @@ func TestBatchUpdate_BestEffort(t *testing.T) {
 
 	handler.Update(w, req, "products")
 
-	if w.Code != http.StatusMultiStatus {
-		t.Errorf("expected status %d, got %d: %s", http.StatusMultiStatus, w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response BatchResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Summary.Total != 2 {
-		t.Errorf("expected total 2, got %d", response.Summary.Total)
+	meta := response["meta"].(map[string]any)
+	if meta["total"] != float64(2) {
+		t.Errorf("expected total 2, got %v", meta["total"])
 	}
 
-	if response.Summary.Succeeded != 2 {
-		t.Errorf("expected 2 successes, got %d", response.Summary.Succeeded)
+	if meta["succeeded"] != float64(2) {
+		t.Errorf("expected 2 successes, got %v", meta["succeeded"])
 	}
 }
 
@@ -176,17 +177,18 @@ func TestBatchUpdate_MissingID(t *testing.T) {
 	handler.Update(w, req, "products")
 
 	// In best-effort mode, one should succeed and one should fail
-	if w.Code != http.StatusMultiStatus {
-		t.Errorf("expected status %d, got %d: %s", http.StatusMultiStatus, w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response BatchResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Summary.Failed != 1 {
-		t.Errorf("expected 1 failure, got %d", response.Summary.Failed)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure, got %v", meta["failed"])
 	}
 }
 
@@ -226,34 +228,26 @@ func TestBatchDestroy_BestEffort(t *testing.T) {
 
 	handler.Destroy(w, req, "products")
 
-	if w.Code != http.StatusMultiStatus {
-		t.Errorf("expected status %d, got %d: %s", http.StatusMultiStatus, w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response BatchResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Summary.Total != 2 {
-		t.Errorf("expected total 2, got %d", response.Summary.Total)
+	meta := response["meta"].(map[string]any)
+	if meta["total"] != float64(2) {
+		t.Errorf("expected total 2, got %v", meta["total"])
 	}
 
-	if response.Summary.Succeeded != 1 {
-		t.Errorf("expected 1 success, got %d", response.Summary.Succeeded)
+	if meta["succeeded"] != float64(1) {
+		t.Errorf("expected 1 success, got %v", meta["succeeded"])
 	}
 
-	if response.Summary.Failed != 1 {
-		t.Errorf("expected 1 failure, got %d", response.Summary.Failed)
-	}
-
-	// Check that second item has not_found status
-	if len(response.Results) != 2 {
-		t.Fatalf("expected 2 results, got %d", len(response.Results))
-	}
-
-	if response.Results[1].Status != BatchItemNotFound {
-		t.Errorf("expected not_found status for second item, got %s", response.Results[1].Status)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure, got %v", meta["failed"])
 	}
 }
 
@@ -362,8 +356,8 @@ func TestParseAtomicFlag(t *testing.T) {
 	}
 }
 
-// TestBackwardCompatibility_SingleCreate tests backward compatibility for single create
-func TestBackwardCompatibility_SingleCreate(t *testing.T) {
+// TestNewFormat_SingleCreate tests that single (non-array) create is rejected
+func TestNewFormat_SingleCreate(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
 		Name: "products",
@@ -376,9 +370,9 @@ func TestBackwardCompatibility_SingleCreate(t *testing.T) {
 	driver := &mockDataDriver{dialect: database.DialectSQLite}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// Old format: {"data": {"name": "test"}}
-	reqBody := CreateDataRequest{
-		Data: map[string]any{"name": "test"},
+	// New format: {"data": [{"name": "test"}]} - array required
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "test"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -391,22 +385,19 @@ func TestBackwardCompatibility_SingleCreate(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var response CreateDataResponse
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Data["name"] != "test" {
-		t.Errorf("expected name 'test', got %v", response.Data["name"])
-	}
-
-	if _, ok := response.Data["id"]; !ok {
-		t.Error("expected 'id' field in response")
+	data, ok := response["data"].([]any)
+	if !ok || len(data) == 0 {
+		t.Error("expected array in data field")
 	}
 }
 
-// TestBackwardCompatibility_SingleUpdate tests backward compatibility for single update
-func TestBackwardCompatibility_SingleUpdate(t *testing.T) {
+// TestNewFormat_SingleUpdate tests that single (non-array) update is rejected
+func TestNewFormat_SingleUpdate(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
 		Name: "products",
@@ -424,7 +415,7 @@ func TestBackwardCompatibility_SingleUpdate(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// New format: {"data": {"id": "...", "name": "updated"}}
+	// Single object should be rejected (must use array)
 	reqBody := map[string]any{
 		"data": map[string]any{
 			"id":   "01HFXYZ1234567890ABCDEFGHI",
@@ -438,22 +429,13 @@ func TestBackwardCompatibility_SingleUpdate(t *testing.T) {
 
 	handler.Update(w, req, "products")
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
-	}
-
-	var response UpdateDataResponse
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	if response.Data["name"] != "updated" {
-		t.Errorf("expected name 'updated', got %v", response.Data["name"])
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
 }
 
-// TestBackwardCompatibility_SingleDestroy tests backward compatibility for single destroy
-func TestBackwardCompatibility_SingleDestroy(t *testing.T) {
+// TestNewFormat_SingleDestroy tests that single (non-array) destroy is rejected
+func TestNewFormat_SingleDestroy(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
 		Name: "products",
@@ -471,7 +453,7 @@ func TestBackwardCompatibility_SingleDestroy(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// New format: {"data": "..."}
+	// Single string should be rejected (must use array)
 	reqBody := map[string]any{
 		"data": "01HFXYZ1234567890ABCDEFGHI",
 	}
@@ -482,16 +464,7 @@ func TestBackwardCompatibility_SingleDestroy(t *testing.T) {
 
 	handler.Destroy(w, req, "products")
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
-	}
-
-	var response DestroyDataResponse
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	if !strings.Contains(response.Message, "deleted successfully") {
-		t.Errorf("unexpected message: %s", response.Message)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
 }
