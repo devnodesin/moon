@@ -181,6 +181,4 @@ Multiple records:
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

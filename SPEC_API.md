@@ -30,6 +30,9 @@ API documentation is available in multiple formats:
     "version": "1.0"
   }
 }
+```
+
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Authentication Endpoints
@@ -226,9 +229,8 @@ Invalidate current session and refresh token.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
-### Error Handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ## Standard Response Pattern for `:list` Endpoints
 
@@ -510,9 +512,8 @@ GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
 GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
 ```
 
-### Error Handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:get` Endpoints
@@ -583,9 +584,7 @@ GET /collections:get?name=products
 - **No meta field**: Get endpoints don't need pagination metadata.
 - **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:create` Endpoints
@@ -771,9 +770,7 @@ Multiple records:
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:destroy` Endpoints
@@ -876,9 +873,7 @@ Multiple records:
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:update` Endpoints
@@ -1087,9 +1082,7 @@ Response includes new `key` field:
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Aggregation Operations
@@ -1132,9 +1125,7 @@ POST /products:sum?field=quantity
 - `/products:sum?field=quantity&brand[eq]=Wow"`
 - `/products:max?field=quantity`
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Error Response

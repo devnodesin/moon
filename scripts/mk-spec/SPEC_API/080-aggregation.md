@@ -38,6 +38,4 @@ POST /products:sum?field=quantity
 - `/products:sum?field=quantity&brand[eq]=Wow"`
 - `/products:max?field=quantity`
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

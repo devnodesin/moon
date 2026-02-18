@@ -204,6 +204,4 @@ Response includes new `key` field:
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

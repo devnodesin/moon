@@ -25,3 +25,6 @@ API documentation is available in multiple formats:
     "version": "1.0"
   }
 }
+```
+
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

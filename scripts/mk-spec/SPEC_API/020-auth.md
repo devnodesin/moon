@@ -192,6 +192,4 @@ Invalidate current session and refresh token.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

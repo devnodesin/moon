@@ -278,6 +278,5 @@ GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
 GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
 ```
 
-### Error Handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling

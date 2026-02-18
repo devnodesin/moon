@@ -98,6 +98,4 @@ Multiple records:
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
 
-### Error Handling
-
-**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
+**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
