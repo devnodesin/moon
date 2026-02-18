@@ -227,11 +227,13 @@ func TestUsersHandler_Create_Success(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "newuser",
-		Email:    "newuser@example.com",
-		Password: "NewUser123",
-		Role:     "user",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "newuser",
+			Email:    "newuser@example.com",
+			Password: "NewUser123",
+			Role:     "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -264,11 +266,13 @@ func TestUsersHandler_Create_WeakPassword(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "newuser",
-		Email:    "newuser@example.com",
-		Password: "weak",
-		Role:     "user",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "newuser",
+			Email:    "newuser@example.com",
+			Password: "weak",
+			Role:     "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -294,11 +298,13 @@ func TestUsersHandler_Create_InvalidEmail(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "newuser",
-		Email:    "invalid-email",
-		Password: "NewUser123",
-		Role:     "user",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "newuser",
+			Email:    "invalid-email",
+			Password: "NewUser123",
+			Role:     "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -324,11 +330,13 @@ func TestUsersHandler_Create_InvalidRole(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "newuser",
-		Email:    "newuser@example.com",
-		Password: "NewUser123",
-		Role:     "invalid",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "newuser",
+			Email:    "newuser@example.com",
+			Password: "NewUser123",
+			Role:     "invalid",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -354,11 +362,13 @@ func TestUsersHandler_Create_DuplicateUsername(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "admin", // Already exists
-		Email:    "new@example.com",
-		Password: "NewUser123",
-		Role:     "user",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "admin", // Already exists
+			Email:    "new@example.com",
+			Password: "NewUser123",
+			Role:     "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -384,11 +394,13 @@ func TestUsersHandler_Create_DuplicateEmail(t *testing.T) {
 	handler, _, adminToken, db := setupTestUsersHandler(t)
 	defer db.Close()
 
-	body := CreateUserRequest{
-		Username: "newuser",
-		Email:    "admin@example.com", // Already exists
-		Password: "NewUser123",
-		Role:     "user",
+	body := map[string]any{
+		"data": CreateUserRequest{
+			Username: "newuser",
+			Email:    "admin@example.com", // Already exists
+			Password: "NewUser123",
+			Role:     "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -556,8 +568,8 @@ func TestUsersHandler_Update_CannotModifySelf(t *testing.T) {
 
 	handler.Update(w, req)
 
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("Update() on self status = %d, want %d", w.Code, http.StatusUnauthorized)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Update() on self status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
@@ -653,8 +665,8 @@ func TestUsersHandler_Destroy_CannotDeleteSelf(t *testing.T) {
 
 	handler.Destroy(w, req)
 
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("Destroy() on self status = %d, want %d", w.Code, http.StatusUnauthorized)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Destroy() on self status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
@@ -742,7 +754,8 @@ func TestUsersHandler_Create_MissingFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bodyBytes, _ := json.Marshal(tt.body)
+			wrapper := map[string]any{"data": tt.body}
+			bodyBytes, _ := json.Marshal(wrapper)
 
 			req := httptest.NewRequest(http.MethodPost, "/users:create", bytes.NewReader(bodyBytes))
 			req.Header.Set("Authorization", "Bearer "+adminToken)

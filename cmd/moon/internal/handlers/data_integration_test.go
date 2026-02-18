@@ -67,13 +67,8 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 	defer driver.Close()
 
 	// 1. Create a product
-	createBody := CreateDataRequest{
-		Data: map[string]any{
-			"name":     "Test Product",
-			"price":    99,
-			"category": "electronics",
-			"active":   true,
-		},
+	createBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product", "price": 99, "category": "electronics", "active": true}]`),
 	}
 	body, _ := json.Marshal(createBody)
 	req := httptest.NewRequest(http.MethodPost, "/products:create", bytes.NewReader(body))
@@ -84,12 +79,16 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 		t.Fatalf("Create failed: expected %d, got %d. Body: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var createResp CreateDataResponse
-	json.NewDecoder(w.Body).Decode(&createResp)
+	var createRespRaw map[string]any
+	json.NewDecoder(w.Body).Decode(&createRespRaw)
 
-	productID, ok := createResp.Data["id"].(string)
+	createData := createRespRaw["data"].([]any)
+	if len(createData) == 0 {
+		t.Fatal("Expected at least one record in create response")
+	}
+	productID, ok := createData[0].(map[string]any)["id"].(string)
 	if !ok {
-		t.Fatalf("Expected string ID, got %T", createResp.Data["id"])
+		t.Fatalf("Expected string ID in create response")
 	}
 
 	// 2. Get the product
@@ -110,9 +109,8 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 
 	// 3. Update the product
 	updateBody := map[string]any{
-		"data": map[string]any{
-			"id":    productID,
-			"price": 149,
+		"data": []map[string]any{
+			{"id": productID, "price": 149},
 		},
 	}
 	body, _ = json.Marshal(updateBody)
@@ -140,7 +138,7 @@ func TestDataHandler_CRUD_Integration(t *testing.T) {
 
 	// 5. Delete the product
 	deleteBody := map[string]any{
-		"data": productID,
+		"data": []string{productID},
 	}
 	body, _ = json.Marshal(deleteBody)
 	req = httptest.NewRequest(http.MethodPost, "/products:destroy", bytes.NewReader(body))
@@ -386,11 +384,8 @@ func TestDataHandler_Create_ClientIDIgnored(t *testing.T) {
 	defer driver.Close()
 
 	// Provide valid fields only (no id as it is a system field)
-	createBody := CreateDataRequest{
-		Data: map[string]any{
-			"name":  "Test Product",
-			"price": 50,
-		},
+	createBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product", "price": 50}]`),
 	}
 	body, _ := json.Marshal(createBody)
 	req := httptest.NewRequest(http.MethodPost, "/products:create", bytes.NewReader(body))
@@ -401,11 +396,17 @@ func TestDataHandler_Create_ClientIDIgnored(t *testing.T) {
 		t.Fatalf("Create failed: %s", w.Body.String())
 	}
 
-	var resp CreateDataResponse
+	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
 
+	data := resp["data"].([]any)
+	if len(data) == 0 {
+		t.Fatal("Expected at least one record in create response")
+	}
+	item := data[0].(map[string]any)
+
 	// ID should be a server-generated 26-character ULID
-	if id, ok := resp.Data["id"].(string); ok {
+	if id, ok := item["id"].(string); ok {
 		if len(id) != 26 {
 			t.Errorf("Expected ULID (26 chars), got %d chars", len(id))
 		}

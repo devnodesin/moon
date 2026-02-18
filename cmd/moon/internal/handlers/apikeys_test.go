@@ -162,10 +162,12 @@ func TestAPIKeysHandler_Create_Success(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Name:        "test-api-key",
-		Description: "A test API key",
-		Role:        "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name:        "test-api-key",
+			Description: "A test API key",
+			Role:        "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -210,10 +212,12 @@ func TestAPIKeysHandler_Create_WithCanWrite(t *testing.T) {
 	defer db.Close()
 
 	canWrite := true
-	body := CreateAPIKeyRequest{
-		Name:     "writable-key",
-		Role:     "user",
-		CanWrite: &canWrite,
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name:     "writable-key",
+			Role:     "user",
+			CanWrite: &canWrite,
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -243,8 +247,10 @@ func TestAPIKeysHandler_Create_MissingName(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Role: "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -270,8 +276,10 @@ func TestAPIKeysHandler_Create_MissingRole(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Name: "test-key",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "test-key",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -297,9 +305,11 @@ func TestAPIKeysHandler_Create_InvalidRole(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Name: "test-key",
-		Role: "invalid",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "test-key",
+			Role: "invalid",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -325,9 +335,11 @@ func TestAPIKeysHandler_Create_NameTooShort(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Name: "ab",
-		Role: "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "ab",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -354,9 +366,11 @@ func TestAPIKeysHandler_Create_DuplicateName(t *testing.T) {
 	defer db.Close()
 
 	// Create first key
-	body := CreateAPIKeyRequest{
-		Name: "duplicate-name",
-		Role: "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "duplicate-name",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -371,6 +385,7 @@ func TestAPIKeysHandler_Create_DuplicateName(t *testing.T) {
 	}
 
 	// Try to create second key with same name
+	bodyBytes, _ = json.Marshal(body)
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:create", bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
@@ -393,9 +408,11 @@ func TestAPIKeysHandler_Get_Success(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	body := CreateAPIKeyRequest{
-		Name: "test-get-key",
-		Role: "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "test-get-key",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -471,9 +488,11 @@ func TestAPIKeysHandler_Update_Success(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name: "original-name",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "original-name",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -522,9 +541,11 @@ func TestAPIKeysHandler_Update_Rotate(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name: "rotate-test-key",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "rotate-test-key",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -577,9 +598,11 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name: "invalid-action-test",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "invalid-action-test",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -643,9 +666,11 @@ func TestAPIKeysHandler_Update_NoFieldsToUpdate(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name: "no-update-test",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "no-update-test",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -679,9 +704,11 @@ func TestAPIKeysHandler_Destroy_Success(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name: "delete-test-key",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "delete-test-key",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -856,9 +883,11 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	defer db.Close()
 
 	// Create first key
-	body1 := CreateAPIKeyRequest{
-		Name: "key-one",
-		Role: "user",
+	body1 := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "key-one",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body1)
 
@@ -869,9 +898,11 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	handler.Create(w, req)
 
 	// Create second key
-	body2 := CreateAPIKeyRequest{
-		Name: "key-two",
-		Role: "user",
+	body2 := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "key-two",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ = json.Marshal(body2)
 
@@ -919,10 +950,12 @@ func TestAPIKeysHandler_Create_DescriptionTooLong(t *testing.T) {
 		longDesc[i] = 'a'
 	}
 
-	body := CreateAPIKeyRequest{
-		Name:        "test-key",
-		Description: string(longDesc),
-		Role:        "user",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name:        "test-key",
+			Description: string(longDesc),
+			Role:        "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
@@ -943,10 +976,12 @@ func TestAPIKeysHandler_Update_DescriptionUpdate(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first
-	createBody := CreateAPIKeyRequest{
-		Name:        "desc-update-test",
-		Description: "original description",
-		Role:        "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name:        "desc-update-test",
+			Description: "original description",
+			Role:        "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -991,9 +1026,11 @@ func TestAPIKeysHandler_Update_CanWriteUpdate(t *testing.T) {
 	defer db.Close()
 
 	// Create a key first (default can_write is false)
-	createBody := CreateAPIKeyRequest{
-		Name: "canwrite-update-test",
-		Role: "user",
+	createBody := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "canwrite-update-test",
+			Role: "user",
+		},
 	}
 	bodyBytes, _ := json.Marshal(createBody)
 
@@ -1041,9 +1078,11 @@ func TestAPIKeysHandler_Create_AdminRole(t *testing.T) {
 	handler, _, adminToken, db := setupTestAPIKeysHandler(t)
 	defer db.Close()
 
-	body := CreateAPIKeyRequest{
-		Name: "admin-key",
-		Role: "admin",
+	body := map[string]any{
+		"data": CreateAPIKeyRequest{
+			Name: "admin-key",
+			Role: "admin",
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 

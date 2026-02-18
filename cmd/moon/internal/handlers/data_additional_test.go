@@ -162,9 +162,8 @@ func TestDataHandler_Update_CollectionNotFound(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": map[string]any{
-			"id":   "01ARYZ6S41TSV4RRFFQ69G5FAV",
-			"name": "Test",
+		"data": []map[string]any{
+			{"id": "01ARYZ6S41TSV4RRFFQ69G5FAV", "name": "Test"},
 		},
 	}
 	body, _ := json.Marshal(reqBody)
@@ -186,7 +185,7 @@ func TestDataHandler_Destroy_CollectionNotFound(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": "01ARYZ6S41TSV4RRFFQ69G5FAV",
+		"data": []string{"01ARYZ6S41TSV4RRFFQ69G5FAV"},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -418,8 +417,8 @@ func TestDataHandler_Create_DatabaseError(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	reqBody := CreateDataRequest{
-		Data: map[string]any{"name": "Test Product"},
+	reqBody := BatchCreateDataRequest{
+		Data: json.RawMessage(`[{"name": "Test Product"}]`),
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -428,7 +427,15 @@ func TestDataHandler_Create_DatabaseError(t *testing.T) {
 
 	handler.Create(w, req, "products")
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, w.Code)
+	// Database error in best-effort mode: returns 201 with failed=1
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
+	}
+
+	var response map[string]any
+	json.NewDecoder(w.Body).Decode(&response)
+	meta := response["meta"].(map[string]any)
+	if meta["failed"] != float64(1) {
+		t.Errorf("expected 1 failure due to database error, got %v", meta["failed"])
 	}
 }

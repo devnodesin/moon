@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -121,7 +122,7 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 	// Validate admin access
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, err.Error(), ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -141,7 +142,7 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	// Validate role filter if provided
 	if roleFilter != "" && !auth.IsValidRole(roleFilter) {
-		writeErrorWithCode(w, http.StatusBadRequest, "invalid role filter", ErrCodeInvalidRole)
+		writeError(w, http.StatusBadRequest, "invalid role filter")
 		return
 	}
 
@@ -196,7 +197,7 @@ func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// Validate admin access
 	_, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, err.Error(), ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -205,7 +206,7 @@ func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from query
 	userID := r.URL.Query().Get("id")
 	if userID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
@@ -217,7 +218,7 @@ func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "user not found", ErrCodeUserNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("user with id '%s' not found", userID))
 		return
 	}
 
@@ -236,51 +237,54 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Validate admin access
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, err.Error(), ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
-	var req CreateUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var wrapper struct {
+		Data CreateUserRequest `json:"data"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	req := wrapper.Data
 
 	ctx := r.Context()
 
 	// Validate required fields
 	if req.Username == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "username is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "username is required")
 		return
 	}
 	if req.Email == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "email is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "email is required")
 		return
 	}
 	if req.Password == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "password is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "password is required")
 		return
 	}
 	if req.Role == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "role is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "role is required")
 		return
 	}
 
 	// Validate email format
 	if !emailRegex.MatchString(req.Email) {
-		writeErrorWithCode(w, http.StatusBadRequest, "invalid email format", ErrCodeInvalidEmailFormat)
+		writeError(w, http.StatusBadRequest, "invalid email format")
 		return
 	}
 
 	// Validate role
 	if !auth.IsValidRole(req.Role) {
-		writeErrorWithCode(w, http.StatusBadRequest, "invalid role", ErrCodeInvalidRole)
+		writeError(w, http.StatusBadRequest, "invalid role")
 		return
 	}
 
 	// Validate password
 	if err := h.passwordPolicy.Validate(req.Password); err != nil {
-		writeErrorWithCode(w, http.StatusBadRequest, err.Error(), ErrCodeWeakPassword)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -291,7 +295,7 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if exists {
-		writeErrorWithCode(w, http.StatusConflict, "username already exists", ErrCodeUsernameExists)
+		writeError(w, http.StatusBadRequest, "username already exists")
 		return
 	}
 
@@ -302,7 +306,7 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if exists {
-		writeErrorWithCode(w, http.StatusConflict, "email already exists", ErrCodeEmailExists)
+		writeError(w, http.StatusBadRequest, "email already exists")
 		return
 	}
 
@@ -353,7 +357,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Validate admin access
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, err.Error(), ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -362,13 +366,13 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from query
 	userID := r.URL.Query().Get("id")
 	if userID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
 	// Check if admin is trying to modify themselves
 	if claims.UserID == userID {
-		writeErrorWithCode(w, http.StatusForbidden, "cannot modify own account via user management endpoints", ErrCodeCannotModifySelf)
+		writeError(w, http.StatusBadRequest, "cannot modify own account via user management endpoints")
 		return
 	}
 
@@ -386,7 +390,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "user not found", ErrCodeUserNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("user with id '%s' not found", userID))
 		return
 	}
 
@@ -394,13 +398,13 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	switch req.Action {
 	case "reset_password":
 		if req.NewPassword == "" {
-			writeErrorWithCode(w, http.StatusBadRequest, "new_password is required for password reset", ErrCodeMissingRequiredField)
+			writeError(w, http.StatusBadRequest, "new_password is required for password reset")
 			return
 		}
 
 		// Validate password
 		if err := h.passwordPolicy.Validate(req.NewPassword); err != nil {
-			writeErrorWithCode(w, http.StatusBadRequest, err.Error(), ErrCodeWeakPassword)
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
@@ -443,7 +447,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	case "":
 		// Normal update, continue below
 	default:
-		writeErrorWithCode(w, http.StatusBadRequest, "invalid action", ErrCodeInvalidFieldValue)
+		writeError(w, http.StatusBadRequest, "invalid action")
 		return
 	}
 
@@ -453,7 +457,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Email != nil {
 		// Validate email format
 		if !emailRegex.MatchString(*req.Email) {
-			writeErrorWithCode(w, http.StatusBadRequest, "invalid email format", ErrCodeInvalidEmailFormat)
+			writeError(w, http.StatusBadRequest, "invalid email format")
 			return
 		}
 
@@ -464,7 +468,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if exists {
-			writeErrorWithCode(w, http.StatusConflict, "email already exists", ErrCodeEmailExists)
+			writeError(w, http.StatusBadRequest, "email already exists")
 			return
 		}
 
@@ -475,7 +479,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Role != nil {
 		// Validate role
 		if !auth.IsValidRole(*req.Role) {
-			writeErrorWithCode(w, http.StatusBadRequest, "invalid role", ErrCodeInvalidRole)
+			writeError(w, http.StatusBadRequest, "invalid role")
 			return
 		}
 
@@ -487,7 +491,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if adminCount <= 1 {
-				writeErrorWithCode(w, http.StatusForbidden, "cannot downgrade the last admin user", ErrCodeCannotDeleteLastAdmin)
+				writeError(w, http.StatusBadRequest, "cannot downgrade the last admin user")
 				return
 			}
 		}
@@ -529,7 +533,7 @@ func (h *UsersHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	// Validate admin access
 	claims, err := h.validateAdminAccess(r)
 	if err != nil {
-		writeErrorWithCode(w, http.StatusForbidden, err.Error(), ErrCodeAdminRequired)
+		writeError(w, http.StatusUnauthorized, "admin access required")
 		return
 	}
 
@@ -538,13 +542,13 @@ func (h *UsersHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from query
 	userID := r.URL.Query().Get("id")
 	if userID == "" {
-		writeErrorWithCode(w, http.StatusBadRequest, "id is required", ErrCodeMissingRequiredField)
+		writeError(w, http.StatusBadRequest, "id is required")
 		return
 	}
 
 	// Check if admin is trying to delete themselves
 	if claims.UserID == userID {
-		writeErrorWithCode(w, http.StatusForbidden, "cannot delete own account via user management endpoints", ErrCodeCannotModifySelf)
+		writeError(w, http.StatusBadRequest, "cannot delete own account via user management endpoints")
 		return
 	}
 
@@ -556,7 +560,7 @@ func (h *UsersHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user == nil {
-		writeErrorWithCode(w, http.StatusNotFound, "user not found", ErrCodeUserNotFound)
+		writeError(w, http.StatusNotFound, fmt.Sprintf("user with id '%s' not found", userID))
 		return
 	}
 
@@ -568,7 +572,7 @@ func (h *UsersHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if adminCount <= 1 {
-			writeErrorWithCode(w, http.StatusForbidden, "cannot delete the last admin user", ErrCodeCannotDeleteLastAdmin)
+			writeError(w, http.StatusBadRequest, "cannot delete the last admin user")
 			return
 		}
 	}
