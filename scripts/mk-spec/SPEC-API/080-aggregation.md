@@ -19,7 +19,7 @@ Moon provides dedicated aggregation endpoints that perform calculations directly
 **Example Request:**
 
 ```sh
-POST /products:sum?field=quantity
+GET /products:sum?field=quantity
 ```
 
 **Response (200 OK):**
@@ -35,7 +35,7 @@ POST /products:sum?field=quantity
 **Aggregation with Filters:** Combine aggregation with query filters for calculations on specific subsets:
 
 - `/products:count?quantity[gt]=10`
-- `/products:sum?field=quantity&brand[eq]=Wow"`
+- `/products:sum?field=quantity&brand[eq]=Wow`
 - `/products:max?field=quantity`
 
 ### Error Handling
