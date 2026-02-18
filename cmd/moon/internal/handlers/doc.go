@@ -405,21 +405,21 @@ type RegisteredCollectionInfo struct {
 
 // JSONAppendixData represents the structure of the JSON Appendix
 type JSONAppendixData struct {
-	Service                string                     `json:"service"`
-	Version                string                     `json:"version"`
-	BaseURL                string                     `json:"base_url"`
-	URLPrefix              *string                    `json:"url_prefix"`
-	Authentication         AuthInfo                   `json:"authentication"`
-	Collections            CollectionsInfo            `json:"collections"`
-	RegisteredCollections  []RegisteredCollectionInfo `json:"registered_collections"`
-	DataTypes              []DataTypeInfo             `json:"data_types"`
-	Endpoints              map[string]any             `json:"endpoints"`
-	DataAccess             map[string]any             `json:"data_access"`
-	HTTPStatusCodes        map[string]string          `json:"http_status_codes"`
-	RateLimiting           map[string]any             `json:"rate_limiting"`
-	CORS                   map[string]any             `json:"cors"`
-	Guarantees             map[string]bool            `json:"guarantees"`
-	AIPStandards           map[string]string          `json:"aip_standards"`
+	Service               string                     `json:"service"`
+	Version               string                     `json:"version"`
+	BaseURL               string                     `json:"base_url"`
+	URLPrefix             *string                    `json:"url_prefix"`
+	Authentication        AuthInfo                   `json:"authentication"`
+	Collections           CollectionsInfo            `json:"collections"`
+	RegisteredCollections []RegisteredCollectionInfo `json:"registered_collections"`
+	DataTypes             []DataTypeInfo             `json:"data_types"`
+	Endpoints             map[string]any             `json:"endpoints"`
+	DataAccess            map[string]any             `json:"data_access"`
+	HTTPStatusCodes       map[string]string          `json:"http_status_codes"`
+	RateLimiting          map[string]any             `json:"rate_limiting"`
+	CORS                  map[string]any             `json:"cors"`
+	Guarantees            map[string]bool            `json:"guarantees"`
+	AIPStandards          map[string]string          `json:"aip_standards"`
 }
 
 // AuthInfo holds authentication configuration
