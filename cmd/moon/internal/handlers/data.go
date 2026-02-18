@@ -1038,6 +1038,7 @@ func (h *DataHandler) destroyBatchAtomic(w http.ResponseWriter, ctx context.Cont
 
 // destroyBatchBestEffort handles best-effort batch destroy
 func (h *DataHandler) destroyBatchBestEffort(w http.ResponseWriter, ctx context.Context, collectionName string, ids []string) {
+	var deletedIDs []string
 	succeeded := 0
 	failed := 0
 
@@ -1072,6 +1073,7 @@ func (h *DataHandler) destroyBatchBestEffort(w http.ResponseWriter, ctx context.
 			continue
 		}
 
+		deletedIDs = append(deletedIDs, id)
 		succeeded++
 	}
 
@@ -1083,7 +1085,12 @@ func (h *DataHandler) destroyBatchBestEffort(w http.ResponseWriter, ctx context.
 		message = fmt.Sprintf("%d of %d record(s) deleted successfully", succeeded, total)
 	}
 
+	if deletedIDs == nil {
+		deletedIDs = []string{}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
+		"data": deletedIDs,
 		"meta": map[string]any{
 			"total":     total,
 			"succeeded": succeeded,

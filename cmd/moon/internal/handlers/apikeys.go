@@ -28,33 +28,12 @@ func NewAPIKeysHandler(db database.Driver, jwtSecret string, accessExpiry, refre
 	}
 }
 
-// Error codes for API key management.
-const (
-	ErrCodeInvalidKeyName   = "INVALID_KEY_NAME"
-	ErrCodeInvalidAction    = "INVALID_ACTION"
-	ErrCodeAPIKeyNotFound   = "APIKEY_NOT_FOUND"
-	ErrCodeAPIKeyNameExists = "APIKEY_NAME_EXISTS"
-)
-
 // API key name validation constants.
 const (
 	MinKeyNameLength     = 3
 	MaxKeyNameLength     = 100
 	MaxDescriptionLength = 500
 )
-
-// APIKeyListRequest represents a request to list API keys.
-type APIKeyListRequest struct {
-	Limit int    `json:"limit,omitempty"`
-	After string `json:"after,omitempty"`
-}
-
-// APIKeyListResponse represents a response with API key list.
-type APIKeyListResponse struct {
-	APIKeys    []APIKeyPublicInfo `json:"apikeys"`
-	NextCursor *string            `json:"next_cursor"`
-	Limit      int                `json:"limit"`
-}
 
 // APIKeyPublicInfo represents public API key information (no actual key).
 type APIKeyPublicInfo struct {
@@ -75,33 +54,12 @@ type CreateAPIKeyRequest struct {
 	CanWrite    *bool  `json:"can_write,omitempty"`
 }
 
-// CreateAPIKeyResponse represents a response after creating an API key.
-type CreateAPIKeyResponse struct {
-	Message string           `json:"message"`
-	Warning string           `json:"warning"`
-	APIKey  APIKeyPublicInfo `json:"apikey"`
-	Key     string           `json:"key"`
-}
-
 // UpdateAPIKeyRequest represents a request to update an API key.
 type UpdateAPIKeyRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 	CanWrite    *bool   `json:"can_write,omitempty"`
 	Action      string  `json:"action,omitempty"`
-}
-
-// UpdateAPIKeyResponse represents a response after updating an API key.
-type UpdateAPIKeyResponse struct {
-	Message string           `json:"message"`
-	Warning string           `json:"warning,omitempty"`
-	APIKey  APIKeyPublicInfo `json:"apikey"`
-	Key     string           `json:"key,omitempty"`
-}
-
-// DeleteAPIKeyResponse represents a response after deleting an API key.
-type DeleteAPIKeyResponse struct {
-	Message string `json:"message"`
 }
 
 // ValidAPIKeyRoles returns the valid roles for API keys.

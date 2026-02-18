@@ -390,13 +390,8 @@ func TestDestroy_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
-	// Destroy it
-	destroyReq := DestroyRequest{
-		Name: "temp_table",
-	}
-
-	body, _ = json.Marshal(destroyReq)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:destroy", bytes.NewReader(body))
+	// Destroy it using query parameter per SPEC_API.md
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:destroy?name=temp_table", nil)
 	w = httptest.NewRecorder()
 	handler.Destroy(w, req)
 
@@ -414,12 +409,7 @@ func TestDestroy_NotFound(t *testing.T) {
 	handler, driver := setupTestHandler(t)
 	defer driver.Close()
 
-	destroyReq := DestroyRequest{
-		Name: "nonexistent",
-	}
-
-	body, _ := json.Marshal(destroyReq)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:destroy", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:destroy?name=nonexistent", nil)
 	w := httptest.NewRecorder()
 
 	handler.Destroy(w, req)

@@ -158,12 +158,8 @@ func TestCollectionsHandler_Destroy_Integration(t *testing.T) {
 		t.Fatalf("Failed to create collection: %s", w.Body.String())
 	}
 
-	// Now destroy it
-	destroyBody := map[string]any{
-		"name": "products",
-	}
-	body, _ = json.Marshal(destroyBody)
-	req = httptest.NewRequest(http.MethodPost, "/collections:destroy", bytes.NewReader(body))
+	// Now destroy it using query parameter per SPEC_API.md
+	req = httptest.NewRequest(http.MethodPost, "/collections:destroy?name=products", nil)
 	w = httptest.NewRecorder()
 	handler.Destroy(w, req)
 

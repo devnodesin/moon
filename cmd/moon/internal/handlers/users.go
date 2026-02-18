@@ -33,34 +33,8 @@ func NewUsersHandler(db database.Driver, jwtSecret string, accessExpiry, refresh
 	}
 }
 
-// Error codes for user management.
-const (
-	ErrCodeMissingRequiredField  = "MISSING_REQUIRED_FIELD"
-	ErrCodeInvalidFieldValue     = "INVALID_FIELD_VALUE"
-	ErrCodeWeakPassword          = "WEAK_PASSWORD"
-	ErrCodeInvalidEmailFormat    = "INVALID_EMAIL_FORMAT"
-	ErrCodeInvalidRole           = "INVALID_ROLE"
-	ErrCodeAdminRequired         = "ADMIN_REQUIRED"
-	ErrCodeCannotModifySelf      = "CANNOT_MODIFY_SELF"
-	ErrCodeCannotDeleteLastAdmin = "CANNOT_DELETE_LAST_ADMIN"
-	ErrCodeUserNotFound          = "USER_NOT_FOUND"
-	ErrCodeUsernameExists        = "USERNAME_EXISTS"
-	ErrCodeEmailExists           = "EMAIL_EXISTS"
-)
-
-// UserListRequest represents a request to list users.
-type UserListRequest struct {
-	Limit int    `json:"limit,omitempty"`
-	After string `json:"after,omitempty"`
-	Role  string `json:"role,omitempty"`
-}
-
-// UserListResponse represents a response with user list.
-type UserListResponse struct {
-	Users      []UserPublicInfo `json:"users"`
-	NextCursor *string          `json:"next_cursor"`
-	Limit      int              `json:"limit"`
-}
+// emailRegex validates email format.
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // UserPublicInfo represents public user information for admin APIs.
 type UserPublicInfo struct {
@@ -83,12 +57,6 @@ type CreateUserRequest struct {
 	CanWrite *bool  `json:"can_write,omitempty"`
 }
 
-// CreateUserResponse represents a response after creating a user.
-type CreateUserResponse struct {
-	Message string         `json:"message"`
-	User    UserPublicInfo `json:"user"`
-}
-
 // UpdateUserRequest represents a request to update a user.
 type UpdateUserRequest struct {
 	Email       *string `json:"email,omitempty"`
@@ -97,20 +65,6 @@ type UpdateUserRequest struct {
 	Action      string  `json:"action,omitempty"`
 	NewPassword string  `json:"new_password,omitempty"`
 }
-
-// UpdateUserResponse represents a response after updating a user.
-type UpdateUserResponse struct {
-	Message string         `json:"message"`
-	User    UserPublicInfo `json:"user"`
-}
-
-// DeleteUserResponse represents a response after deleting a user.
-type DeleteUserResponse struct {
-	Message string `json:"message"`
-}
-
-// emailRegex validates email format.
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // List handles GET /users:list
 func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -667,10 +621,4 @@ func parseIntWithDefault(s string, defaultVal int) int {
 		result = result*10 + int(c-'0')
 	}
 	return result
-}
-
-// writeErrorWithCode writes a JSON error response using the standard format.
-// The code parameter is ignored; only the message is returned.
-func writeErrorWithCode(w http.ResponseWriter, statusCode int, message, _ string) {
-	writeError(w, statusCode, message)
 }
