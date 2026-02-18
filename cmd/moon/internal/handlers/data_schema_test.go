@@ -169,7 +169,7 @@ func TestSchemaEndpoint(t *testing.T) {
 			t.Fatalf("Failed to decode error response: %v", err)
 		}
 
-		if errResp["error"] == nil {
+		if errResp["message"] == nil {
 			t.Error("Expected error message in response")
 		}
 	})

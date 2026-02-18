@@ -274,8 +274,8 @@ func TestRateLimitMiddleware_ExceedLimit(t *testing.T) {
 
 	m.RateLimit(handler)(w, req)
 
-	if w.Code != http.StatusTooManyRequests {
-		t.Errorf("Expected status %d, got %d", http.StatusTooManyRequests, w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
 
@@ -491,8 +491,8 @@ func TestWriteLoginRateLimitError(t *testing.T) {
 
 	WriteLoginRateLimitError(w, resetAt)
 
-	if w.Code != http.StatusTooManyRequests {
-		t.Errorf("Expected status %d, got %d", http.StatusTooManyRequests, w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
 	contentType := w.Header().Get("Content-Type")

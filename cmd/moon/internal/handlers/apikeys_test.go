@@ -92,8 +92,8 @@ func TestAPIKeysHandler_List_Unauthorized(t *testing.T) {
 
 	handler.List(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("List() without auth status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("List() without auth status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -128,8 +128,8 @@ func TestAPIKeysHandler_List_NonAdminForbidden(t *testing.T) {
 
 	handler.List(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("List() with non-admin status = %d, want %d", w.Code, http.StatusForbidden)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("List() with non-admin status = %d, want %d", w.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -261,9 +261,8 @@ func TestAPIKeysHandler_Create_MissingName(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeMissingRequiredField {
-		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -289,9 +288,8 @@ func TestAPIKeysHandler_Create_MissingRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeMissingRequiredField {
-		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeMissingRequiredField)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -318,9 +316,8 @@ func TestAPIKeysHandler_Create_InvalidRole(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeInvalidRole {
-		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeInvalidRole)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -347,9 +344,8 @@ func TestAPIKeysHandler_Create_NameTooShort(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeInvalidKeyName {
-		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeInvalidKeyName)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -381,15 +377,14 @@ func TestAPIKeysHandler_Create_DuplicateName(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.Create(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("Create() with duplicate name status = %d, want %d", w.Code, http.StatusConflict)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Create() with duplicate name status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeAPIKeyNameExists {
-		t.Errorf("Create() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNameExists)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -451,9 +446,8 @@ func TestAPIKeysHandler_Get_NotFound(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeAPIKeyNotFound {
-		t.Errorf("Get() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNotFound)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -617,9 +611,8 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeInvalidAction {
-		t.Errorf("Update() error_code = %v, want %v", errObj["code"], ErrCodeInvalidAction)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 
@@ -778,8 +771,8 @@ func TestAPIKeysHandler_WrongMethods(t *testing.T) {
 
 			tt.handler(w, req)
 
-			if w.Code != http.StatusMethodNotAllowed {
-				t.Errorf("%s status = %d, want %d", tt.name, w.Code, http.StatusMethodNotAllowed)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("%s status = %d, want %d", tt.name, w.Code, http.StatusBadRequest)
 			}
 		})
 	}
@@ -905,15 +898,14 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("Update() with duplicate name status = %d, want %d", w.Code, http.StatusConflict)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Update() with duplicate name status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	errObj := resp["error"].(map[string]any)
-	if errObj["code"] != ErrCodeAPIKeyNameExists {
-		t.Errorf("Update() error_code = %v, want %v", errObj["code"], ErrCodeAPIKeyNameExists)
+	if resp["message"] == nil {
+		t.Error("expected error message in response")
 	}
 }
 

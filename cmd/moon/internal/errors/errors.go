@@ -75,16 +75,10 @@ const (
 	CodeRateLimitExceeded ErrorCode = "RATE_LIMIT_EXCEEDED"
 )
 
-// ErrorDetail represents the nested error object in API responses.
-type ErrorDetail struct {
-	Code    ErrorCode `json:"code"`
-	Message string    `json:"message"`
-}
-
 // ErrorResponse represents the standard error response format per SPEC_API.md:
-// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
+// {"message": "human-readable message"}
 type ErrorResponse struct {
-	Error ErrorDetail `json:"error"`
+	Message string `json:"message"`
 }
 
 // APIError represents an application error
@@ -237,26 +231,42 @@ func (h *ErrorHandler) RecoveryMiddleware(next http.HandlerFunc) http.HandlerFun
 	}
 }
 
+// normalizeStatusCode maps any status code to one of the four permitted
+// error codes: 400, 401, 404, 500.
+func normalizeStatusCode(statusCode int) int {
+	switch statusCode {
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError:
+		return statusCode
+	case http.StatusForbidden:
+		return http.StatusUnauthorized
+	default:
+		if statusCode >= 500 {
+			return http.StatusInternalServerError
+		}
+		return http.StatusBadRequest
+	}
+}
+
 // WriteError writes an error response per SPEC_API.md:
-// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
+// {"message": "human-readable message"}
 func (h *ErrorHandler) WriteError(w http.ResponseWriter, r *http.Request, err *APIError) {
 	requestID := GetRequestID(r)
 
 	response := ErrorResponse{
-		Error: ErrorDetail{
-			Code:    err.ErrorCode,
-			Message: err.Message,
-		},
+		Message: err.Message,
 	}
 
+	// Normalize status code to permitted values
+	statusCode := normalizeStatusCode(err.StatusCode)
+
 	// Log the error
-	if err.StatusCode >= 500 {
-		log.Printf("ERROR [%s] %d %s: %s", requestID, err.StatusCode, err.ErrorCode, err.Message)
+	if statusCode >= 500 {
+		log.Printf("ERROR [%s] %d: %s", requestID, statusCode, err.Message)
 		if err.Err != nil {
 			log.Printf("ERROR [%s] Caused by: %v", requestID, err.Err)
 		}
 	} else {
-		log.Printf("WARN [%s] %d %s: %s", requestID, err.StatusCode, err.ErrorCode, err.Message)
+		log.Printf("WARN [%s] %d: %s", requestID, statusCode, err.Message)
 	}
 
 	// Call custom error handler if set
@@ -266,7 +276,7 @@ func (h *ErrorHandler) WriteError(w http.ResponseWriter, r *http.Request, err *A
 
 	// Write response
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
-	w.WriteHeader(err.StatusCode)
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(response)
 }
 

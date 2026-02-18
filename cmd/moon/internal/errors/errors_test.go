@@ -222,12 +222,8 @@ func TestErrorHandler_WriteError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response.Error.Message != "Test error" {
-		t.Errorf("Expected error message 'Test error', got '%s'", response.Error.Message)
-	}
-
-	if response.Error.Code != CodeBadRequest {
-		t.Errorf("Expected error code %s, got %s", CodeBadRequest, response.Error.Code)
+	if response.Message != "Test error" {
+		t.Errorf("Expected error message 'Test error', got '%s'", response.Message)
 	}
 }
 
@@ -244,12 +240,8 @@ func TestErrorHandler_WriteError_WithDetails(t *testing.T) {
 	var response ErrorResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error.Message != "Validation failed" {
-		t.Errorf("Expected error message 'Validation failed', got '%s'", response.Error.Message)
-	}
-
-	if response.Error.Code != CodeValidationFailed {
-		t.Errorf("Expected error code %s, got %s", CodeValidationFailed, response.Error.Code)
+	if response.Message != "Validation failed" {
+		t.Errorf("Expected error message 'Validation failed', got '%s'", response.Message)
 	}
 }
 
@@ -268,12 +260,8 @@ func TestErrorHandler_WriteError_ShowInternalErrors(t *testing.T) {
 	var response ErrorResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error.Message != "Error occurred" {
-		t.Errorf("Expected error message 'Error occurred', got '%s'", response.Error.Message)
-	}
-
-	if response.Error.Code != CodeInternalError {
-		t.Errorf("Expected error code %s, got %s", CodeInternalError, response.Error.Code)
+	if response.Message != "Error occurred" {
+		t.Errorf("Expected error message 'Error occurred', got '%s'", response.Message)
 	}
 }
 
@@ -292,8 +280,8 @@ func TestErrorHandler_WriteError_HideInternalErrors(t *testing.T) {
 	var response ErrorResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error.Message != "Error occurred" {
-		t.Errorf("Expected error message 'Error occurred', got '%s'", response.Error.Message)
+	if response.Message != "Error occurred" {
+		t.Errorf("Expected error message 'Error occurred', got '%s'", response.Message)
 	}
 }
 
@@ -322,8 +310,8 @@ func TestErrorHandler_RecoveryMiddleware(t *testing.T) {
 	var response ErrorResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error.Message != "Internal server error" {
-		t.Errorf("Expected error message 'Internal server error', got '%s'", response.Error.Message)
+	if response.Message != "Internal server error" {
+		t.Errorf("Expected error message 'Internal server error', got '%s'", response.Message)
 	}
 }
 

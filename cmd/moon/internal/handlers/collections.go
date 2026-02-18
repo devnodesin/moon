@@ -1306,36 +1306,29 @@ func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	json.NewEncoder(w).Encode(data)
 }
 
+// writeError writes a standard error response per SPEC_API.md:
+// {"message": "human-readable message"}
+// Only status codes 400, 401, 404, and 500 are permitted.
 func writeError(w http.ResponseWriter, statusCode int, message string) {
-	code := mapStatusToErrorCode(statusCode)
+	statusCode = normalizeErrorStatus(statusCode)
 	writeJSON(w, statusCode, map[string]any{
-		"error": map[string]any{
-			"code":    code,
-			"message": message,
-		},
+		"message": message,
 	})
 }
 
-// mapStatusToErrorCode maps HTTP status codes to SPEC_API.md error codes.
-func mapStatusToErrorCode(statusCode int) string {
+// normalizeErrorStatus maps any HTTP status code to one of the four permitted
+// error codes: 400, 401, 404, 500.
+func normalizeErrorStatus(statusCode int) int {
 	switch statusCode {
-	case http.StatusBadRequest:
-		return "INVALID_PARAMETER"
-	case http.StatusUnauthorized:
-		return "UNAUTHORIZED"
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError:
+		return statusCode
 	case http.StatusForbidden:
-		return "FORBIDDEN"
-	case http.StatusNotFound:
-		return "RECORD_NOT_FOUND"
-	case http.StatusConflict:
-		return "DUPLICATE_RECORD"
-	case http.StatusMethodNotAllowed:
-		return "METHOD_NOT_ALLOWED"
-	case http.StatusRequestEntityTooLarge:
-		return "INVALID_PARAMETER"
-	case http.StatusTooManyRequests:
-		return "RATE_LIMIT_EXCEEDED"
+		return http.StatusUnauthorized
 	default:
-		return "INTERNAL_ERROR"
+		// 405, 409, 413, 429 → 400; 503 and others → 500
+		if statusCode >= 500 {
+			return http.StatusInternalServerError
+		}
+		return http.StatusBadRequest
 	}
 }
