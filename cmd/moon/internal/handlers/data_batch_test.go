@@ -249,6 +249,18 @@ func TestBatchDestroy_BestEffort(t *testing.T) {
 	if meta["failed"] != float64(1) {
 		t.Errorf("expected 1 failure, got %v", meta["failed"])
 	}
+
+	// Verify data field contains only successfully deleted IDs
+	data, ok := response["data"].([]any)
+	if !ok {
+		t.Fatalf("expected data to be an array, got %T", response["data"])
+	}
+	if len(data) != 1 {
+		t.Errorf("expected 1 deleted ID in data, got %d", len(data))
+	}
+	if data[0] != "01HFXYZ1234567890ABCDEFGHI" {
+		t.Errorf("expected deleted ID '01HFXYZ1234567890ABCDEFGHI', got '%v'", data[0])
+	}
 }
 
 // TestDetectBatchMode tests the batch mode detection

@@ -420,20 +420,7 @@ func (s *Server) shouldBypassAuth(path string) bool {
 
 // writeAuthError writes an authentication error response per SPEC_API.md.
 func (s *Server) writeAuthError(w http.ResponseWriter, statusCode int, message string) {
-	code := "UNAUTHORIZED"
-	if statusCode == http.StatusForbidden {
-		code = "FORBIDDEN"
-	} else if statusCode == http.StatusMethodNotAllowed {
-		code = "METHOD_NOT_ALLOWED"
-	}
-	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]any{
-		"error": map[string]any{
-			"code":    code,
-			"message": message,
-		},
-	})
+	s.writeError(w, statusCode, message)
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
@@ -571,24 +558,8 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, data any) {
 
 // writeError writes a JSON error response per SPEC_API.md
 func (s *Server) writeError(w http.ResponseWriter, statusCode int, message string) {
-	code := "INTERNAL_ERROR"
-	switch statusCode {
-	case http.StatusBadRequest:
-		code = "INVALID_PARAMETER"
-	case http.StatusNotFound:
-		code = "NOT_FOUND"
-	case http.StatusMethodNotAllowed:
-		code = "METHOD_NOT_ALLOWED"
-	case http.StatusUnauthorized:
-		code = "UNAUTHORIZED"
-	case http.StatusForbidden:
-		code = "FORBIDDEN"
-	}
 	s.writeJSON(w, statusCode, map[string]any{
-		"error": map[string]any{
-			"code":    code,
-			"message": message,
-		},
+		"message": message,
 	})
 }
 

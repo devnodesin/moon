@@ -530,20 +530,14 @@ curl -s -X POST "http://localhost:6006/collections:update" \
 ### Collections Destroy
 
 ```bash
-curl -s -X POST "http://localhost:6006/collections:destroy" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '
-      {
-        "name": "products"
-      }
-    ' | jq .
+curl -s -X POST "http://localhost:6006/collections:destroy?name=products" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
 **Response (200 OK):**
 
 ```json
 {
-  "message": "Collection 'products' destroyed successfully"
+  "message": "Collection 'products' deleted successfully"
 }
 ```

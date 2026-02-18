@@ -157,8 +157,8 @@ func TestNotFoundHandler(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response["error"] == nil {
-		t.Error("Expected error message in response")
+	if response["message"] == nil {
+		t.Error("Expected message in response")
 	}
 }
 
@@ -324,17 +324,8 @@ func TestWriteError(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	errObj, ok := response["error"].(map[string]any)
-	if !ok {
-		t.Fatalf("Expected error to be a nested object, got %T", response["error"])
-	}
-
-	if errObj["message"] != "Test error message" {
-		t.Errorf("Expected message 'Test error message', got '%v'", errObj["message"])
-	}
-
-	if errObj["code"] != "INVALID_PARAMETER" {
-		t.Errorf("Expected code 'INVALID_PARAMETER', got '%v'", errObj["code"])
+	if response["message"] != "Test error message" {
+		t.Errorf("Expected message 'Test error message', got '%v'", response["message"])
 	}
 }
 

@@ -119,16 +119,6 @@ type UpdateResponse struct {
 	Message    string               `json:"message"`
 }
 
-// DestroyRequest represents the request for destroying a collection
-type DestroyRequest struct {
-	Name string `json:"name"`
-}
-
-// DestroyResponse represents the response for destroying a collection
-type DestroyResponse struct {
-	Message string `json:"message"`
-}
-
 // decodeCreateRequest decodes a CreateRequest and validates that no default fields are present
 func decodeCreateRequest(body io.Reader, req *CreateRequest) error {
 	// Read body into buffer so we can parse it twice
@@ -602,29 +592,30 @@ func (h *CollectionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Destroy handles POST /collections:destroy
 func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
-	var req DestroyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+	// Get collection name from query parameter per SPEC_API.md
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "collection name is required")
 		return
 	}
 
 	// Normalize collection name to lowercase (PRD-047)
-	req.Name = strings.ToLower(req.Name)
+	name = strings.ToLower(name)
 
 	// Validate collection name
-	if err := validateCollectionName(req.Name); err != nil {
+	if err := validateCollectionName(name); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Check if collection exists
-	if !h.registry.Exists(req.Name) {
-		writeError(w, http.StatusNotFound, fmt.Sprintf("collection '%s' not found", req.Name))
+	if !h.registry.Exists(name) {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("collection '%s' not found", name))
 		return
 	}
 
 	// Generate DROP TABLE DDL
-	ddl := fmt.Sprintf("DROP TABLE %s", req.Name)
+	ddl := fmt.Sprintf("DROP TABLE %s", name)
 
 	// Execute DDL
 	ctx := r.Context()
@@ -634,13 +625,13 @@ func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove from registry
-	if err := h.registry.Delete(req.Name); err != nil {
+	if err := h.registry.Delete(name); err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update registry: %v", err))
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"message": fmt.Sprintf("Collection '%s' destroyed successfully", req.Name),
+		"message": fmt.Sprintf("Collection '%s' deleted successfully", name),
 	})
 }
 
