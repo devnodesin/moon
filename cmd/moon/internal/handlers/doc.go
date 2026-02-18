@@ -225,8 +225,7 @@ func (h *DocHandler) JSON(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]any{
-			"error": "JSON appendix not available",
-			"code":  http.StatusNotFound,
+			"message": "JSON appendix not available",
 		})
 		return
 	}
@@ -237,8 +236,7 @@ func (h *DocHandler) JSON(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
-			"error": "Failed to generate JSON appendix",
-			"code":  http.StatusInternalServerError,
+			"message": "Failed to generate JSON appendix",
 		})
 		return
 	}
@@ -871,12 +869,9 @@ func (h *DocHandler) buildJSONAppendix() string {
 			"200": "OK - Successful GET request",
 			"201": "Created - Successful POST request creating resource",
 			"207": "Multi-Status - Partial success for batch operations",
-			"400": "Bad Request - Invalid input or parameters",
-			"401": "Unauthorized - Missing or invalid authentication",
-			"403": "Forbidden - Insufficient permissions",
+			"400": "Bad Request - Invalid input, parameters, or validation error",
+			"401": "Unauthorized - Missing or invalid authentication, or insufficient permissions",
 			"404": "Not Found - Resource not found",
-			"409": "Conflict - Resource already exists",
-			"429": "Too Many Requests - Rate limit exceeded",
 			"500": "Internal Server Error - Server error",
 		},
 		RateLimiting: map[string]any{

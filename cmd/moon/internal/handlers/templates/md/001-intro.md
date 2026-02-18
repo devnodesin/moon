@@ -169,7 +169,6 @@ All errors follow a consistent JSON structure:
 
 ```json
 {
-  "error": "Error message describing what went wrong",
-  "code": {HTTP status error code}
+  "message": "A human-readable description of the error"
 }
 ```

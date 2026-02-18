@@ -119,8 +119,8 @@ func TestRequireRole_AdminAccess(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called for user role on admin endpoint")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 
@@ -138,8 +138,8 @@ func TestRequireRole_AdminAccess(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called without auth entity")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 }
@@ -192,8 +192,8 @@ func TestRequireAdmin(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called for user role")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 }
@@ -273,8 +273,8 @@ func TestRequireWrite(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called for user without can_write")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 
@@ -317,8 +317,8 @@ func TestRequireWrite(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called without auth entity")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 }
@@ -389,8 +389,8 @@ func TestRequireAuthenticated(t *testing.T) {
 		if handlerCalled {
 			t.Error("Handler should not be called without auth entity")
 		}
-		if w.Code != http.StatusForbidden {
-			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 		}
 	})
 }

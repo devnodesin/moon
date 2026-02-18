@@ -299,8 +299,8 @@ func TestCreate_AlreadyExists(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.Create(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("Expected status code %d, got %d", http.StatusConflict, w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
 

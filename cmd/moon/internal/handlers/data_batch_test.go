@@ -97,8 +97,8 @@ func TestBatchCreate_BatchSizeExceeded(t *testing.T) {
 
 	handler.Create(w, req, "products")
 
-	if w.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("expected status %d, got %d: %s", http.StatusRequestEntityTooLarge, w.Code, w.Body.String())
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
 }
 

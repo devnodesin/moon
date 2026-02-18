@@ -665,13 +665,8 @@ func parseIntWithDefault(s string, defaultVal int) int {
 	return result
 }
 
-// writeErrorWithCode writes a JSON error response per SPEC_API.md:
-// {"error": {"code": "ERROR_CODE", "message": "human-readable message"}}
-func writeErrorWithCode(w http.ResponseWriter, statusCode int, message, code string) {
-	writeJSON(w, statusCode, map[string]any{
-		"error": map[string]any{
-			"code":    code,
-			"message": message,
-		},
-	})
+// writeErrorWithCode writes a JSON error response using the standard format.
+// The code parameter is ignored; only the message is returned.
+func writeErrorWithCode(w http.ResponseWriter, statusCode int, message, _ string) {
+	writeError(w, statusCode, message)
 }
