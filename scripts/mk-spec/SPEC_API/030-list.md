@@ -37,13 +37,11 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
 
-### Query Parameters
+---
 
 The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `search`, and `field selection`.
 
-Parameters can be combined freely. See [Query Parameters Examples](#query-parameters-examples) at the end of this section.
-
-#### Pagination
+### Pagination
 
 For pagination use parameter `?after={cursor}` to return records after the specified ULID cursor. Omit this parameter to start from the first page.
 
@@ -68,7 +66,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
 - If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response) section.
 
-#### Limit
+### Limit
 
 Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.
 
@@ -107,9 +105,7 @@ GET /products:list?limit=2
 }
 ```
 
----
-
-#### Filtering
+### Filtering
 
 Filter results by column value using the syntax `?{column_name}[operator]=value`. You can combine multiple filters in a single request.
 
@@ -161,9 +157,7 @@ GET /products:list?quantity[gt]=5&brand[eq]=Wow
 }
 ```
 
----
-
-#### Sorting
+### Sorting
 
 Use `?sort={field1,-field2,...}` to sort by one or more fields. Prefix a field name with `-` for descending order. Separate multiple fields with commas.
 
@@ -212,9 +206,7 @@ Above sorts by `quantity` descending, then by `title` ascending.
 }
 ```
 
----
-
-#### Full-Text Search
+### Full-Text Search
 
 Use `?q` to search across all string and text fields in the collection.
 
@@ -245,9 +237,7 @@ GET /products:list?q=mouse
 }
 ```
 
----
-
-#### Field Selection
+### Field Selection
 
 Return only the fields you need. `id` is always included.
 
@@ -273,9 +263,7 @@ GET /products:list?fields=quantity,title
 }
 ```
 
----
-
-#### Combined Examples
+### Combined Examples
 
 All query parameters can be combined in a single request.
 

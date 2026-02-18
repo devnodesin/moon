@@ -1,5 +1,10 @@
-
 ## Authentication Endpoints
+
+- `POST /auth:login`: Login
+- `POST /auth:logout`: Logout
+- `POST /auth:refresh`: Refresh access token
+- `GET /auth:me`: Get current user
+- `POST /auth:me`: Update current user
 
 ### Login
 
@@ -187,4 +192,6 @@ Invalidate current session and refresh token.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
+
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling

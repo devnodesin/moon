@@ -1,4 +1,3 @@
-
 ## Standard Response Pattern for `:update` Endpoints
 
 Update endpoints modify existing resources in the system.

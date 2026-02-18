@@ -3,94 +3,22 @@
 This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
 
 
+## Public Endpoints
 
-## Documentation and Health Endpoints
+Health and documentation endpoints are public; no authentication is required. All other endpoints require authentication.
 
-### Documentation Endpoints
+### API Documentation
 
-Access API documentation in multiple formats.
+API documentation is available in multiple formats:
 
-#### View HTML Documentation
+- HTML: `GET /doc/`
+- Markdown: `GET /doc/llms.md`
+- Plain Text: `GET /doc/llms.txt` (alias for `/doc/llms.md`)
+- JSON: `GET /doc/llms.json`
 
-`GET /doc/`
+### Health Endpoint
 
-View interactive HTML documentation in browser.
-
-**URL:** [http://localhost:6006/doc/](http://localhost:6006/doc/)
-
----
-
-#### Get Markdown Documentation
-
-`GET /doc/llms.md`
-
-Retrieve documentation in Markdown format (for humans and AI coding agents).
-
-**Response (200 OK):**
-
-Returns Markdown-formatted documentation.
-
-**URL:** [http://localhost:6006/doc/llms.md](http://localhost:6006/doc/llms.md)
-
----
-
-#### Get Text Documentation
-
-`GET /doc/llms.txt`
-
-Retrieve documentation in plain text format.
-
-**Response (200 OK):**
-
-Returns plain text documentation.
-
----
-
-#### Get JSON Schema
-
-`GET /doc/llms.json`
-
-Retrieve machine-readable API schema in JSON format.
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "version": "1.0",
-    "endpoints": [...],
-    "schemas": {...}
-  }
-}
-```
-
----
-
-#### Refresh Documentation Cache
-
-`POST /doc:refresh`
-
-Force refresh of the documentation cache.
-
-**Headers:**
-
-- `Authorization: Bearer {access_token}` (required)
-
-**Response (200 OK):**
-
-```json
-{
-  "message": "Documentation cache refreshed successfully"
-}
-```
-
----
-
-### Health Check Endpoint
-
-`GET /health`
-
-Check API service health and version information.
+- `GET /health`: Returns API service health and version information.
 
 **Response (200 OK):**
 
@@ -102,20 +30,15 @@ Check API service health and version information.
     "version": "1.0"
   }
 }
-```
-
-### Important Notes
-
-- **Documentation formats**: Available in HTML (interactive), Markdown (human/AI readable), plain text, and JSON (machine-readable)
-- **Cache refresh**: Documentation is cached for performance. Use `/doc:refresh` after configuration changes or schema updates
-- **Health check**: No authentication required. Use for monitoring and uptime checks
-- **Version tracking**: The version field in health response indicates the current API version
-
-**Error Response:** For details on error handling, see [Error Response](#error-response).
-
 
 
 ## Authentication Endpoints
+
+- `POST /auth:login`: Login
+- `POST /auth:logout`: Logout
+- `POST /auth:refresh`: Refresh access token
+- `GET /auth:me`: Get current user
+- `POST /auth:me`: Update current user
 
 ### Login
 
@@ -303,8 +226,9 @@ Invalidate current session and refresh token.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 
-**Error Response:** For details on error handling, see [Error Response](#error-response).
+### Error Handling
 
+**Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ## Standard Response Pattern for `:list` Endpoints
 
@@ -345,13 +269,11 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
 
-### Query Parameters
+---
 
 The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `search`, and `field selection`.
 
-Parameters can be combined freely. See [Query Parameters Examples](#query-parameters-examples) at the end of this section.
-
-#### Pagination
+### Pagination
 
 For pagination use parameter `?after={cursor}` to return records after the specified ULID cursor. Omit this parameter to start from the first page.
 
@@ -376,7 +298,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
 - If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response) section.
 
-#### Limit
+### Limit
 
 Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.
 
@@ -415,9 +337,7 @@ GET /products:list?limit=2
 }
 ```
 
----
-
-#### Filtering
+### Filtering
 
 Filter results by column value using the syntax `?{column_name}[operator]=value`. You can combine multiple filters in a single request.
 
@@ -469,9 +389,7 @@ GET /products:list?quantity[gt]=5&brand[eq]=Wow
 }
 ```
 
----
-
-#### Sorting
+### Sorting
 
 Use `?sort={field1,-field2,...}` to sort by one or more fields. Prefix a field name with `-` for descending order. Separate multiple fields with commas.
 
@@ -520,9 +438,7 @@ Above sorts by `quantity` descending, then by `title` ascending.
 }
 ```
 
----
-
-#### Full-Text Search
+### Full-Text Search
 
 Use `?q` to search across all string and text fields in the collection.
 
@@ -553,9 +469,7 @@ GET /products:list?q=mouse
 }
 ```
 
----
-
-#### Field Selection
+### Field Selection
 
 Return only the fields you need. `id` is always included.
 
@@ -581,9 +495,7 @@ GET /products:list?fields=quantity,title
 }
 ```
 
----
-
-#### Combined Examples
+### Combined Examples
 
 All query parameters can be combined in a single request.
 
@@ -601,7 +513,6 @@ GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KH
 ### Error Handling
 
 **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
-
 
 
 ## Standard Response Pattern for `:get` Endpoints
@@ -663,22 +574,18 @@ GET /collections:get?name=products
 
 ### Parameters
 
-| Parameter | Type   | Description                                                 |
-| --------- | ------ | ----------------------------------------------------------- |
-| `id`      | string | ULID of the resource (required for users, apikeys, records) |
-| `name`    | string | Name of the collection (required for collections)           |
+- `id` (string): ULID of the resource (required for users, API keys, and records)
+- `name` (string): Name of the collection (required for collections)
 
 ### Important Notes
 
 - **Single object**: The `data` field contains a single object (not an array).
 - **No meta field**: Get endpoints don't need pagination metadata.
 - **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
-- **404 error**: Returns `RECORD_NOT_FOUND` if the resource doesn't exist.
 
 ### Error Handling
 
 **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
-
 
 
 ## Standard Response Pattern for `:create` Endpoints
@@ -972,7 +879,6 @@ Multiple records:
 ### Error Handling
 
 **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
-
 
 
 ## Standard Response Pattern for `:update` Endpoints

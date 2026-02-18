@@ -1,4 +1,3 @@
-
 ## Standard Response Pattern for `:create` Endpoints
 
 Create endpoints add new resources to the system.
