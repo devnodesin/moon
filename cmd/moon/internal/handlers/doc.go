@@ -389,21 +389,37 @@ func (h *DocHandler) getCollectionNames() []string {
 	return names
 }
 
+// RegisteredFieldInfo describes a field in a registered collection
+type RegisteredFieldInfo struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Nullable bool   `json:"nullable"`
+	Unique   bool   `json:"unique"`
+}
+
+// RegisteredCollectionInfo describes a registered collection and its fields
+type RegisteredCollectionInfo struct {
+	Name   string                `json:"name"`
+	Fields []RegisteredFieldInfo `json:"fields"`
+}
+
 // JSONAppendixData represents the structure of the JSON Appendix
 type JSONAppendixData struct {
-	Service         string            `json:"service"`
-	Version         string            `json:"version"`
-	BaseURL         string            `json:"base_url"`
-	URLPrefix       *string           `json:"url_prefix"`
-	Authentication  AuthInfo          `json:"authentication"`
-	Collections     CollectionsInfo   `json:"collections"`
-	DataTypes       []DataTypeInfo    `json:"data_types"`
-	Endpoints       map[string]any    `json:"endpoints"`
-	HTTPStatusCodes map[string]string `json:"http_status_codes"`
-	RateLimiting    map[string]any    `json:"rate_limiting"`
-	CORS            map[string]any    `json:"cors"`
-	Guarantees      map[string]bool   `json:"guarantees"`
-	AIPStandards    map[string]string `json:"aip_standards"`
+	Service                string                     `json:"service"`
+	Version                string                     `json:"version"`
+	BaseURL                string                     `json:"base_url"`
+	URLPrefix              *string                    `json:"url_prefix"`
+	Authentication         AuthInfo                   `json:"authentication"`
+	Collections            CollectionsInfo            `json:"collections"`
+	RegisteredCollections  []RegisteredCollectionInfo `json:"registered_collections"`
+	DataTypes              []DataTypeInfo             `json:"data_types"`
+	Endpoints              map[string]any             `json:"endpoints"`
+	DataAccess             map[string]any             `json:"data_access"`
+	HTTPStatusCodes        map[string]string          `json:"http_status_codes"`
+	RateLimiting           map[string]any             `json:"rate_limiting"`
+	CORS                   map[string]any             `json:"cors"`
+	Guarantees             map[string]bool            `json:"guarantees"`
+	AIPStandards           map[string]string          `json:"aip_standards"`
 }
 
 // AuthInfo holds authentication configuration
@@ -452,12 +468,32 @@ func (h *DocHandler) buildJSONAppendix() string {
 		urlPrefix = &h.config.Server.Prefix
 	}
 
+	// Build registered collections from the registry
+	allCollections := h.registry.GetAll()
+	registeredCollections := make([]RegisteredCollectionInfo, 0, len(allCollections))
+	for _, col := range allCollections {
+		fields := make([]RegisteredFieldInfo, 0, len(col.Columns))
+		for _, column := range col.Columns {
+			fields = append(fields, RegisteredFieldInfo{
+				Name:     column.Name,
+				Type:     string(column.Type),
+				Nullable: column.Nullable,
+				Unique:   column.Unique,
+			})
+		}
+		registeredCollections = append(registeredCollections, RegisteredCollectionInfo{
+			Name:   col.Name,
+			Fields: fields,
+		})
+	}
+
 	// Build the appendix data structure
 	appendix := JSONAppendixData{
-		Service:   "moon",
-		Version:   h.version,
-		BaseURL:   fmt.Sprintf("http://localhost:%d", h.config.Server.Port),
-		URLPrefix: urlPrefix,
+		Service:               "moon",
+		Version:               h.version,
+		BaseURL:               fmt.Sprintf("http://localhost:%d", h.config.Server.Port),
+		URLPrefix:             urlPrefix,
+		RegisteredCollections: registeredCollections,
 		Authentication: AuthInfo{
 			Modes:        authModes,
 			Header:       "Authorization: Bearer <token>",
@@ -862,6 +898,81 @@ func (h *DocHandler) buildJSONAppendix() string {
 					"auth_required": true,
 					"role_required": "admin",
 					"description":   "Refresh documentation cache",
+				},
+			},
+		},
+		DataAccess: map[string]any{
+			"query": map[string]any{
+				"filter": map[string]any{
+					"syntax":      "/{collection}:list?column[operator]=value",
+					"description": "Filter records based on column values using operators (eq, ne, gt, lt, gte, lte, like, in)",
+					"examples": []string{
+						"/products:list?price[gte]=100",
+						"/products:list?category[eq]=electronics",
+						"/products:list?name[like]=%mouse%",
+					},
+				},
+				"sorting": map[string]any{
+					"syntax":      "/{collection}:list?sort={field1,-field2}",
+					"description": "field name prefixed with '-' for descending order, multiple fields separated by comma",
+					"example":     "/products:list?sort=-price,name",
+				},
+				"pagination": map[string]any{
+					"syntax":      "/{collection}:list?after={cursor}",
+					"description": "Cursor-based pagination using opaque cursor from previous response",
+					"example":     "/products:list?after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
+				},
+				"limit": map[string]any{
+					"syntax":      "/{collection}:list?limit={limit}",
+					"description": "Maximum number of records to return (default 15, max 100)",
+					"example":     "/products:list?limit=10&after=01ARZ3NDEKTSV4RRFFQ69G5FBX",
+				},
+				"search": map[string]any{
+					"syntax":      "/{collection}:list?q={search_term}",
+					"description": "Full text searches across all text/string columns",
+					"example":     "/products:list?q=wireless",
+				},
+				"field_selection": map[string]any{
+					"syntax":      "/{collection}:list?fields={field1,field2}",
+					"description": "Return only specified fields (id always included)",
+					"example":     "/products:list?fields=name,price",
+				},
+			},
+			"aggregation": map[string]any{
+				"count": map[string]any{
+					"path":          "/{collection}:count",
+					"method":        "GET",
+					"auth_required": true,
+					"description":   "Count records in a collection",
+					"example":       "/products:count",
+				},
+				"sum": map[string]any{
+					"path":          "/{collection}:sum?field={field_name}",
+					"method":        "GET",
+					"auth_required": true,
+					"description":   "Sum numeric field (only integer and decimal fields)",
+					"example":       "/products:sum?field=quantity",
+				},
+				"avg": map[string]any{
+					"path":          "/{collection}:avg?field={field_name}",
+					"method":        "GET",
+					"auth_required": true,
+					"description":   "Average numeric field (only integer and decimal fields)",
+					"example":       "/products:avg?field=quantity",
+				},
+				"min": map[string]any{
+					"path":          "/{collection}:min?field={field_name}",
+					"method":        "GET",
+					"auth_required": true,
+					"description":   "Minimum value of a field",
+					"example":       "/products:min?field=quantity",
+				},
+				"max": map[string]any{
+					"path":          "/{collection}:max?field={field_name}",
+					"method":        "GET",
+					"auth_required": true,
+					"description":   "Maximum value of a field",
+					"example":       "/products:max?field=quantity",
 				},
 			},
 		},
