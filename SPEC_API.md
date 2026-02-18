@@ -1144,14 +1144,14 @@ GET /products:schema
 }
 ```
 
-### Field Properties
+**Field Properties**
 
-- `name`: Field name
-- `type`: Data type (`string`, `integer`, `decimal`, `boolean`, `timestamp`)
-- `nullable`: Whether field accepts null values
-- `readonly`: Whether field is system-generated and cannot be modified (e.g., `id`)
-- `default`: Default value when not provided (readonly)
-- `unique`: Whether field must have unique values (optional)
+- `name`: The field's name.
+- `type`: The data type (`string`, `integer`, `decimal`, `boolean`, `timestamp`, etc., as defined in the specification).
+- `nullable`: Indicates if the field can be omitted or set to `null` in API requests.
+- `readonly`: Indicates if the field is system-generated and cannot be modified (e.g., `id`).
+- `default`: The default value assigned when the field is not provided.
+- `unique`: Specifies whether the field must have unique values (optional).
 
 ### Important Notes
 
