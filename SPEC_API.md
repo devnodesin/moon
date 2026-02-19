@@ -889,11 +889,10 @@ Update endpoints modify existing resources in the system.
 
 ### Response Structure
 
-**For Users and API Keys:**
+**For Users:**
 
 ```sh
 POST /users:update?id=01KHCZGWWRBQBREMG0K23C6C5H
-POST /apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6AXF
 ```
 
 Standard update:
@@ -928,6 +927,51 @@ Special actions:
   "message": "User updated successfully"
 }
 ```
+
+**For API Keys:**
+
+```sh
+POST /apikeys:update?id=01KHCZKCR7MHB0Q69KM63D6AXF
+```
+
+Standard update (request body wrapped in `data`):
+
+```json
+{
+  "data": {
+    "name": "Updated Service Name",
+    "description": "Updated description",
+    "can_write": true
+  }
+}
+```
+
+Special actions:
+
+```json
+{
+  "data": {
+    "action": "rotate"
+  }
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": {
+    "id": "01KHCZKCR7MHB0Q69KM63D6AXF",
+    "name": "Updated Service Name",
+    "description": "Updated description",
+    "role": "user",
+    "can_write": true,
+    "created_at": "2026-02-14T02:27:38Z"
+  },
+  "message": "API key updated successfully"
+}
+```
+
 
 **For Collections:**
 
@@ -1155,7 +1199,7 @@ GET /products:schema
 ### Important Notes
 
 - **System fields**: The `id` and `created_at` fields are automatically included in every collection and are readonly.
-- **Total count**: Represents the total number of fields in the collection schema
+- **Total count**: Represents the total number of fields in the collection schema.
 - **Schema introspection**: Use this endpoint to dynamically discover collection structure
 - **Validation**: Schema information helps clients validate data before submission
 - **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

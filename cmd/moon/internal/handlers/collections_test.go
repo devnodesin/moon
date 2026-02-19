@@ -83,7 +83,7 @@ func TestList_WithCollectionsAndRecords(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -166,7 +166,7 @@ func TestCreate_Success(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -217,7 +217,7 @@ func TestCreate_InvalidName(t *testing.T) {
 				},
 			}
 
-			body, _ := json.Marshal(createReq)
+			body, _ := json.Marshal(map[string]any{"data": createReq})
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 			w := httptest.NewRecorder()
 
@@ -243,7 +243,7 @@ func TestCreate_NoColumns(t *testing.T) {
 		Columns: []registry.Column{},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -265,7 +265,7 @@ func TestCreate_InvalidColumnType(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -288,13 +288,13 @@ func TestCreate_AlreadyExists(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
 
 	// Try to create again
-	body, _ = json.Marshal(createReq)
+	body, _ = json.Marshal(map[string]any{"data": createReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Create(w, req)
@@ -316,7 +316,7 @@ func TestUpdate_AddColumns(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -330,7 +330,7 @@ func TestUpdate_AddColumns(t *testing.T) {
 		},
 	}
 
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
@@ -362,7 +362,7 @@ func TestUpdate_NotFound(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(updateReq)
+	body, _ := json.Marshal(map[string]any{"data": updateReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -385,7 +385,7 @@ func TestDestroy_Success(t *testing.T) {
 		},
 	}
 
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -756,7 +756,7 @@ func TestUpdate_RemoveColumns_Success(t *testing.T) {
 			{Name: "old_field", Type: registry.TypeString, Nullable: true},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -766,7 +766,7 @@ func TestUpdate_RemoveColumns_Success(t *testing.T) {
 		Name:          "products",
 		RemoveColumns: []string{"old_field"},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -802,7 +802,7 @@ func TestUpdate_RemoveColumns_SystemColumn(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -821,7 +821,7 @@ func TestUpdate_RemoveColumns_SystemColumn(t *testing.T) {
 				Name:          "test_table",
 				RemoveColumns: []string{tt.columnName},
 			}
-			body, _ = json.Marshal(updateReq)
+			body, _ = json.Marshal(map[string]any{"data": updateReq})
 			req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 			w = httptest.NewRecorder()
 
@@ -845,7 +845,7 @@ func TestUpdate_RemoveColumns_NonExistent(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -855,7 +855,7 @@ func TestUpdate_RemoveColumns_NonExistent(t *testing.T) {
 		Name:          "test_table",
 		RemoveColumns: []string{"nonexistent"},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -879,7 +879,7 @@ func TestUpdate_RenameColumns_Success(t *testing.T) {
 			{Name: "email", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -891,7 +891,7 @@ func TestUpdate_RenameColumns_Success(t *testing.T) {
 			{OldName: "user_name", NewName: "username"},
 		},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -934,7 +934,7 @@ func TestUpdate_RenameColumns_SystemColumn(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -946,7 +946,7 @@ func TestUpdate_RenameColumns_SystemColumn(t *testing.T) {
 			{OldName: "id", NewName: "new_id"},
 		},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -969,7 +969,7 @@ func TestUpdate_RenameColumns_Conflict(t *testing.T) {
 			{Name: "email", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -981,7 +981,7 @@ func TestUpdate_RenameColumns_Conflict(t *testing.T) {
 			{OldName: "name", NewName: "email"},
 		},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -1005,7 +1005,7 @@ func TestUpdate_ModifyColumns_Success(t *testing.T) {
 			{Name: "description", Type: registry.TypeString, Nullable: true},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -1017,7 +1017,7 @@ func TestUpdate_ModifyColumns_Success(t *testing.T) {
 			{Name: "description", Type: registry.TypeString},
 		},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -1058,7 +1058,7 @@ func TestUpdate_ModifyColumns_SystemColumn(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -1070,7 +1070,7 @@ func TestUpdate_ModifyColumns_SystemColumn(t *testing.T) {
 			{Name: "id", Type: registry.TypeString},
 		},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -1095,7 +1095,7 @@ func TestUpdate_CombinedOperations(t *testing.T) {
 			{Name: "to_modify", Type: registry.TypeString, Nullable: true},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -1114,7 +1114,7 @@ func TestUpdate_CombinedOperations(t *testing.T) {
 		},
 		RemoveColumns: []string{"to_remove"},
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -1175,7 +1175,7 @@ func TestUpdate_NoOperations(t *testing.T) {
 			{Name: "name", Type: registry.TypeString, Nullable: false},
 		},
 	}
-	body, _ := json.Marshal(createReq)
+	body, _ := json.Marshal(map[string]any{"data": createReq})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -1184,7 +1184,7 @@ func TestUpdate_NoOperations(t *testing.T) {
 	updateReq := UpdateRequest{
 		Name: "test_table",
 	}
-	body, _ = json.Marshal(updateReq)
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 
@@ -1268,7 +1268,7 @@ func TestCreate_RejectDefaultField(t *testing.T) {
 	}{
 		{
 			name: "reject default field",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_reject_default",
 				"columns": [
 					{
@@ -1278,12 +1278,12 @@ func TestCreate_RejectDefaultField(t *testing.T) {
 						"default": "pending"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default'",
 		},
 		{
 			name: "reject default_value field",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_reject_default_value",
 				"columns": [
 					{
@@ -1293,12 +1293,12 @@ func TestCreate_RejectDefaultField(t *testing.T) {
 						"default_value": "0"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default_value'",
 		},
 		{
 			name: "reject default in second column",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_reject_default2",
 				"columns": [
 					{
@@ -1313,7 +1313,7 @@ func TestCreate_RejectDefaultField(t *testing.T) {
 						"default": "active"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default'",
 		},
 	}
@@ -1349,7 +1349,7 @@ func TestUpdate_RejectDefaultField(t *testing.T) {
 			{Name: "status", Type: registry.TypeString, Nullable: true},
 		},
 	}
-	createBody, _ := json.Marshal(createReq)
+	createBody, _ := json.Marshal(map[string]any{"data": createReq})
 	createHTTPReq := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(createBody))
 	createW := httptest.NewRecorder()
 	handler.Create(createW, createHTTPReq)
@@ -1365,7 +1365,7 @@ func TestUpdate_RejectDefaultField(t *testing.T) {
 	}{
 		{
 			name: "reject default in add_columns",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_update_reject",
 				"add_columns": [
 					{
@@ -1375,12 +1375,12 @@ func TestUpdate_RejectDefaultField(t *testing.T) {
 						"default": "5"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default'",
 		},
 		{
 			name: "reject default_value in add_columns",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_update_reject",
 				"add_columns": [
 					{
@@ -1390,26 +1390,12 @@ func TestUpdate_RejectDefaultField(t *testing.T) {
 						"default_value": "0"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default_value'",
 		},
 		{
-			name: "reject default in modify_columns",
-			payload: `{
-				"name": "test_update_reject",
-				"modify_columns": [
-					{
-						"name": "status",
-						"type": "string",
-						"default": "active"
-					}
-				]
-			}`,
-			errMsg: "unknown field 'default'",
-		},
-		{
 			name: "reject default_value in modify_columns",
-			payload: `{
+			payload: `{"data": {
 				"name": "test_update_reject",
 				"modify_columns": [
 					{
@@ -1418,7 +1404,7 @@ func TestUpdate_RejectDefaultField(t *testing.T) {
 						"default_value": "pending"
 					}
 				]
-			}`,
+			}}`,
 			errMsg: "unknown field 'default_value'",
 		},
 	}
@@ -1446,7 +1432,7 @@ func TestCreate_AllowWithoutDefault(t *testing.T) {
 	handler, driver := setupTestHandler(t)
 	defer driver.Close()
 
-	payload := `{
+	payload := `{"data": {
 		"name": "test_no_default",
 		"columns": [
 			{
@@ -1460,7 +1446,7 @@ func TestCreate_AllowWithoutDefault(t *testing.T) {
 				"nullable": true
 			}
 		]
-	}`
+	}}`
 
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", strings.NewReader(payload))
 	w := httptest.NewRecorder()

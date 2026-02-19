@@ -282,12 +282,6 @@ func TestServerRoutes_DocumentationEndpoints(t *testing.T) {
 			path:           "/doc/llms-full.txt",
 			expectedStatus: http.StatusNotFound,
 		},
-		{
-			name:           "Refresh documentation cache",
-			method:         http.MethodPost,
-			path:           "/doc:refresh",
-			expectedStatus: http.StatusUnauthorized, // Requires authentication
-		},
 	}
 
 	for _, tt := range tests {

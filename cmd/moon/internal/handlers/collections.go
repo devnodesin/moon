@@ -101,7 +101,7 @@ type ModifyColumn struct {
 	Type         registry.ColumnType `json:"type"`
 	Nullable     *bool               `json:"nullable,omitempty"`
 	Unique       *bool               `json:"unique,omitempty"`
-	DefaultValue *string             `json:"default_value,omitempty"`
+	DefaultValue *string             `json:"default,omitempty"`
 }
 
 // UpdateRequest represents the request for updating a collection
@@ -119,7 +119,7 @@ type UpdateResponse struct {
 	Message    string               `json:"message"`
 }
 
-// decodeCreateRequest decodes a CreateRequest and validates that no default fields are present
+// decodeCreateRequest decodes a CreateRequest (wrapped in {"data": ...}) and validates that no default fields are present
 func decodeCreateRequest(body io.Reader, req *CreateRequest) error {
 	// Read body into buffer so we can parse it twice
 	bodyBytes, err := io.ReadAll(body)
@@ -127,13 +127,23 @@ func decodeCreateRequest(body io.Reader, req *CreateRequest) error {
 		return fmt.Errorf("invalid request body")
 	}
 
+	// Unwrap the "data" envelope
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(bodyBytes, &envelope); err != nil || envelope.Data == nil {
+		return fmt.Errorf("request body must be wrapped in a 'data' object")
+	}
+
+	innerBytes := []byte(envelope.Data)
+
 	// First, validate for forbidden default fields
-	if err := validateNoDefaultFields(bodyBytes); err != nil {
+	if err := validateNoDefaultFields(innerBytes); err != nil {
 		return err
 	}
 
 	// Decode into the target struct
-	decoder := json.NewDecoder(bytes.NewReader(bodyBytes))
+	decoder := json.NewDecoder(bytes.NewReader(innerBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(req); err != nil {
 		return fmt.Errorf("invalid request body")
@@ -142,7 +152,7 @@ func decodeCreateRequest(body io.Reader, req *CreateRequest) error {
 	return nil
 }
 
-// decodeUpdateRequest decodes an UpdateRequest and validates that no default fields are present
+// decodeUpdateRequest decodes an UpdateRequest (wrapped in {"data": ...}) and validates that no default fields are present
 func decodeUpdateRequest(body io.Reader, req *UpdateRequest) error {
 	// Read body into buffer so we can parse it twice
 	bodyBytes, err := io.ReadAll(body)
@@ -150,13 +160,23 @@ func decodeUpdateRequest(body io.Reader, req *UpdateRequest) error {
 		return fmt.Errorf("invalid request body")
 	}
 
+	// Unwrap the "data" envelope
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(bodyBytes, &envelope); err != nil || envelope.Data == nil {
+		return fmt.Errorf("request body must be wrapped in a 'data' object")
+	}
+
+	innerBytes := []byte(envelope.Data)
+
 	// First, validate for forbidden default fields
-	if err := validateNoDefaultFields(bodyBytes); err != nil {
+	if err := validateNoDefaultFields(innerBytes); err != nil {
 		return err
 	}
 
 	// Decode into the target struct
-	decoder := json.NewDecoder(bytes.NewReader(bodyBytes))
+	decoder := json.NewDecoder(bytes.NewReader(innerBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(req); err != nil {
 		return fmt.Errorf("invalid request body")
@@ -165,7 +185,9 @@ func decodeUpdateRequest(body io.Reader, req *UpdateRequest) error {
 	return nil
 }
 
-// validateNoDefaultFields checks if any default or default_value fields are present in the JSON
+// validateNoDefaultFields checks for forbidden default fields in the JSON request.
+// columns and add_columns do not support default values.
+// modify_columns supports 'default' but rejects the old 'default_value' field name.
 func validateNoDefaultFields(data []byte) error {
 	// Parse as generic JSON to check for forbidden fields
 	var raw map[string]any
@@ -173,7 +195,7 @@ func validateNoDefaultFields(data []byte) error {
 		return fmt.Errorf("invalid request body")
 	}
 
-	// Check columns array if present
+	// Check columns array if present (no default support on create)
 	if columns, ok := raw["columns"].([]any); ok {
 		for i, col := range columns {
 			if colMap, ok := col.(map[string]any); ok {
@@ -187,7 +209,7 @@ func validateNoDefaultFields(data []byte) error {
 		}
 	}
 
-	// Check add_columns array if present (for update requests)
+	// Check add_columns array if present (no default support on add)
 	if addColumns, ok := raw["add_columns"].([]any); ok {
 		for i, col := range addColumns {
 			if colMap, ok := col.(map[string]any); ok {
@@ -201,15 +223,12 @@ func validateNoDefaultFields(data []byte) error {
 		}
 	}
 
-	// Check modify_columns array if present (for update requests)
+	// Check modify_columns array: 'default' is valid, but reject old 'default_value' field name
 	if modifyColumns, ok := raw["modify_columns"].([]any); ok {
 		for i, col := range modifyColumns {
 			if colMap, ok := col.(map[string]any); ok {
-				if _, hasDefault := colMap["default"]; hasDefault {
-					return fmt.Errorf("unknown field 'default' in modify_columns[%d]", i)
-				}
 				if _, hasDefaultValue := colMap["default_value"]; hasDefaultValue {
-					return fmt.Errorf("unknown field 'default_value' in modify_columns[%d]", i)
+					return fmt.Errorf("unknown field 'default_value' in modify_columns[%d]: use 'default' instead", i)
 				}
 			}
 		}

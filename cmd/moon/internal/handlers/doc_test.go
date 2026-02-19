@@ -188,52 +188,6 @@ func TestDocHandler_Caching(t *testing.T) {
 	}
 }
 
-func TestDocHandler_RefreshCache(t *testing.T) {
-	// Setup
-	reg := registry.NewSchemaRegistry()
-	cfg := &config.AppConfig{
-		Server: config.ServerConfig{
-			Host:   "localhost",
-			Port:   6006,
-			Prefix: "",
-		},
-	}
-
-	handler := NewDocHandler(reg, cfg, "1.99")
-
-	// Generate initial cache
-	req1 := httptest.NewRequest(http.MethodGet, "/doc/", nil)
-	rec1 := httptest.NewRecorder()
-	handler.HTML(rec1, req1)
-
-	// Refresh cache
-	req2 := httptest.NewRequest(http.MethodPost, "/doc:refresh", nil)
-	rec2 := httptest.NewRecorder()
-	handler.RefreshCache(rec2, req2)
-
-	if rec2.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec2.Code)
-	}
-
-	body := rec2.Body.String()
-	if !strings.Contains(body, "Documentation cache refreshed") {
-		t.Error("expected refresh message")
-	}
-
-	// Verify cache was cleared by checking internal state
-	handler.cacheMutex.RLock()
-	htmlCache := handler.htmlCache
-	mdCache := handler.mdCache
-	handler.cacheMutex.RUnlock()
-
-	if htmlCache != nil {
-		t.Error("expected HTML cache to be cleared")
-	}
-	if mdCache != nil {
-		t.Error("expected Markdown cache to be cleared")
-	}
-}
-
 func TestDocHandler_WithPrefix(t *testing.T) {
 	// Setup with prefix
 	reg := registry.NewSchemaRegistry()
@@ -762,19 +716,13 @@ func TestDocHandler_JSONAppendixRefresh(t *testing.T) {
 		},
 	})
 
-	// Refresh the cache to clear it
-	req2 := httptest.NewRequest(http.MethodPost, "/doc:refresh", nil)
-	rec2 := httptest.NewRecorder()
-	handler.RefreshCache(rec2, req2)
+	// Create a new handler to get a fresh cache with the updated registry
+	handler2 := NewDocHandler(reg, cfg, "1.99")
 
-	if rec2.Code != http.StatusOK {
-		t.Errorf("expected refresh to return 200, got %d", rec2.Code)
-	}
-
-	// Generate JSON again (should rebuild with new collection)
+	// Generate JSON again (should build with both collections)
 	req3 := httptest.NewRequest(http.MethodGet, "/doc/llms.json", nil)
 	rec3 := httptest.NewRecorder()
-	handler.JSON(rec3, req3)
+	handler2.JSON(rec3, req3)
 	body3 := rec3.Body.String()
 
 	// Verify both collections are now present in registered_collections

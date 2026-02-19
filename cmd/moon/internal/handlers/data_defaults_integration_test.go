@@ -60,7 +60,7 @@ func TestDefaultValues_Integration(t *testing.T) {
 			{Name: "notes", Type: registry.TypeString, Nullable: true},     // nullable with type default ""
 		},
 	}
-	createBody, _ := json.Marshal(createReq)
+	createBody, _ := json.Marshal(map[string]any{"data": createReq})
 	createHTTPReq := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(createBody))
 	createW := httptest.NewRecorder()
 	collectionsHandler.Create(createW, createHTTPReq)
@@ -220,7 +220,7 @@ func TestDefaultValues_BatchCreate(t *testing.T) {
 			{Name: "count", Type: registry.TypeInteger, Nullable: true}, // type default is 0
 		},
 	}
-	createBody, _ := json.Marshal(createReq)
+	createBody, _ := json.Marshal(map[string]any{"data": createReq})
 	createHTTPReq := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(createBody))
 	createW := httptest.NewRecorder()
 	collectionsHandler.Create(createW, createHTTPReq)
