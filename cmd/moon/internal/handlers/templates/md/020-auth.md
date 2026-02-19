@@ -15,17 +15,20 @@ curl -s -X POST "http://localhost:6006/auth:login" \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSENaR1dXUkJRQlJFTUcwSzIzQzZDNUgiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSENaR1dXUkJRQlJFTUcwSzIzQzZDNUgiLCJleHAiOjE3NzEwMzk2NTMsIm5iZiI6MTc3MTAzNjAyMywiaWF0IjoxNzcxMDM2MDUzfQ.EeUuX_36FPb4oh-G9YNICgHm08Tq7Cp30GgJqGezgBU",
-  "refresh_token": "hyTTpweINXOKltH6r5Cl7--_8VKl58Z6fE7W0fjlHls=",
-  "expires_at": "2026-02-14T03:27:33.935149435Z",
-  "token_type": "Bearer",
-  "user": {
-    "id": "01KHCZGWWRBQBREMG0K23C6C5H",
-    "username": "newuser",
-    "email": "newemail@example.com",
-    "role": "user",
-    "can_write": true
-  }
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJleHAiOjE3NzE0NzAyNjUsIm5iZiI6MTc3MTQ2NjYzNSwiaWF0IjoxNzcxNDY2NjY1fQ.Osb7IIMBx2iCMhvhpKTN0lz-_dum0JfYGUMfEC3SWhs",
+    "refresh_token": "xWqY732xkDmydNXtuyDbNagw3kBb8ZnHXC_439mCVS4=",
+    "expires_at": "2026-02-19T03:04:25.550813514Z",
+    "token_type": "Bearer",
+    "user": {
+      "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+      "username": "newuser",
+      "email": "newuser@example.com",
+      "role": "user",
+      "can_write": true
+    }
+  },
+  "message": "Login successful"
 }
 ```
 
@@ -40,10 +43,10 @@ curl -s -X GET "http://localhost:6006/auth:me" \
 
 ```json
 {
-  "user": {
-    "id": "01KHCZGWWRBQBREMG0K23C6C5H",
+  "data": {
+    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
     "username": "newuser",
-    "email": "newemail@example.com",
+    "email": "newuser@example.com",
     "role": "user",
     "can_write": true
   }
@@ -67,14 +70,14 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 
 ```json
 {
-  "message": "user updated successfully",
-  "user": {
-    "id": "01KHCZGWWRBQBREMG0K23C6C5H",
+  "data": {
+    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
     "can_write": true
-  }
+  },
+  "message": "User updated successfully"
 }
 ```
 
@@ -96,14 +99,14 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 
 ```json
 {
-  "message": "password updated successfully, please login again",
-  "user": {
-    "id": "01KHCZGWWRBQBREMG0K23C6C5H",
+  "data": {
+    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
     "can_write": true
-  }
+  },
+  "message": "Password updated successfully. Please login again."
 }
 ```
 
@@ -123,17 +126,20 @@ curl -s -X POST "http://localhost:6006/auth:refresh" \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSENaR1dXUkJRQlJFTUcwSzIzQzZDNUgiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSENaR1dXUkJRQlJFTUcwSzIzQzZDNUgiLCJleHAiOjE3NzEwMzk2NTYsIm5iZiI6MTc3MTAzNjAyNiwiaWF0IjoxNzcxMDM2MDU2fQ.PBeaXDTl-Bk46sR-7875N4D-Bdledwx_QPCHlqo3dwk",
-  "refresh_token": "Yke6FxWxoqPfagJCfD13Rbb8SZz_4SMG9TuI_a61YEE=",
-  "expires_at": "2026-02-14T03:27:36.386965511Z",
-  "token_type": "Bearer",
-  "user": {
-    "id": "01KHCZGWWRBQBREMG0K23C6C5H",
-    "username": "newuser",
-    "email": "newemail@example.com",
-    "role": "user",
-    "can_write": true
-  }
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJleHAiOjE3NzE0NzAyNjcsIm5iZiI6MTc3MTQ2NjYzNywiaWF0IjoxNzcxNDY2NjY3fQ.zZ2DDNVADdtP6kz2xe6jqAiSJwJWZWiPHT7KR-V5ems",
+    "refresh_token": "vSyq-5vOAtnPCVO7W6zZslmzb53Ca9Py235G2gjg91g=",
+    "expires_at": "2026-02-19T03:04:27.449751842Z",
+    "token_type": "Bearer",
+    "user": {
+      "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+      "username": "newuser",
+      "email": "newemail@example.com",
+      "role": "user",
+      "can_write": true
+    }
+  },
+  "message": "Token refreshed successfully"
 }
 ```
 
@@ -154,6 +160,6 @@ curl -s -X POST "http://localhost:6006/auth:logout" \
 
 ```json
 {
-  "message": "logged out successfully"
+  "message": "Logged out successfully"
 }
 ```

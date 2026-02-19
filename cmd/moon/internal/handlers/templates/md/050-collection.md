@@ -98,17 +98,13 @@ curl -s -X GET "http://localhost:6006/collections:list" \
 {
   "data": [
     {
-      "name": "catalog",
-      "records": 2
-    },
-    {
       "name": "products",
       "records": 0
     }
   ],
   "meta": {
-    "count": 2,
-    "limit": 2,
+    "count": 1,
+    "limit": 1,
     "next": null,
     "prev": null
   }
