@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"regexp"
@@ -196,22 +195,14 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	var req CreateUserRequest
-	// Accept both flat {"username":...} and wrapped {"data":{"username":...}} formats
 	var wrapper struct {
-		Data *CreateUserRequest `json:"data"`
+		Data CreateUserRequest `json:"data"`
 	}
-	if jsonErr := json.Unmarshal(bodyBytes, &wrapper); jsonErr == nil && wrapper.Data != nil {
-		req = *wrapper.Data
-	} else if jsonErr := json.Unmarshal(bodyBytes, &req); jsonErr != nil {
+	if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	req := wrapper.Data
 
 	ctx := r.Context()
 

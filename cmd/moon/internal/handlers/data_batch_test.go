@@ -408,7 +408,7 @@ func TestNewFormat_SingleCreate(t *testing.T) {
 	}
 }
 
-// TestNewFormat_SingleUpdate tests that single (non-array) update is accepted and processed
+// TestNewFormat_SingleUpdate tests that single (non-array) update is rejected
 func TestNewFormat_SingleUpdate(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
@@ -427,7 +427,7 @@ func TestNewFormat_SingleUpdate(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// Single object should be accepted and auto-wrapped into an array
+	// Single object should be rejected (must use array)
 	reqBody := map[string]any{
 		"data": map[string]any{
 			"id":   "01HFXYZ1234567890ABCDEFGHI",
@@ -441,12 +441,12 @@ func TestNewFormat_SingleUpdate(t *testing.T) {
 
 	handler.Update(w, req, "products")
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
 }
 
-// TestNewFormat_SingleDestroy tests that single (non-array) destroy is accepted and processed
+// TestNewFormat_SingleDestroy tests that single (non-array) destroy is rejected
 func TestNewFormat_SingleDestroy(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
@@ -465,7 +465,7 @@ func TestNewFormat_SingleDestroy(t *testing.T) {
 	}
 	handler := NewDataHandler(driver, reg, testConfig())
 
-	// Single string ID should be accepted and auto-wrapped into an array
+	// Single string should be rejected (must use array)
 	reqBody := map[string]any{
 		"data": "01HFXYZ1234567890ABCDEFGHI",
 	}
@@ -476,7 +476,7 @@ func TestNewFormat_SingleDestroy(t *testing.T) {
 
 	handler.Destroy(w, req, "products")
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
 }

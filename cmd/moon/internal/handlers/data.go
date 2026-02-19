@@ -344,7 +344,7 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 		return
 	}
 
-	// Parse request body - data can be an array or a single object (auto-wrapped)
+	// Parse request body - data must be an array
 	var batchReq BatchCreateDataRequest
 	if err := json.NewDecoder(r.Body).Decode(&batchReq); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -356,21 +356,20 @@ func (h *DataHandler) Create(w http.ResponseWriter, r *http.Request, collectionN
 		return
 	}
 
-	// If data is a single object, wrap it in an array
+	// Validate data is an array
 	isBatch, err := detectBatchMode(batchReq.Data)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	dataToProcess := batchReq.Data
 	if !isBatch {
-		// Wrap single object into an array
-		dataToProcess = json.RawMessage("[" + string(batchReq.Data) + "]")
+		writeError(w, http.StatusBadRequest, "data must be an array of records")
+		return
 	}
 
 	// Array mode
 	atomic := parseAtomicFlag(r)
-	h.createBatch(w, r, collectionName, collection, dataToProcess, atomic)
+	h.createBatch(w, r, collectionName, collection, batchReq.Data, atomic)
 }
 
 // createBatch handles batch create operations
@@ -619,21 +618,20 @@ func (h *DataHandler) Update(w http.ResponseWriter, r *http.Request, collectionN
 		return
 	}
 
-	// If data is a single object, wrap it in an array
+	// Validate data is an array
 	isBatch, err := detectBatchMode(dataField)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	dataToProcess := dataField
 	if !isBatch {
-		// Wrap single object into an array
-		dataToProcess = json.RawMessage("[" + string(dataField) + "]")
+		writeError(w, http.StatusBadRequest, "data must be an array of records")
+		return
 	}
 
 	// Array mode
 	atomic := parseAtomicFlag(r)
-	h.updateBatch(w, r, collectionName, collection, dataToProcess, atomic)
+	h.updateBatch(w, r, collectionName, collection, dataField, atomic)
 }
 
 // updateBatch handles batch update operations
@@ -932,21 +930,20 @@ func (h *DataHandler) Destroy(w http.ResponseWriter, r *http.Request, collection
 		return
 	}
 
-	// If data is a single string ID, wrap it in an array
+	// Validate data is an array of IDs
 	isBatch, err := detectBatchMode(dataField)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	dataToProcess := dataField
 	if !isBatch {
-		// Wrap single string or object into an array
-		dataToProcess = json.RawMessage("[" + string(dataField) + "]")
+		writeError(w, http.StatusBadRequest, "data must be an array of record IDs")
+		return
 	}
 
 	// Array mode
 	atomic := parseAtomicFlag(r)
-	h.destroyBatch(w, r, collectionName, dataToProcess, atomic)
+	h.destroyBatch(w, r, collectionName, dataField, atomic)
 }
 
 // destroyBatch handles batch destroy operations

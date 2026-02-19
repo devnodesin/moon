@@ -255,7 +255,7 @@ func TestDataHandler_Get_MissingID(t *testing.T) {
 	}
 }
 
-// TestDataHandler_Update_MissingID tests update when ID is missing - now accepted as single object but fails due to empty ID
+// TestDataHandler_Update_MissingID tests update when ID is missing
 func TestDataHandler_Update_MissingID(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
@@ -271,7 +271,7 @@ func TestDataHandler_Update_MissingID(t *testing.T) {
 
 	reqBody := map[string]any{
 		"data": map[string]any{
-			"id":   "", // Missing ID - single object auto-wrapped but fails ULID validation
+			"id":   "", // Missing ID
 			"name": "Test",
 		},
 	}
@@ -282,13 +282,12 @@ func TestDataHandler_Update_MissingID(t *testing.T) {
 
 	handler.Update(w, req, "products")
 
-	// Single object is now auto-wrapped into array; empty ID fails validation → best-effort: 200 with meta.failed=1
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
 
-// TestDataHandler_Destroy_MissingID tests destroy when ID is missing - now accepted as single but fails due to empty string
+// TestDataHandler_Destroy_MissingID tests destroy when ID is missing
 func TestDataHandler_Destroy_MissingID(t *testing.T) {
 	reg := registry.NewSchemaRegistry()
 	collection := &registry.Collection{
@@ -303,7 +302,7 @@ func TestDataHandler_Destroy_MissingID(t *testing.T) {
 	handler := NewDataHandler(driver, reg, testConfig())
 
 	reqBody := map[string]any{
-		"data": "", // Empty string ID - auto-wrapped to array, fails ULID validation
+		"data": "", // Missing ID
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -312,9 +311,8 @@ func TestDataHandler_Destroy_MissingID(t *testing.T) {
 
 	handler.Destroy(w, req, "products")
 
-	// Single empty string is auto-wrapped into array; empty ID fails validation → best-effort: 200 with meta.failed=1
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
 

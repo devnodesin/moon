@@ -161,8 +161,8 @@ def run_test_suite(
                 test.notes
             ))
         
-        # Track overall success - only named tests count toward pass/fail
-        if not is_successful and test.name:
+        # Track overall success
+        if not is_successful:
             all_tests_passed = False
     
     # Write output to file if specified

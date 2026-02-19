@@ -592,17 +592,8 @@ func (h *CollectionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Destroy handles POST /collections:destroy
 func (h *CollectionsHandler) Destroy(w http.ResponseWriter, r *http.Request) {
-	// Get collection name from query parameter, falling back to request body
+	// Get collection name from query parameter per SPEC_API.md
 	name := r.URL.Query().Get("name")
-	if name == "" {
-		// Try to read name from request body
-		var body struct {
-			Name string `json:"name"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
-			name = body.Name
-		}
-	}
 	if name == "" {
 		writeError(w, http.StatusBadRequest, "collection name is required")
 		return
