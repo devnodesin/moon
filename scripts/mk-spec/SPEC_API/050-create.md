@@ -128,20 +128,22 @@ Multiple records:
 
 ```json
 {
-  "name": "products",
-  "columns": [
-    {
-      "name": "title",
-      "type": "string",
-      "nullable": false,
-      "unique": true
-    },
-    {
-      "name": "price",
-      "type": "integer",
-      "nullable": false
-    }
-  ]
+  "data": {
+    "name": "products",
+    "columns": [
+      {
+        "name": "title",
+        "type": "string",
+        "nullable": false,
+        "unique": true
+      },
+      {
+        "name": "price",
+        "type": "integer",
+        "nullable": false
+      }
+    ]
+  }
 }
 ```
 
@@ -180,5 +182,4 @@ Multiple records:
 - **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

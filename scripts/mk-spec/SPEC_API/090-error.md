@@ -6,8 +6,9 @@ The API uses a simple, consistent error handling approach and strictly follows s
 - `401`: Authentication required
 - `404`: Resource not found
 - `500`: Server error
+ - Only the codes listed above are permitted; do not use any others.
 
-- Only the codes listed above are permitted; do not use any others.
+Note: `403` (Forbidden) is intentionally omitted in this specification to keep the error surface small. Authorization or permission failures should be handled via `401` per this document. If an implementation needs to distinguish "authenticated but not allowed" cases, add `403` and follow the same single-`message` JSON body pattern.
 - Errors are indicated by standard HTTP status codes (for machines).
 - Each error response includes only a single `message` field (for humans), intended for direct display to users.
 - No internal error codes or additional error metadata are used.

@@ -57,12 +57,12 @@ Authorization: Bearer <access_token>
 **JWT Claims Structure:**
 
 Access tokens contain the following claims:
+
 - `user_id`: User's ULID identifier (string, from `id` column)
 - `username`: User's username (string)
 - `email`: User's email address (string)
 - `role`: User's role (`admin`, `user`, or `readonly`)
 - `can_write`: Write permission flag (boolean)
-- `active`: User Active (boolean)
 - Standard JWT claims: `iss`, `exp`, `iat`, `sub`
 
 **Rate Limits:**
@@ -122,6 +122,7 @@ Authorization: Bearer <TOKEN>
 **Token Type Detection:**
 
 The server automatically detects the token type:
+
 - **JWT tokens:** Three base64-encoded segments separated by dots (e.g., `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
 - **API keys:** Start with `moon_live_` prefix (e.g., `moon_live_abc123...`)
 
@@ -201,6 +202,7 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 ### Password Policy
 
 **Requirements:**
+
 - Minimum 8 characters (configurable)
 - Must include: uppercase, lowercase, number
 - Optional special characters (configurable)
@@ -326,37 +328,9 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
 **Purpose:** Authenticate user and receive access + refresh tokens
 
-**Request:**
-
-```json
-{
-  "username": "user@example.com",
-  "password": "SecurePass123"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "access_token": "eyJhbGc...",
-    "refresh_token": "eyJhbGc...",
-    "expires_at": "2026-02-14T03:27:33.935149435Z",
-    "token_type": "Bearer",
-    "user": {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "username": "user@example.com",
-      "email": "user@example.com",
-      "role": "user",
-      "can_write": false
-    }
-  },
-  "message": "Login successful"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format and codes. Common codes: `INVALID_CREDENTIALS` (401), `MISSING_REQUIRED_FIELD` (400), `RATE_LIMIT_EXCEEDED` (429).
+> **📖 Request/Response**: See [SPEC_API.md § Login](SPEC_API.md#login) for full request/response format.
+>
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -364,29 +338,9 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
 **Purpose:** Invalidate current session's refresh token
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Request:**
-
-```json
-{
-  "refresh_token": "eyJhbGc..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "message": "Logged out successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `MISSING_REQUIRED_FIELD` (400).
+> **📖 Request/Response**: See [SPEC_API.md § Logout](SPEC_API.md#logout) for full request/response format.
+>
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -394,36 +348,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Exchange refresh token for new access + refresh token pair
 
-**Request:**
-
-```json
-{
-  "refresh_token": "eyJhbGc..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "access_token": "eyJhbGc...",
-    "refresh_token": "eyJhbGc...",
-    "expires_at": "2026-02-14T03:27:36.386965511Z",
-    "token_type": "Bearer",
-    "user": {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "username": "user@example.com",
-      "email": "user@example.com",
-      "role": "user",
-      "can_write": false
-    }
-  },
-  "message": "Token refreshed successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `EXPIRED_TOKEN` (401), `REVOKED_TOKEN` (401), `MISSING_REQUIRED_FIELD` (400).
+> **📖 Request/Response**: See [SPEC_API.md § Refresh Token](SPEC_API.md#refresh-token) for full request/response format.
+>
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -431,27 +358,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Get current authenticated user information
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user@example.com",
-    "email": "user@example.com",
-    "role": "user",
-    "can_write": false
-  }
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401).
+> **📖 Request/Response**: See [SPEC_API.md § Get Current User](SPEC_API.md#get-current-user) for full response format.
+>
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -459,45 +368,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Update current user's profile (email, password)
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Request (update email):**
-
-```json
-{
-  "email": "newemail@example.com"
-}
-```
-
-**Request (change password):**
-
-```json
-{
-  "old_password": "OldPass123",
-  "password": "NewSecurePass456"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user@example.com",
-    "email": "newemail@example.com",
-    "role": "user",
-    "can_write": false
-  },
-  "message": "Profile updated successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `EMAIL_EXISTS` (409).
+> **📖 Request/Response**: See [SPEC_API.md § Update Current User](SPEC_API.md#update-current-user) for full request/response format.
+>
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -559,8 +432,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints) for pagination details.
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403).
-
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 ---
 
 #### GET /users:get
@@ -596,7 +468,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -640,7 +512,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `VALIDATION_ERROR` (400), `USERNAME_EXISTS` (409), `EMAIL_EXISTS` (409).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -703,7 +575,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404), `INVALID_ACTION` (400).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -737,7 +609,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `RECORD_NOT_FOUND` (404).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -798,7 +670,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -838,7 +710,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -883,7 +755,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `VALIDATION_ERROR` (400), `APIKEY_NAME_EXISTS` (409).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -958,7 +830,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `RECORD_NOT_FOUND` (404), `INVALID_ACTION` (400).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 **Notes:**
 
@@ -991,7 +863,7 @@ Authorization: Bearer <admin_access_token>
 
 > **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
 >
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format.
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -999,40 +871,7 @@ Authorization: Bearer <admin_access_token>
 
 The following error codes are unique to authentication flows and not covered in SPEC_API.md. For standard error codes and HTTP status codes, see [SPEC_API.md](SPEC_API.md).
 
-**Authentication Errors (401):**
-
-- `MISSING_AUTH_HEADER`: No Authorization header provided
-- `INVALID_TOKEN_FORMAT`: Authorization header not in "Bearer <token>" format
-- `INVALID_TOKEN`: Token signature invalid or token malformed
-- `EXPIRED_TOKEN`: Access token or refresh token has expired
-- `REVOKED_TOKEN`: Refresh token has been revoked or already used
-- `INVALID_CREDENTIALS`: Username/password combination incorrect
-- `INVALID_API_KEY`: API key does not exist or is invalid
-
-**Authorization Errors (403):**
-
-- `INSUFFICIENT_PERMISSIONS`: User/API key lacks required role or permission
-- `ADMIN_REQUIRED`: Endpoint requires admin role
-- `WRITE_PERMISSION_REQUIRED`: User role requires can_write flag for this action
-- `CANNOT_DELETE_LAST_ADMIN`: Cannot delete the last admin user
-- `CANNOT_MODIFY_SELF_ROLE`: Admin cannot change their own role
-
-**Validation Errors (400):**
-
-- `WEAK_PASSWORD`: Password does not meet security policy
-- `INVALID_ROLE`: Role must be "admin", "user", or "readonly"
-
-**Conflict Errors (409):**
-
-- `USERNAME_EXISTS`: Username already taken
-- `EMAIL_EXISTS`: Email already registered
-- `APIKEY_NAME_EXISTS`: API key name already in use
-
-**Rate Limit Errors (429):**
-
-- `LOGIN_ATTEMPTS_EXCEEDED`: Too many failed login attempts
-
-> **📖 Standard Error Format**: All errors follow the `{error: {code, message}}` format defined in [SPEC_API.md](SPEC_API.md).
+> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
@@ -1052,12 +891,14 @@ Authentication configuration is managed via the `moon.conf` YAML file:
 ### Quick Configuration
 
 **Minimum Required:**
+
 ```yaml
 jwt:
   secret: "your-secret-key-min-32-chars"  # Generate with: openssl rand -base64 32
 ```
 
 **Common Options:**
+
 - `jwt.access_expiry`: Access token lifetime (default: 3600s / 1 hour)
 - `jwt.refresh_expiry`: Refresh token lifetime (default: 604800s / 7 days)
 - `apikey.enabled`: Enable API key authentication (default: false)

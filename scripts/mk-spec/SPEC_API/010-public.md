@@ -20,11 +20,13 @@ API documentation is available in multiple formats:
 ```json
 {
   "data": {
-    "name": "moon",
-    "status": "live",
-    "version": "1.0"
+    "moon": "1.0.0",
+    "status": "ok",    
+    "timestamp": "2026-02-03T13:58:53Z"
   }
 }
 ```
+
+### Important Notes
 
 **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

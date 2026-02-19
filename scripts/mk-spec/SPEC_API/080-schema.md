@@ -68,8 +68,8 @@ GET /products:schema
 
 ### Important Notes
 
-- **System fields**: The `id` and `default` field is automatically included in every collection and is readonly
-- **Total count**: Represents the total number of fields in the collection schema
+- **System fields**: The `id` and `created_at` fields are automatically included in every collection and are readonly.
+- **Total count**: Represents the total number of fields in the collection schema.
 - **Schema introspection**: Use this endpoint to dynamically discover collection structure
 - **Validation**: Schema information helps clients validate data before submission
 - **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

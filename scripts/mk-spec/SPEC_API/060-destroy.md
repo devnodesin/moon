@@ -83,11 +83,9 @@ Multiple records:
 
 ### Parameters
 
-| Parameter | Type   | Description                                          |
-| --------- | ------ | ---------------------------------------------------- |
-| `id`      | string | ULID of the resource (required for users, apikeys)   |
-| `name`    | string | Name of the collection (required for collections)    |
-| `data`    | array  | Array of record IDs to delete (required for records) |
+- `id` (string): ULID of the resource (required for users, apikeys)
+- `name` (string): Name of the collection (required for collections)
+- `data` (array): Array of record IDs to delete (required for records)
 
 ### Important Notes
 
@@ -97,5 +95,4 @@ Multiple records:
 - **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

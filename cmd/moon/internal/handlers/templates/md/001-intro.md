@@ -142,13 +142,10 @@ All successful responses return JSON with relevant data.
 |-------------|---------|
 | `200 OK`      | OK – Successful GET request |
 | `201 Created` | Created – Successful POST request creating resource |
-| `207 Multi-Status` | Multi-Status – Partial success for batch operations |
-| `400 Bad Request` | Bad Request – Invalid input or parameters |
+| `400 Bad Request` | Invalid request (validation error, invalid parameter, malformed request) |
 | `401 Unauthorized` | Unauthorized – Missing or invalid authentication |
 | `403 Forbidden` | Forbidden – Insufficient permissions |
 | `404 Not Found`   | Not Found – Resource not found |
-| `409 Conflict`    | Conflict – Resource already exists |
-| `429 Too Many Requests` | Too Many Requests – Rate limit exceeded |
 | `500 Internal Server Error` | Internal Server Error – Server error |                                   |
 
 ### Success Responses (200 or 201)
@@ -163,9 +160,9 @@ All successful responses return JSON with relevant data.
 }
 ```
 
-### Error Responses
+## Standard Error Response
 
-All errors follow a consistent JSON structure:
+When an error occurs, the API responds with the appropriate HTTP status code and a JSON body:
 
 ```json
 {

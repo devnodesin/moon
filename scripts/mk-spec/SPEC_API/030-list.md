@@ -39,7 +39,7 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
 
 ---
 
-The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `search`, and `field selection`.
+The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
 
 ### Pagination
 
@@ -59,6 +59,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 
 - `meta.prev` is `null` on the first page and `meta.next` is `null` on the last page.
 - Records are always returned in chronological order (by ULID/creation time).
+ - To page backwards: pass `?after={meta.prev}` from the current response. This returns the previous page of records (the record matching the cursor is excluded). Example: `GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5`.
 - For `?after={cursor}`, the cursor must always be a record's id (ULID). It can be:
   - A valid id of an existing record,
   - The value of `meta.prev` from the current response,
@@ -278,5 +279,6 @@ GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
 GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
 ```
 
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+### Important Notes
 
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

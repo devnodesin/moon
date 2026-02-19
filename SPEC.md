@@ -50,27 +50,34 @@ Moon supports a simplified, portable type system that maps consistently across a
 The `decimal` type provides **exact, deterministic numeric handling** for precision-critical values such as price, amount, weight, tax, and quantity. This addresses the inherent precision errors in floating-point arithmetic.
 
 **API Representation:**
+
 - Input and output are **strings** (e.g., `"199.99"`, `"-42.75"`, `"0.01"`)
 - Preserves precision across serialization and deserialization
 - Supports SQL aggregation functions (`SUM`, `AVG`, `MIN`, `MAX`)
 
 **Validation:**
+
 - Default scale: 2 decimal places
 - Maximum scale: 10 decimal places
 - No scientific notation allowed
 - No locale-specific separators (e.g., no comma thousands separator)
 
 **Valid formats:**
+
 - `"10"`, `"10.50"`, `"1299.99"`, `"-42.75"`, `"0.01"`
 
 **Invalid formats:**
+
 - `"abc"` (non-numeric)
 - `"1e10"` (scientific notation)
 - `"10.999"` (exceeds default scale of 2)
 - `"10."` (trailing decimal point)
 - `".50"` (leading decimal point)
 
+Client guidance: send explicit leading zeroes and avoid trailing dots — use `"0.50"` rather than `".50"`, and `"10.00"` rather than `"10."`.
+
 **Example usage:**
+
 ```json
 {
   "name": "products",
@@ -98,12 +105,14 @@ Moon handles default values strictly at the database column level during collect
 The `nullable` property controls API request validation and default value application:
 
 **`nullable: false` (Required Fields):**
+
 - Field **MUST** be present in every API request with a valid value
 - Omitting the field or setting it to `null` results in a validation error
 - **No automatic default values** are applied at the application level
 - Non-nullable fields cannot have default values
 
 **`nullable: true` (Optional Fields):**
+
 - Field **MAY** be omitted from API requests
 - When omitted, the database column default is used (automatically set by Moon backend during table creation)
 - Can explicitly be set to `null` in requests (stored as NULL in database)
@@ -263,8 +272,8 @@ Moon enforces strict validation rules to ensure data integrity and prevent namin
 |------------|-------|-------|
 | Minimum length | 2 characters | Single-character names are not allowed |
 | Maximum length | 63 characters | Matches PostgreSQL identifier limit |
-| Pattern | `^[a-zA-Z][a-zA-Z0-9_]*$` | Must start with letter, alphanumeric + underscores |
-| Case normalization | Lowercase | Names are automatically converted to lowercase |
+| Pattern | `^[a-z][a-z0-9_]*$` | Must start with a lowercase letter, lowercase + digits + underscores |
+| Case normalization | Lowercase | Names must be lowercase; uppercase names will be rejected |
 | Reserved endpoints | `collections`, `auth`, `users`, `apikeys`, `doc`, `health` | Case-insensitive |
 | System prefix | `moon_*`, `moon` | Reserved for internal system tables |
 | SQL keywords | 100+ keywords | `select`, `insert`, `update`, `delete`, `table`, etc. |
@@ -279,7 +288,7 @@ Moon enforces strict validation rules to ensure data integrity and prevent namin
 | Reserved names | `pkid`, `id` | System columns, automatically created |
 | SQL keywords | 100+ keywords | Same list as collection names |
 
-**Important:** Unlike collection names, column names are NOT auto-normalized to lowercase. Uppercase characters will be rejected with an error.
+**Important:** Column names must be lowercase and are NOT auto-normalized. Uppercase characters will be rejected with an error. Collections and columns both require lowercase identifiers to avoid ambiguous behavior between client requests and the internal registry.
 
 ### System Limits
 
@@ -315,6 +324,7 @@ Moon implements industry-standard API patterns for consistent client experience.
 - **OPTIONS** is supported for CORS preflight requests only
 
 This design choice:
+
 - Simplifies routing and middleware logic
 - Works universally with all HTTP clients and proxies
 - Follows the AIP-136 custom actions pattern where the action is in the URL (`:create`, `:update`, `:destroy`)
@@ -333,38 +343,7 @@ When rate limiting is enabled, all responses include rate limit headers:
 
 ### Error Response Format
 
-All error responses follow a consistent JSON structure.
-
-> **See SPEC_API.md** for complete error response documentation and examples across all endpoint types.
-
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "human-readable error message"
-  }
-}
-```
-
-### Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Input validation failed |
-| `INVALID_JSON` | 400 | Malformed JSON |
-| `INVALID_ULID` | 400 | Invalid ULID format |
-| `INVALID_PARAMETER` | 400 | Invalid or unsupported query or body parameter |
-| `PAGE_SIZE_EXCEEDED` | 400 | Page size exceeds maximum |
-| `COLLECTION_NOT_FOUND` | 404 | Collection does not exist |
-| `DUPLICATE_RECORD` | 404 | Resource with unique field already exists |
-| `RECORD_NOT_FOUND` | 404 | Record not found |
-| `DUPLICATE_COLLECTION` | 409 | Collection name already exists |
-| `MAX_COLLECTIONS_REACHED` | 409 | Maximum collections limit reached |
-| `MAX_COLUMNS_REACHED` | 409 | Maximum columns limit reached |
-| `UNAUTHORIZED` | 401 | Authentication required |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+> **📖 Complete Error Response**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response) for error format, HTTP status codes, and examples.
 
 ### CORS Support
 
@@ -429,7 +408,10 @@ Moon supports dynamic CORS endpoint registration with pattern matching:
   - `/health` (exact, `*`, no auth)
   - `/doc/` (prefix, `*`, no auth - matches all paths starting with `/doc/` including `/doc/`, `/doc/llms.md`, `/doc/llms.txt`, and `/doc/llms.json`)
 
+Note: `/doc/` does not match `/doc` (no trailing slash) in prefix mode. For maximum compatibility register both `/doc` and `/doc/` or normalize incoming request paths to a canonical form in your proxy or routing layer.
+
 CORS headers exposed to browsers:
+
 - `X-RateLimit-Limit`
 - `X-RateLimit-Remaining`
 - `X-RateLimit-Reset`
@@ -440,11 +422,13 @@ CORS headers exposed to browsers:
 Moon automatically redacts sensitive fields in logs to prevent credential leakage:
 
 **Default Sensitive Fields:**
+
 - `password`, `token`, `secret`, `api_key`, `apikey`
 - `authorization`, `jwt`, `refresh_token`, `access_token`
 - `client_secret`, `private_key`, `credential`, `auth`
 
 **Configuration:**
+
 ```yaml
 logging:
   redact_sensitive: true  # Default: true
@@ -478,6 +462,17 @@ The system uses YAML-only configuration with centralized defaults:
 3. Configure database connection (SQLite is default)
 4. Start Moon: `moon --config /etc/moon.conf`
 
+### Container & Environment Guidance
+
+- The server prefers a single YAML config file (`moon.conf`). For containerized deployments we recommend templating `moon.conf` at container start (using `envsubst`, `gomplate`, or similar) and passing it via `--config`.
+- If you need dynamic overrides in ephemeral environments, create a small wrapper that renders `moon.conf` from a small set of environment variables (for example, `MOON_DB_DSN`, `MOON_JWT_SECRET`) into the YAML file before launching the process. The application itself does not read arbitrary environment variables by default.
+- Example (entrypoint):
+
+```bash
+envsubst < /etc/moon.conf.template > /etc/moon.conf
+exec /usr/local/bin/moon --config /etc/moon.conf
+```
+
 ### Recovery and Consistency Checking
 
 Moon includes robust consistency checking and recovery logic that ensures the in-memory schema registry remains synchronized with the physical database tables across restarts and failures.
@@ -501,27 +496,30 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 
 **Health Endpoint:**
 
-- The `/health` endpoint provides health check information for liveness and readiness checks
+- The `/health` endpoint provides health check information for liveness and readiness.
 - Returns a JSON response with four fields:
+  - `moon`: Service version string (e.g., `1.0.0`)
   - `status`: Service health status (`ok` or `down`)
-  - `database`: Database connectivity status (`ok` or `error`)
-  - `version`: Service version string (e.g., `1.0.0`)
   - `timestamp`: ISO 8601 timestamp of the health check
-- Always returns HTTP 200, even when the service is down
-- Clients must check the `status` field to determine service health
-- Should not expose internal details like database type, collection count, or consistency status
+- Always returns HTTP 200, even if the service is down.
+- Clients must check the `status` field to determine service health.
+- Internal details such as database type, collection count, or consistency status are not exposed.
 
-**Example health response:**
+**Monitoring note:** Returning HTTP 200 for all health checks is an intentional design choice to keep the endpoint simple for edge clients and proxies. However, this differs from common monitoring practices that treat non-2xx as unhealthy. We recommend health probes either:
 
-```json
-{
-  "status": "ok",
-  "database": "ok",
-  "moon": "1.0.0",
-  "timestamp": "2026-02-03T13:58:53Z"
-}
+- Inspect the JSON `status` field and fail the probe when `status` != `ok`.
+- Or configure an external readiness probe that interprets `status` and returns a non-2xx HTTP code (for example, a small wrapper that returns `503` when `status: down`).
+
+Example probe (curl + jq):
+
+```bash
+curl -sS https://example.com/health | jq -r '.status' | grep -q '^ok$'
+if [ $? -ne 0 ]; then
+  echo "service unhealthy"; exit 2
+fi
 ```
 
+See [Health Endpoint](SPEC_API.md#health-endpoint) for API request/response details, error format, HTTP status codes, and examples.
 
 ### Running Modes
 
@@ -569,14 +567,11 @@ The system uses a strict pattern to ensure that AI agents and developers can int
   - Default (no prefix): `/health`, `/collections:list`, `/{collection}:list`
   - With custom prefix: `/{prefix}/health`, `/{prefix}/collections:list`, `/{prefix}/{collection}:list`
   - Example With `/api/v1` prefix: `/api/v1/health`, `/api/v1/collections:list`, `/api/v1/{collection}:list`
+- Endpoints in this specification are shown without a prefix — if a prefix is configured (e.g., `/api/v1`), prepend it to all paths.
 
 ### A. Schema Management (`/collections`)
 
 These endpoints manage the database tables and metadata.
-
-> **See SPEC_API.md** for complete endpoint documentation including request/response formats, parameters, and examples.
-
-**Note:** All endpoints below are shown without a prefix. If a prefix is configured (e.g., `/api/v1`), prepend it to all paths.
 
 | Endpoint                    | Method | Purpose                                                |
 | --------------------------- | ------ | ------------------------------------------------------ |
@@ -586,24 +581,13 @@ These endpoints manage the database tables and metadata.
 | `POST /collections:update`  | `POST` | Modify table columns (add/remove/rename).              |
 | `POST /collections:destroy` | `POST` | Drop the table and purge it from the cache.            |
 
-#### Collections List Response Format
+> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
 
-The `GET /collections:list` endpoint returns detailed information about each collection, including record counts.
-
-> **📖 Complete Format**: See [SPEC_API.md § Collections Endpoints](SPEC_API.md) for full response schema and examples.
-
-**Response includes:**
-- `collections` (array): Collection objects with `name` and `records` count
-- `count` (integer): Total number of collections
-- `records` value: 0 for empty collections, -1 if count cannot be retrieved (database error)
+The `POST /collections:update` endpoint manages column lifecycle (add, remove, rename, modify).
 
 ### B. Data Access (`/{collectionName}`)
 
 These endpoints manage the records within a specific collection.
-
-> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
-
-**Note:** All endpoints below are shown without a prefix. If a prefix is configured, prepend it to all paths.
 
 | Endpoint               | Method | Purpose                                            |
 | ---------------------- | ------ | -------------------------------------------------- |
@@ -614,38 +598,38 @@ These endpoints manage the records within a specific collection.
 | `POST /{name}:update`  | `POST` | Update an existing record.                         |
 | `POST /{name}:destroy` | `POST` | Delete a record from the table.                    |
 
+> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
+
 #### Batch Operations
 
 The `:create`, `:update`, and `:destroy` endpoints support both **single-object** and **batch** modes.
 
-> **📖 Complete Documentation**: See [SPEC_API.md § Batch Operations](SPEC_API.md) for detailed request/response formats, atomic mode, error handling, examples, and configuration.
+> **📖 Complete Documentation**: See [SPEC_API.md](SPEC_API.md) for detailed request/response formats, atomic mode, error handling, examples, and configuration.
 
 **Key Features:**
+
 - **Automatic Detection:** Array = batch mode, object = single mode
-- **Best-Effort (Default):** Process each record independently, return HTTP 207 with per-record results
+- **Best-Effort (Default):** Process each record independently
 - **Atomic Mode:** `?atomic=true` - all succeed or all fail (transaction)
 - **Size Limits:** Default 50 records, 2MB payload (configurable)
 
+Status codes for batch operations:
+
+- Batch write endpoints (`:create`, `:update`, `:destroy`) return `201 Created` when at least one record in the batch succeeded. The response body contains per-record results and summary metadata. When `?atomic=true` is used the endpoint behaves transactionally and will return a single `201` on success or an appropriate `4xx/5xx` on failure.
+
 **Configuration:**
+
 ```yaml
 batch:
   max_size: 50               # Maximum records per batch
   max_payload_bytes: 2097152 # Maximum payload (2MB)
 ```
 
-#### Identifiers
-
-- Records use a ULID as the external identifier.
-- The database stores a `pkid` column (auto-increment integer, internal use only) and an `id` column (ULID string).
-- API responses expose the `id` column directly (which contains the ULID value).
-- The internal `pkid` column is never exposed via the API.
-- System columns (`pkid`, `id`) are automatically created and protected from modification, deletion, or renaming.
-
 #### Query Parameters
 
 The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection.
 
-> **📖 Complete Documentation**: See [SPEC_API.md § Query Options](SPEC_API.md) for all operators, pagination, field selection, full-text search, and examples.
+> **📖 Complete Documentation**: See [SPEC_API.md](SPEC_API.md) for all operators, pagination, field selection, full-text search, and examples.
 
 **Filtering:** `?column[operator]=value` (operators: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `in`, `null`)  
 **Sorting:** `?sort=field` or `?sort=-field` (descending), multiple: `?sort=-created_at,name`  
@@ -657,23 +641,11 @@ The list endpoint supports powerful query parameters for filtering, sorting, sea
 
 #### Schema Retrieval
 
-Retrieve collection schema using `GET /{collection}:schema`.
+- Retrieve a collection schema using `GET /{collection}:schema`.
+- The response includes the collection name, field definitions (name, type, nullable, readonly), and the total record count.
+- Authentication is required (Bearer token or API key).
 
-> **📖 Complete Documentation**: See [SPEC_API.md § Schema Endpoint](SPEC_API.md) for full response format and field properties.
-
-**Response includes:** Collection name, field definitions (name, type, nullable, readonly), and total record count.
-
-**Authentication:** Required (Bearer token or API key)
-
-**Error Responses:**
-- `401 Unauthorized`: Missing or invalid authentication
-- `404 Not Found`: Collection does not exist
-- `500 Internal Server Error`: Unexpected errors
-
-**Example:**
-```bash
-curl -H "Authorization: Bearer $ACCESS_TOKEN" https://api.example.com/products:schema
-```
+See [SPEC_API.md](SPEC_API.md) for api request/response and error format, HTTP status codes, and examples.
 
 ### C. Aggregation Operations (`/{collectionName}`)
 
@@ -690,6 +662,7 @@ Server-side aggregation for analytics without fetching full datasets.
 | `GET /{name}:max?field=...` | Find maximum value of numeric field    |
 
 **Key Features:**
+
 - Supports filtering (same syntax as `:list`)
 - Works with `integer` and `decimal` types
 - Returns `{"value": <number>}` format
@@ -699,30 +672,15 @@ Server-side aggregation for analytics without fetching full datasets.
 
 Moon provides auto-generated documentation endpoints.
 
-> **📖 Complete Documentation**: See [SPEC_API.md § Documentation Endpoints](SPEC_API.md) for all formats and caching details.
-
 | Endpoint                     | Purpose                                    |
 | ---------------------------- | ------------------------------------------ |
 | `GET /doc/`                  | HTML documentation                         |
+| `GET /doc`                   | HTML documentation (alias to /doc/)        |
 | `GET /doc/llms.md`           | Markdown for AI agents                     |
-| `GET /doc/llms.txt`          | Text format (alias)                        |
+| `GET /doc/llms.txt`          | Text format (alias to /doc/llms.md)        |
 | `GET /doc/llms.json`         | JSON schema for machine consumption        |
-| `POST /doc:refresh`          | Clear cache and regenerate                 |
 
-**Features:** Automatic collection discovery, curl examples, query documentation, caching with ETag/Last-Modified headers.
-
-### E. Collection Column Operations
-
-The `POST /collections:update` endpoint manages column lifecycle (add, remove, rename, modify).
-
-> **📖 Complete Documentation**: See [SPEC_API.md § Collection Update Endpoint](SPEC_API.md) for request formats, operation order, and examples.
-
-**Key Rules:**
-- System columns (`pkid`, `id`) are protected
-- Operations execute in order: rename → modify → add → remove
-- All operations can be combined in a single request
-- Registry atomically updated after successful DDL
-- Validation before execution; rollback on failure
+> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
 
 ## Database Schema Design
 
@@ -731,6 +689,7 @@ The `POST /collections:update` endpoint manages column lifecycle (add, remove, r
 The server maintains a **sync.Map** cache of collection schemas for zero-latency validation.
 
 **Data Flow:**
+
 1. **Ingress:** Router parses `/:name:action`
 2. **Validation:** Check in-memory registry; validate JSON against cached schema
 3. **SQL Generation:** Build parameterized SQL statement
@@ -738,12 +697,18 @@ The server maintains a **sync.Map** cache of collection schemas for zero-latency
 5. **Reactive Cache:** Refresh registry entry on schema changes
 
 **Schema Cache Structure:**
+
 - Collection name → field definitions (name, type, nullable, unique)
 - System columns (`pkid`, `id`) automatically included
 - Cache refreshed on collection create/update/destroy
 
 ### Identifiers
 
+- Records use a ULID as the external identifier.
+- The database stores a `pkid` column (auto-increment integer, internal use only) and an `id` column (ULID string).
+- API responses expose the `id` column directly (which contains the ULID value).
+- The internal `pkid` column is never exposed via the API.
+- System columns (`pkid`, `id`) are automatically created and protected from modification, deletion, or renaming.
 - **External ID:** ULID (exposed via API as `id` field)
 - **Internal ID:** Auto-increment integer (`pkid`, never exposed)
 - System columns automatically created and protected

@@ -61,14 +61,16 @@ POST /collections:update
 
 ```json
 {
-  "name": "products",
-  "add_columns": [
-    {
-      "name": "stock",
-      "type": "integer",
-      "nullable": false
-    }
-  ]
+  "data": {
+    "name": "products",
+    "add_columns": [
+      {
+        "name": "stock",
+        "type": "integer",
+        "nullable": false
+      }
+    ]
+  }
 }
 ```
 
@@ -184,13 +186,11 @@ Response includes new `key` field:
 
 ### Parameters
 
-| Parameter    | Type   | Description                                                                  |
-| ------------ | ------ | ---------------------------------------------------------------------------- |
-| `id`         | string | ULID of the resource (required for users, apikeys)                           |
-| Request Body | object | Fields to update OR `action` parameter for special operations                |
-| `action`     | string | Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`) |
-| `name`       | string | Collection name (required for collection operations)                         |
-| `data`       | array  | Array with objects containing `id` + fields to update (for records)          |
+- `id` (string): ULID of the resource (required for users, apikeys)
+- Request Body (object): Fields to update OR `action` parameter for special operations
+- `action` (string): Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`)
+- `name` (string): Collection name (required for collection operations)
+- `data` (array): Array with objects containing `id` plus fields to update (for records)
 
 ### Important Notes
 
@@ -203,5 +203,4 @@ Response includes new `key` field:
 - **Status code**: Returns `200 OK` if at least one record was updated successfully.
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling

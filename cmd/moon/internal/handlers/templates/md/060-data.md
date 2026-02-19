@@ -47,7 +47,7 @@ curl -s -X GET "http://localhost:6006/products:schema" \
         "default": "''"
       }
     ],
-    "total": 0
+    "total": 6
   }
 }
 ```
@@ -60,13 +60,15 @@ curl -s -X POST "http://localhost:6006/products:create" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "data": {
-          "title": "Wireless Mouse",
-          "price": "29.99",
-          "details": "Ergonomic wireless mouse",
-          "quantity": 10,
-          "brand": "Wow"
-        }
+        "data": [
+          {
+            "title": "Wireless Mouse",
+            "price": "29.99",
+            "details": "Ergonomic wireless mouse",
+            "quantity": 10,
+            "brand": "Wow"
+          }
+        ]
       }
     ' | jq .
 ```
@@ -75,15 +77,22 @@ curl -s -X POST "http://localhost:6006/products:create" \
 
 ```json
 {
-  "data": {
-    "brand": "Wow",
-    "details": "Ergonomic wireless mouse",
-    "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
-    "price": "29.99",
-    "quantity": 10,
-    "title": "Wireless Mouse"
-  },
-  "message": "Record created successfully with id 01KHNM1NFT0ZX9ZQYHSZHW5KPG"
+  "data": [
+    {
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse",
+      "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
+      "price": "29.99",
+      "quantity": 10,
+      "title": "Wireless Mouse"
+    }
+  ],
+  "message": "1 record(s) created successfully",
+  "meta": {
+    "failed": 0,
+    "succeeded": 1,
+    "total": 1
+  }
 }
 ```
 
@@ -115,42 +124,33 @@ curl -s -X POST "http://localhost:6006/products:create" \
     ' | jq .
 ```
 
-**Response (207 Multi-Status):**
+**Response (201 Created):**
 
 ```json
 {
-  "results": [
+  "data": [
     {
-      "index": 0,
-      "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
-      "status": "created",
-      "data": {
-        "brand": "KeyPro",
-        "details": "Mechanical keyboard",
-        "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
-        "price": "49.99",
-        "quantity": 5,
-        "title": "Keyboard"
-      }
+      "brand": "KeyPro",
+      "details": "Mechanical keyboard",
+      "id": "01KHST8QJA0GJCXKWP0XSH3J8K",
+      "price": "49.99",
+      "quantity": 5,
+      "title": "Keyboard"
     },
     {
-      "index": 1,
-      "id": "01KHNM1NN1FEKGPRVQ01RPRY6Q",
-      "status": "created",
-      "data": {
-        "brand": "ViewMax",
-        "details": "24-inch FHD monitor",
-        "id": "01KHNM1NN1FEKGPRVQ01RPRY6Q",
-        "price": "199.99",
-        "quantity": 2,
-        "title": "Monitor"
-      }
+      "brand": "ViewMax",
+      "details": "24-inch FHD monitor",
+      "id": "01KHST8QJFX624BZ2QE0R203X9",
+      "price": "199.99",
+      "quantity": 2,
+      "title": "Monitor"
     }
   ],
-  "summary": {
-    "total": 2,
+  "message": "2 record(s) created successfully",
+  "meta": {
+    "failed": 0,
     "succeeded": 2,
-    "failed": 0
+    "total": 2
   }
 }
 ```
@@ -170,7 +170,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
+      "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -178,7 +178,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "KeyPro",
       "details": "Mechanical keyboard",
-      "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
+      "id": "01KHST8QJA0GJCXKWP0XSH3J8K",
       "price": "49.99",
       "quantity": 5,
       "title": "Keyboard"
@@ -186,7 +186,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "ViewMax",
       "details": "24-inch FHD monitor",
-      "id": "01KHNM1NN1FEKGPRVQ01RPRY6Q",
+      "id": "01KHST8QJFX624BZ2QE0R203X9",
       "price": "199.99",
       "quantity": 2,
       "title": "Monitor"
@@ -204,7 +204,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
 ### Get Single Record
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:get?id=01KHNM1NFT0ZX9ZQYHSZHW5KPG" \
+curl -s -X GET "http://localhost:6006/products:get?id=01KHST8QCPJHF6HJJYQMT5MTMZ" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -215,7 +215,7 @@ curl -s -X GET "http://localhost:6006/products:get?id=01KHNM1NFT0ZX9ZQYHSZHW5KPG
   "data": {
     "brand": "Wow",
     "details": "Ergonomic wireless mouse",
-    "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
+    "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
     "price": "29.99",
     "quantity": 10,
     "title": "Wireless Mouse"
@@ -231,10 +231,12 @@ curl -s -X POST "http://localhost:6006/products:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "data": {
-          "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
-          "price": "6000.00"
-        }
+        "data": [
+          {
+            "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
+            "price": "6000.00"
+          }
+        ]
       }
     ' | jq .
 ```
@@ -243,11 +245,18 @@ curl -s -X POST "http://localhost:6006/products:update" \
 
 ```json
 {
-  "data": {
-    "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
-    "price": "6000.00"
-  },
-  "message": "Record 01KHNM1NFT0ZX9ZQYHSZHW5KPG updated successfully"
+  "data": [
+    {
+      "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
+      "price": "6000.00"
+    }
+  ],
+  "message": "1 record(s) updated successfully",
+  "meta": {
+    "failed": 0,
+    "succeeded": 1,
+    "total": 1
+  }
 }
 ```
 
@@ -261,12 +270,12 @@ curl -s -X POST "http://localhost:6006/products:update" \
       {
         "data": [
           {
-            "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
+            "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
             "price": "100.00",
             "title": "Updated Product 1"
           },
           {
-            "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
+            "id": "01KHST8QJA0GJCXKWP0XSH3J8K",
             "price": "200.00",
             "title": "Updated Product 2"
           }
@@ -275,36 +284,27 @@ curl -s -X POST "http://localhost:6006/products:update" \
     ' | jq .
 ```
 
-**Response (207 Multi-Status):**
+**Response (200 OK):**
 
 ```json
 {
-  "results": [
+  "data": [
     {
-      "index": 0,
-      "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
-      "status": "updated",
-      "data": {
-        "id": "01KHNM1NFT0ZX9ZQYHSZHW5KPG",
-        "price": "100.00",
-        "title": "Updated Product 1"
-      }
+      "id": "01KHST8QCPJHF6HJJYQMT5MTMZ",
+      "price": "100.00",
+      "title": "Updated Product 1"
     },
     {
-      "index": 1,
-      "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
-      "status": "updated",
-      "data": {
-        "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
-        "price": "200.00",
-        "title": "Updated Product 2"
-      }
+      "id": "01KHST8QJA0GJCXKWP0XSH3J8K",
+      "price": "200.00",
+      "title": "Updated Product 2"
     }
   ],
-  "summary": {
-    "total": 2,
+  "message": "2 record(s) updated successfully",
+  "meta": {
+    "failed": 0,
     "succeeded": 2,
-    "failed": 0
+    "total": 2
   }
 }
 ```
@@ -317,7 +317,9 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "data": "01KHNM1NFT0ZX9ZQYHSZHW5KPG"
+        "data": [
+          "01KHST8QCPJHF6HJJYQMT5MTMZ"
+        ]
       }
     ' | jq .
 ```
@@ -327,9 +329,14 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
 ```json
 {
   "data": [
-    "01KHNM1NFT0ZX9ZQYHSZHW5KPG"
+    "01KHST8QCPJHF6HJJYQMT5MTMZ"
   ],
-  "message": "Record 01KHNM1NFT0ZX9ZQYHSZHW5KPG deleted successfully"
+  "message": "1 record(s) deleted successfully",
+  "meta": {
+    "failed": 0,
+    "succeeded": 1,
+    "total": 1
+  }
 }
 ```
 
@@ -342,33 +349,26 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
     -d '
       {
         "data": [
-          "01KHNM1NMXTRYD4ZQ0MCF17J95",
-          "01KHNM1NN1FEKGPRVQ01RPRY6Q"
+          "01KHST8QJA0GJCXKWP0XSH3J8K",
+          "01KHST8QJFX624BZ2QE0R203X9"
         ]
       }
     ' | jq .
 ```
 
-**Response (207 Multi-Status):**
+**Response (200 OK):**
 
 ```json
 {
-  "results": [
-    {
-      "index": 0,
-      "id": "01KHNM1NMXTRYD4ZQ0MCF17J95",
-      "status": "deleted"
-    },
-    {
-      "index": 1,
-      "id": "01KHNM1NN1FEKGPRVQ01RPRY6Q",
-      "status": "deleted"
-    }
+  "data": [
+    "01KHST8QJA0GJCXKWP0XSH3J8K",
+    "01KHST8QJFX624BZ2QE0R203X9"
   ],
-  "summary": {
-    "total": 2,
+  "message": "2 record(s) deleted successfully",
+  "meta": {
+    "failed": 0,
     "succeeded": 2,
-    "failed": 0
+    "total": 2
   }
 }
 ```

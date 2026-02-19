@@ -25,12 +25,14 @@ API documentation is available in multiple formats:
 ```json
 {
   "data": {
-    "name": "moon",
-    "status": "live",
-    "version": "1.0"
+    "moon": "1.0.0",
+    "status": "ok",    
+    "timestamp": "2026-02-03T13:58:53Z"
   }
 }
 ```
+
+### Important Notes
 
 **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
@@ -228,8 +230,7 @@ Invalidate current session and refresh token.
 - **Password change**: Changing password invalidates all existing sessions. User must login again with new credentials.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:list` Endpoints
@@ -273,7 +274,7 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
 
 ---
 
-The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `search`, and `field selection`.
+The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
 
 ### Pagination
 
@@ -293,6 +294,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 
 - `meta.prev` is `null` on the first page and `meta.next` is `null` on the last page.
 - Records are always returned in chronological order (by ULID/creation time).
+ - To page backwards: pass `?after={meta.prev}` from the current response. This returns the previous page of records (the record matching the cursor is excluded). Example: `GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5`.
 - For `?after={cursor}`, the cursor must always be a record's id (ULID). It can be:
   - A valid id of an existing record,
   - The value of `meta.prev` from the current response,
@@ -512,8 +514,9 @@ GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
 GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
 ```
 
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+### Important Notes
 
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:get` Endpoints
@@ -583,8 +586,7 @@ GET /collections:get?name=products
 - **Single object**: The `data` field contains a single object (not an array).
 - **No meta field**: Get endpoints don't need pagination metadata.
 - **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:create` Endpoints
@@ -717,20 +719,22 @@ Multiple records:
 
 ```json
 {
-  "name": "products",
-  "columns": [
-    {
-      "name": "title",
-      "type": "string",
-      "nullable": false,
-      "unique": true
-    },
-    {
-      "name": "price",
-      "type": "integer",
-      "nullable": false
-    }
-  ]
+  "data": {
+    "name": "products",
+    "columns": [
+      {
+        "name": "title",
+        "type": "string",
+        "nullable": false,
+        "unique": true
+      },
+      {
+        "name": "price",
+        "type": "integer",
+        "nullable": false
+      }
+    ]
+  }
 }
 ```
 
@@ -769,8 +773,7 @@ Multiple records:
 - **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:destroy` Endpoints
@@ -858,11 +861,9 @@ Multiple records:
 
 ### Parameters
 
-| Parameter | Type   | Description                                          |
-| --------- | ------ | ---------------------------------------------------- |
-| `id`      | string | ULID of the resource (required for users, apikeys)   |
-| `name`    | string | Name of the collection (required for collections)    |
-| `data`    | array  | Array of record IDs to delete (required for records) |
+- `id` (string): ULID of the resource (required for users, apikeys)
+- `name` (string): Name of the collection (required for collections)
+- `data` (array): Array of record IDs to delete (required for records)
 
 ### Important Notes
 
@@ -872,8 +873,7 @@ Multiple records:
 - **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:update` Endpoints
@@ -939,14 +939,16 @@ POST /collections:update
 
 ```json
 {
-  "name": "products",
-  "add_columns": [
-    {
-      "name": "stock",
-      "type": "integer",
-      "nullable": false
-    }
-  ]
+  "data": {
+    "name": "products",
+    "add_columns": [
+      {
+        "name": "stock",
+        "type": "integer",
+        "nullable": false
+      }
+    ]
+  }
 }
 ```
 
@@ -1062,13 +1064,11 @@ Response includes new `key` field:
 
 ### Parameters
 
-| Parameter    | Type   | Description                                                                  |
-| ------------ | ------ | ---------------------------------------------------------------------------- |
-| `id`         | string | ULID of the resource (required for users, apikeys)                           |
-| Request Body | object | Fields to update OR `action` parameter for special operations                |
-| `action`     | string | Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`) |
-| `name`       | string | Collection name (required for collection operations)                         |
-| `data`       | array  | Array with objects containing `id` + fields to update (for records)          |
+- `id` (string): ULID of the resource (required for users, apikeys)
+- Request Body (object): Fields to update OR `action` parameter for special operations
+- `action` (string): Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`)
+- `name` (string): Collection name (required for collection operations)
+- `data` (array): Array with objects containing `id` plus fields to update (for records)
 
 ### Important Notes
 
@@ -1081,8 +1081,7 @@ Response includes new `key` field:
 - **Status code**: Returns `200 OK` if at least one record was updated successfully.
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
-
-**Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 
 ## Standard Response Pattern for `:schema` Endpoints
@@ -1155,7 +1154,7 @@ GET /products:schema
 
 ### Important Notes
 
-- **System fields**: The `id` and `default` field is automatically included in every collection and is readonly
+- **System fields**: The `id` and `created_at` fields are automatically included in every collection and are readonly.
 - **Total count**: Represents the total number of fields in the collection schema
 - **Schema introspection**: Use this endpoint to dynamically discover collection structure
 - **Validation**: Schema information helps clients validate data before submission
@@ -1183,7 +1182,7 @@ Moon provides dedicated aggregation endpoints that perform calculations directly
 **Example Request:**
 
 ```sh
-POST /products:sum?field=quantity
+GET /products:sum?field=quantity
 ```
 
 **Response (200 OK):**
@@ -1199,8 +1198,10 @@ POST /products:sum?field=quantity
 **Aggregation with Filters:** Combine aggregation with query filters for calculations on specific subsets:
 
 - `/products:count?quantity[gt]=10`
-- `/products:sum?field=quantity&brand[eq]=Wow"`
+- `/products:sum?field=quantity&brand[eq]=Wow`
 - `/products:max?field=quantity`
+
+**Validation note:** Returns `400` (Standard Error Response) if `field` is missing or the named field is not a numeric type (`integer` or `decimal`) in the collection schema.
 
 **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
@@ -1213,8 +1214,9 @@ The API uses a simple, consistent error handling approach and strictly follows s
 - `401`: Authentication required
 - `404`: Resource not found
 - `500`: Server error
+ - Only the codes listed above are permitted; do not use any others.
 
-- Only the codes listed above are permitted; do not use any others.
+Note: `403` (Forbidden) is intentionally omitted in this specification to keep the error surface small. Authorization or permission failures should be handled via `401` per this document. If an implementation needs to distinguish "authenticated but not allowed" cases, add `403` and follow the same single-`message` JSON body pattern.
 - Errors are indicated by standard HTTP status codes (for machines).
 - Each error response includes only a single `message` field (for humans), intended for direct display to users.
 - No internal error codes or additional error metadata are used.
