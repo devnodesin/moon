@@ -42,13 +42,15 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "title": "Wireless Mouse",
-          "price": "29.99",
-          "details": "Ergonomic wireless mouse",
-          "quantity": 10,
-          "brand": "Wow"
-        }
+        "data": [
+          {
+            "title": "Wireless Mouse",
+            "price": "29.99",
+            "details": "Ergonomic wireless mouse",
+            "quantity": 10,
+            "brand": "Wow"
+          }
+        ]
       }
     },
     {
@@ -103,10 +105,12 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "id": "$ULID",
-          "price": "6000.00"
-        }
+        "data": [
+          {
+            "id": "$ULID",
+            "price": "6000.00"
+          }
+        ]
       }
     },
     {
@@ -141,7 +145,7 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "data": "$ULID"
+        "data": ["$ULID"]
       }
     },
     {
@@ -159,13 +163,9 @@
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:destroy",
+      "endpoint": "/collections:destroy?name=products",
       "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
-        "name": "products"
+        "Authorization": "Bearer $ACCESS_TOKEN"
       }
     }
   ]

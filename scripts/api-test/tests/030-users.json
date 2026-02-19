@@ -23,10 +23,12 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"username": "moonuser",
-				"email": "moonuser@example.com",
-				"password": "UserPass123#",
-				"role": "user"
+				"data": {
+					"username": "moonuser",
+					"email": "moonuser@example.com",
+					"password": "UserPass123#",
+					"role": "user"
+				}
 			}
 		},
 		{

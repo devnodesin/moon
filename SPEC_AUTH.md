@@ -342,7 +342,7 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
   "data": {
     "access_token": "eyJhbGc...",
     "refresh_token": "eyJhbGc...",
-    "expires_in": 3600,
+    "expires_at": "2026-02-14T03:27:33.935149435Z",
     "token_type": "Bearer",
     "user": {
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -409,8 +409,15 @@ Authorization: Bearer <access_token>
   "data": {
     "access_token": "eyJhbGc...",
     "refresh_token": "eyJhbGc...",
-    "expires_in": 3600,
-    "token_type": "Bearer"
+    "expires_at": "2026-02-14T03:27:36.386965511Z",
+    "token_type": "Bearer",
+    "user": {
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "username": "user@example.com",
+      "email": "user@example.com",
+      "role": "user",
+      "can_write": false
+    }
   },
   "message": "Token refreshed successfully"
 }
@@ -439,9 +446,7 @@ Authorization: Bearer <access_token>
     "username": "user@example.com",
     "email": "user@example.com",
     "role": "user",
-    "can_write": false,
-    "created_at": "2024-01-15T10:30:00Z",
-    "last_login_at": "2024-01-16T14:20:00Z"
+    "can_write": false
   }
 }
 ```
@@ -472,8 +477,8 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "current_password": "OldPass123",
-  "new_password": "NewSecurePass456"
+  "old_password": "OldPass123",
+  "password": "NewSecurePass456"
 }
 ```
 
@@ -486,8 +491,7 @@ Authorization: Bearer <access_token>
     "username": "user@example.com",
     "email": "newemail@example.com",
     "role": "user",
-    "can_write": false,
-    "updated_at": "2024-01-16T15:00:00Z"
+    "can_write": false
   },
   "message": "Profile updated successfully"
 }
@@ -690,6 +694,7 @@ Authorization: Bearer <admin_access_token>
     "email": "user1@example.com",
     "role": "user",
     "can_write": true,
+    "created_at": "2024-01-12T10:30:00Z",
     "updated_at": "2024-01-16T16:00:00Z"
   },
   "message": "User updated successfully"
@@ -726,9 +731,6 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-  },
   "message": "User deleted successfully"
 }
 ```
@@ -983,9 +985,6 @@ Authorization: Bearer <admin_access_token>
 
 ```json
 {
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-  },
   "message": "API key deleted successfully"
 }
 ```

@@ -17,10 +17,12 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"username": "newuser",
-				"email": "newuser@example.com",
-				"password": "UserPass123#",
-				"role": "user"
+				"data": {
+					"username": "newuser",
+					"email": "newuser@example.com",
+					"password": "UserPass123#",
+					"role": "user"
+				}
 			}
 		}
 	]

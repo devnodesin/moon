@@ -87,12 +87,12 @@ def get_test_files(args: argparse.Namespace) -> List[str]:
     if args.input:
         return [args.input]
     
-    # Find all .json files in testdir
-    return [
+    # Find all .json files in testdir, sorted alphabetically for deterministic order
+    return sorted([
         os.path.join(args.testdir, f)
         for f in os.listdir(args.testdir)
         if f.endswith('.json')
-    ]
+    ])
 
 
 def process_test_file(test_file: str, args: argparse.Namespace) -> None:

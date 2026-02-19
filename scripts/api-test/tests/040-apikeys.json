@@ -15,10 +15,12 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"name": "Integration Service",
-				"description": "Key for integration",
-				"role": "user",
-				"can_write": false
+				"data": {
+					"name": "Integration Service",
+					"description": "Key for integration",
+					"role": "user",
+					"can_write": false
+				}
 			}
 		},
 		{
@@ -30,10 +32,12 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"name": "Another Service",
-				"description": "Another key for testing",
-				"role": "user",
-				"can_write": false
+				"data": {
+					"name": "Another Service",
+					"description": "Another key for testing",
+					"role": "user",
+					"can_write": false
+				}
 			}
 		},
 		{
