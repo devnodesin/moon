@@ -34,13 +34,15 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"data": {
-					"title": "Wireless Mouse",
-					"price": "29.99",
-					"details": "Ergonomic wireless mouse",
-					"quantity": 10,
-					"brand": "Wow"
-				}
+				"data": [
+					{
+						"title": "Wireless Mouse",
+						"price": "29.99",
+						"details": "Ergonomic wireless mouse",
+						"quantity": 10,
+						"brand": "Wow"
+					}
+				]
 			}
 		},
 		{
@@ -52,13 +54,15 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"data": {
-					"title": "USB Keyboard",
-					"price": "19.99",
-					"details": "Gaming keyboard",
-					"quantity": 55,
-					"brand": "Orange"
-				}
+				"data": [
+					{
+						"title": "USB Keyboard",
+						"price": "19.99",
+						"details": "Gaming keyboard",
+						"quantity": 55,
+						"brand": "Orange"
+					}
+				]
 			}
 		},
 		{
@@ -70,13 +74,15 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"data": {
-					"title": "Monitor 21 inch",
-					"price": "199.99",
-					"details": "Full HD monitor",
-					"quantity": 20,
-					"brand": "Wow"
-				}
+				"data": [
+					{
+						"title": "Monitor 21 inch",
+						"price": "199.99",
+						"details": "Full HD monitor",
+						"quantity": 20,
+						"brand": "Wow"
+					}
+				]
 			}
 		},
 		{
@@ -141,13 +147,9 @@
 		{
 			"name": "",
 			"cmd": "POST",
-			"endpoint": "/collections:destroy",
+			"endpoint": "/collections:destroy?name=products",
 			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"name": "products"
+				"Authorization": "Bearer $ACCESS_TOKEN"
 			}
 		}
 	]

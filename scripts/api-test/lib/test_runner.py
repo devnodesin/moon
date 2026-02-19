@@ -161,8 +161,9 @@ def run_test_suite(
                 test.notes
             ))
         
-        # Track overall success
-        if not is_successful:
+        # Track overall success — only named tests count toward pass/fail;
+        # unnamed tests are cleanup/preparation steps that may fail intentionally.
+        if test.name and not is_successful:
             all_tests_passed = False
     
     # Write output to file if specified

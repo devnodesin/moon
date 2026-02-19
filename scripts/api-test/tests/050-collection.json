@@ -121,13 +121,9 @@
 		{
 			"name": "Collections Destroy",
 			"cmd": "POST",
-			"endpoint": "/collections:destroy",
+			"endpoint": "/collections:destroy?name=products",
 			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"name": "products"
+				"Authorization": "Bearer $ACCESS_TOKEN"
 			}
 		}
 	]
