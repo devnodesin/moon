@@ -305,7 +305,7 @@ func TestSchemaEndpoint(t *testing.T) {
 		}
 	})
 
-	// Test 5: Verify total field is present and accurate (PRD-061)
+	// Test 5: Verify total field represents field count in schema
 	t.Run("schema_total_field_empty_collection", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/products:schema", nil)
 		w := httptest.NewRecorder()
@@ -323,13 +323,16 @@ func TestSchemaEndpoint(t *testing.T) {
 		var resp SchemaResponse
 		json.Unmarshal(dataBytes, &resp)
 
-		// Verify total field exists and is 0 for empty collection
-		if resp.Total != 0 {
-			t.Errorf("Expected total 0 for empty collection, got %d", resp.Total)
+		// Verify total field equals number of fields in schema (id + name + price + description = 4)
+		if resp.Total != len(resp.Fields) {
+			t.Errorf("Expected total %d (field count), got %d", len(resp.Fields), resp.Total)
+		}
+		if resp.Total == 0 {
+			t.Error("Expected non-zero total for schema with fields")
 		}
 	})
 
-	// Test 6: Verify total field with records (PRD-061)
+	// Test 6: Verify total field represents field count, not record count
 	t.Run("schema_total_field_with_records", func(t *testing.T) {
 		// Create a dedicated test collection and table for this test
 		testColl := &registry.Collection{
@@ -382,9 +385,9 @@ func TestSchemaEndpoint(t *testing.T) {
 		var resp SchemaResponse
 		json.Unmarshal(dataBytes, &resp)
 
-		// Verify total field reflects actual record count
-		if resp.Total != 2 {
-			t.Errorf("Expected total 2 after inserting 2 records, got %d", resp.Total)
+		// Verify total field reflects field count (id + name + price = 3), not record count (2)
+		if resp.Total != len(resp.Fields) {
+			t.Errorf("Expected total %d (field count), got %d", len(resp.Fields), resp.Total)
 		}
 	})
 }
