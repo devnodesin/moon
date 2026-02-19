@@ -142,7 +142,6 @@ All successful responses return JSON with relevant data.
 |-------------|---------|
 | `200 OK`      | OK – Successful GET request |
 | `201 Created` | Created – Successful POST request creating resource |
-| `207 Multi-Status` | Multi-Status – Partial success for batch operations |
 | `400 Bad Request` | Invalid request (validation error, invalid parameter, malformed request) |
 | `401 Unauthorized` | Unauthorized – Missing or invalid authentication |
 | `403 Forbidden` | Forbidden – Insufficient permissions |
