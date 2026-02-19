@@ -333,38 +333,7 @@ When rate limiting is enabled, all responses include rate limit headers:
 
 ### Error Response Format
 
-All error responses follow a consistent JSON structure.
-
-> **See SPEC_API.md** for complete error response documentation and examples across all endpoint types.
-
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "human-readable error message"
-  }
-}
-```
-
-### Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Input validation failed |
-| `INVALID_JSON` | 400 | Malformed JSON |
-| `INVALID_ULID` | 400 | Invalid ULID format |
-| `INVALID_PARAMETER` | 400 | Invalid or unsupported query or body parameter |
-| `PAGE_SIZE_EXCEEDED` | 400 | Page size exceeds maximum |
-| `COLLECTION_NOT_FOUND` | 404 | Collection does not exist |
-| `DUPLICATE_RECORD` | 404 | Resource with unique field already exists |
-| `RECORD_NOT_FOUND` | 404 | Record not found |
-| `DUPLICATE_COLLECTION` | 409 | Collection name already exists |
-| `MAX_COLLECTIONS_REACHED` | 409 | Maximum collections limit reached |
-| `MAX_COLUMNS_REACHED` | 409 | Maximum columns limit reached |
-| `UNAUTHORIZED` | 401 | Authentication required |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+> **📖 Complete Error Response**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response) for error format, HTTP status codes, and examples.
 
 ### CORS Support
 

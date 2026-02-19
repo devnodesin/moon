@@ -326,37 +326,9 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
 **Purpose:** Authenticate user and receive access + refresh tokens
 
-**Request:**
-
-```json
-{
-  "username": "user@example.com",
-  "password": "SecurePass123"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "access_token": "eyJhbGc...",
-    "refresh_token": "eyJhbGc...",
-    "expires_at": "2026-02-14T03:27:33.935149435Z",
-    "token_type": "Bearer",
-    "user": {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "username": "user@example.com",
-      "email": "user@example.com",
-      "role": "user",
-      "can_write": false
-    }
-  },
-  "message": "Login successful"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format and codes. Common codes: `INVALID_CREDENTIALS` (401), `MISSING_REQUIRED_FIELD` (400), `RATE_LIMIT_EXCEEDED` (429).
+> **📖 Request/Response**: See [SPEC_API.md § Login](SPEC_API.md#login) for full request/response format.
+>
+> **📖 Error Responses**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response). Common codes: `INVALID_CREDENTIALS` (401), `MISSING_REQUIRED_FIELD` (400), `RATE_LIMIT_EXCEEDED` (429).
 
 ---
 
@@ -364,29 +336,9 @@ All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
 
 **Purpose:** Invalidate current session's refresh token
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Request:**
-
-```json
-{
-  "refresh_token": "eyJhbGc..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "message": "Logged out successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `MISSING_REQUIRED_FIELD` (400).
+> **📖 Request/Response**: See [SPEC_API.md § Logout](SPEC_API.md#logout) for full request/response format.
+>
+> **📖 Error Responses**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response). Common codes: `UNAUTHORIZED` (401), `MISSING_REQUIRED_FIELD` (400).
 
 ---
 
@@ -394,36 +346,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Exchange refresh token for new access + refresh token pair
 
-**Request:**
-
-```json
-{
-  "refresh_token": "eyJhbGc..."
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "access_token": "eyJhbGc...",
-    "refresh_token": "eyJhbGc...",
-    "expires_at": "2026-02-14T03:27:36.386965511Z",
-    "token_type": "Bearer",
-    "user": {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "username": "user@example.com",
-      "email": "user@example.com",
-      "role": "user",
-      "can_write": false
-    }
-  },
-  "message": "Token refreshed successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `EXPIRED_TOKEN` (401), `REVOKED_TOKEN` (401), `MISSING_REQUIRED_FIELD` (400).
+> **📖 Request/Response**: See [SPEC_API.md § Refresh Token](SPEC_API.md#refresh-token) for full request/response format.
+>
+> **📖 Error Responses**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response). Common codes: `EXPIRED_TOKEN` (401), `REVOKED_TOKEN` (401), `MISSING_REQUIRED_FIELD` (400).
 
 ---
 
@@ -431,27 +356,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Get current authenticated user information
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user@example.com",
-    "email": "user@example.com",
-    "role": "user",
-    "can_write": false
-  }
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401).
+> **📖 Request/Response**: See [SPEC_API.md § Get Current User](SPEC_API.md#get-current-user) for full response format.
+>
+> **📖 Error Responses**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response). Common codes: `UNAUTHORIZED` (401).
 
 ---
 
@@ -459,45 +366,9 @@ Authorization: Bearer <access_token>
 
 **Purpose:** Update current user's profile (email, password)
 
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Request (update email):**
-
-```json
-{
-  "email": "newemail@example.com"
-}
-```
-
-**Request (change password):**
-
-```json
-{
-  "old_password": "OldPass123",
-  "password": "NewSecurePass456"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user@example.com",
-    "email": "newemail@example.com",
-    "role": "user",
-    "can_write": false
-  },
-  "message": "Profile updated successfully"
-}
-```
-
-> **📖 Error Responses**: See [SPEC_API.md](SPEC_API.md) for standard error format. Common codes: `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `EMAIL_EXISTS` (409).
+> **📖 Request/Response**: See [SPEC_API.md § Update Current User](SPEC_API.md#update-current-user) for full request/response format.
+>
+> **📖 Error Responses**: See [SPEC_API.md § Standard Error Response](SPEC_API.md#standard-error-response). Common codes: `UNAUTHORIZED` (401), `VALIDATION_ERROR` (400), `EMAIL_EXISTS` (409).
 
 **Notes:**
 
