@@ -1,137 +1,159 @@
 {
-	"docURL": "http://localhost:6006",
-	"serverURL":  "https://moon.devnodes.in",
-	"prefix": "",
-	"username": "admin",
-	"password": "moonadmin12#",
-	"health": "/health",
-	"tests": [
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/collections:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"name": "products",
-				"columns": [
-					{"name": "title", "type": "string", "nullable": false},
-					{"name": "price", "type": "decimal", "nullable": false},
-					{"name": "details", "type": "string", "nullable": true},
-					{"name": "quantity", "type": "integer", "nullable": true},
-					{"name": "brand", "type": "string", "nullable": true}
-				]
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/products:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": [
-					{
-						"title": "Wireless Mouse",
-						"price": "29.99",
-						"details": "Ergonomic wireless mouse",
-						"quantity": 10,
-						"brand": "Wow"
-					}
-				]
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/products:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": [
-					{
-						"title": "USB Keyboard",
-						"price": "19.99",
-						"details": "Gaming keyboard",
-						"quantity": 55,
-						"brand": "Orange"
-					}
-				]
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/products:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": [
-					{
-						"title": "Monitor 21 inch",
-						"price": "199.99",
-						"details": "Full HD monitor",
-						"quantity": 20,
-						"brand": "Wow"
-					}
-				]
-			}
-		},
-		{
-			"name": "Count Records",
-			"cmd": "GET",
-			"endpoint": "/products:count",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Sum Numeric Field",
-			"cmd": "GET",
-			"endpoint": "/products:sum?field=quantity",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Average Numeric Field",
-			"cmd": "GET",
-			"endpoint": "/products:avg?field=quantity",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Minimum Value",
-			"cmd": "GET",
-			"endpoint": "/products:min?field=quantity",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Maximum Value",
-			"cmd": "GET",
-			"endpoint": "/products:max?field=quantity",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/collections:destroy?name=products",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		}
-	]
+  "docURL": "http://localhost:6006",
+  "serverURL": "https://moon.devnodes.in",
+  "prefix": "",
+  "username": "admin",
+  "password": "moonadmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:create",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": {
+          "name": "products",
+          "columns": [
+            {
+              "name": "title",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "price",
+              "type": "decimal",
+              "nullable": false
+            },
+            {
+              "name": "details",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "quantity",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "brand",
+              "type": "string",
+              "nullable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/products:create",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": [
+          {
+            "title": "Wireless Mouse",
+            "price": "29.99",
+            "details": "Ergonomic wireless mouse",
+            "quantity": 10,
+            "brand": "Wow"
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/products:create",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": [
+          {
+            "title": "USB Keyboard",
+            "price": "19.99",
+            "details": "Gaming keyboard",
+            "quantity": 55,
+            "brand": "Orange"
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/products:create",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": [
+          {
+            "title": "Monitor 21 inch",
+            "price": "199.99",
+            "details": "Full HD monitor",
+            "quantity": 20,
+            "brand": "Wow"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Count Records",
+      "cmd": "GET",
+      "endpoint": "/products:count",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Sum Numeric Field",
+      "cmd": "GET",
+      "endpoint": "/products:sum?field=quantity",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Average Numeric Field",
+      "cmd": "GET",
+      "endpoint": "/products:avg?field=quantity",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Minimum Value",
+      "cmd": "GET",
+      "endpoint": "/products:min?field=quantity",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Maximum Value",
+      "cmd": "GET",
+      "endpoint": "/products:max?field=quantity",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:destroy?name=products",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    }
+  ]
 }

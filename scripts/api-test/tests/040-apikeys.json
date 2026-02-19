@@ -66,9 +66,11 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"name": "Updated Service Name",
-				"description": "Updated description",
-				"can_write": true
+				"data": {
+					"name": "Updated Service Name",
+					"description": "Updated description",
+					"can_write": true
+				}
 			}
 		},
 		{
@@ -81,7 +83,9 @@
 				"Content-Type": "application/json"
 			},
 			"data": {
-				"action": "rotate"
+				"data": {
+					"action": "rotate"
+				}
 			}
 		},
 		{

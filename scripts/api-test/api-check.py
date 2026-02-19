@@ -56,7 +56,8 @@ def load_test_suite(test_file: str) -> TestSuite:
             headers=t.get("headers"),
             data=t.get("data"),
             details=t.get("details"),
-            notes=t.get("notes")
+            notes=t.get("notes"),
+            expected_status=t.get("expected_status")
         )
         for t in data.get("tests", [])
     ]
