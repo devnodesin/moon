@@ -512,7 +512,7 @@ func TestAPIKeysHandler_Update_Success(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Name: &newName,
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -564,7 +564,7 @@ func TestAPIKeysHandler_Update_Rotate(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Action: "rotate",
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -620,7 +620,7 @@ func TestAPIKeysHandler_Update_InvalidAction(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Action: "invalid",
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -647,7 +647,7 @@ func TestAPIKeysHandler_Update_NotFound(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Name: &newName,
 	}
-	bodyBytes, _ := json.Marshal(updateBody)
+	bodyBytes, _ := json.Marshal(map[string]any{"data": updateBody})
 
 	req := httptest.NewRequest(http.MethodPost, "/apikeys:update?id=nonexistent", bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -686,7 +686,7 @@ func TestAPIKeysHandler_Update_NoFieldsToUpdate(t *testing.T) {
 
 	// Try update with no fields
 	updateBody := UpdateAPIKeyRequest{}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -921,7 +921,7 @@ func TestAPIKeysHandler_Update_DuplicateName(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Name: &newName,
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -1000,7 +1000,7 @@ func TestAPIKeysHandler_Update_DescriptionUpdate(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Description: &newDesc,
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -1053,7 +1053,7 @@ func TestAPIKeysHandler_Update_CanWriteUpdate(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		CanWrite: &canWrite,
 	}
-	bodyBytes, _ = json.Marshal(updateBody)
+	bodyBytes, _ = json.Marshal(map[string]any{"data": updateBody})
 
 	req = httptest.NewRequest(http.MethodPost, "/apikeys:update?id="+createData["id"].(string), bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)
@@ -1114,7 +1114,7 @@ func TestAPIKeysHandler_Update_MissingID(t *testing.T) {
 	updateBody := UpdateAPIKeyRequest{
 		Name: &newName,
 	}
-	bodyBytes, _ := json.Marshal(updateBody)
+	bodyBytes, _ := json.Marshal(map[string]any{"data": updateBody})
 
 	req := httptest.NewRequest(http.MethodPost, "/apikeys:update", bytes.NewReader(bodyBytes))
 	req.Header.Set("Authorization", "Bearer "+adminToken)

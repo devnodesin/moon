@@ -26,7 +26,7 @@ type Column struct {
 	Type         ColumnType `json:"type"`
 	Nullable     bool       `json:"nullable"`
 	Unique       bool       `json:"unique"`
-	DefaultValue *string    `json:"default_value,omitempty"`
+	DefaultValue *string    `json:"default,omitempty"`
 }
 
 // Collection represents a database table schema

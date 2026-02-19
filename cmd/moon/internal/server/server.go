@@ -235,10 +235,6 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("GET "+prefix+"/collections:get", authenticated(collectionsHandler.Get))
 	s.mux.HandleFunc("OPTIONS "+prefix+"/collections:get", authenticated(s.corsPreflightHandler))
 
-	// Doc refresh requires authentication
-	s.mux.HandleFunc("POST "+prefix+"/doc:refresh", authenticated(docHandler.RefreshCache))
-	s.mux.HandleFunc("OPTIONS "+prefix+"/doc:refresh", authenticated(s.corsPreflightHandler))
-
 	// ==========================================
 	// ADMIN ONLY ENDPOINTS
 	// ==========================================

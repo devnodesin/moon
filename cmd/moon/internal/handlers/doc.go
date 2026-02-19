@@ -250,21 +250,6 @@ func (h *DocHandler) JSON(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(jsonAppendix))
 }
 
-// RefreshCache clears the cached documentation
-func (h *DocHandler) RefreshCache(w http.ResponseWriter, r *http.Request) {
-	h.cacheMutex.Lock()
-	h.htmlCache = nil
-	h.mdCache = nil
-	h.htmlETag = ""
-	h.mdETag = ""
-	h.lastModified = time.Now()
-	h.cacheMutex.Unlock()
-
-	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"Documentation cache refreshed"}`))
-}
-
 // generateMarkdown generates the Markdown documentation from the template
 func (h *DocHandler) generateMarkdown() (string, error) {
 	data := h.buildDocData()
@@ -891,13 +876,6 @@ func (h *DocHandler) buildJSONAppendix() string {
 					"method":        "GET",
 					"auth_required": false,
 					"description":   "JSON appendix for machine consumption",
-				},
-				"refresh": map[string]any{
-					"path":          "/doc:refresh",
-					"method":        "POST",
-					"auth_required": true,
-					"role_required": "admin",
-					"description":   "Refresh documentation cache",
 				},
 			},
 		},

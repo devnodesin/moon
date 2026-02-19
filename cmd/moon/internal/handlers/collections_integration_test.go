@@ -54,7 +54,7 @@ func TestCollectionsHandler_Create_Integration(t *testing.T) {
 			{"name": "active", "type": "boolean", "nullable": true},
 		},
 	}
-	body, _ := json.Marshal(reqBody)
+	body, _ := json.Marshal(map[string]any{"data": reqBody})
 
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -91,7 +91,7 @@ func TestCollectionsHandler_Update_Integration(t *testing.T) {
 			{"name": "name", "type": "string", "nullable": false},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -107,7 +107,7 @@ func TestCollectionsHandler_Update_Integration(t *testing.T) {
 			{"name": "price", "type": "integer", "nullable": true},
 		},
 	}
-	body, _ = json.Marshal(updateBody)
+	body, _ = json.Marshal(map[string]any{"data": updateBody})
 	req = httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
@@ -149,7 +149,7 @@ func TestCollectionsHandler_Destroy_Integration(t *testing.T) {
 			{"name": "name", "type": "string"},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -199,7 +199,7 @@ func TestCollectionsHandler_List_WithData(t *testing.T) {
 	}
 
 	for _, c := range collections {
-		body, _ := json.Marshal(c)
+		body, _ := json.Marshal(map[string]any{"data": c})
 		req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Create(w, req)
@@ -244,7 +244,7 @@ func TestCollectionsHandler_Create_WithAllTypes(t *testing.T) {
 			{"name": "json_col", "type": "json", "nullable": true},
 		},
 	}
-	body, _ := json.Marshal(reqBody)
+	body, _ := json.Marshal(map[string]any{"data": reqBody})
 
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -298,7 +298,7 @@ func TestCollectionsHandler_Update_RenameColumn(t *testing.T) {
 			{"name": "price", "type": "integer"},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -314,7 +314,7 @@ func TestCollectionsHandler_Update_RenameColumn(t *testing.T) {
 			{"old_name": "name", "new_name": "title"},
 		},
 	}
-	body, _ = json.Marshal(updateBody)
+	body, _ = json.Marshal(map[string]any{"data": updateBody})
 	req = httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
@@ -357,7 +357,7 @@ func TestCollectionsHandler_Update_RemoveColumn(t *testing.T) {
 			{"name": "description", "type": "string"},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -371,7 +371,7 @@ func TestCollectionsHandler_Update_RemoveColumn(t *testing.T) {
 		"name":           "products",
 		"remove_columns": []string{"description"},
 	}
-	body, _ = json.Marshal(updateBody)
+	body, _ = json.Marshal(map[string]any{"data": updateBody})
 	req = httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
@@ -416,7 +416,7 @@ func TestCollectionsHandler_List_DetailedResponse(t *testing.T) {
 				{"name": "data", "type": "string"},
 			},
 		}
-		body, _ := json.Marshal(createBody)
+		body, _ := json.Marshal(map[string]any{"data": createBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Create(w, req)
@@ -501,7 +501,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 			{"name": "price", "type": "integer", "nullable": false},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -518,7 +518,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"name": "pkid", "type": "integer", "nullable": false},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -542,7 +542,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"name": "id", "type": "string", "nullable": false},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -558,7 +558,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 			"name":           "products",
 			"remove_columns": []string{"pkid"},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -580,7 +580,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 			"name":           "products",
 			"remove_columns": []string{"id"},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -604,7 +604,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"old_name": "pkid", "new_name": "primary_key"},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -628,7 +628,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"old_name": "id", "new_name": "identifier"},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -653,7 +653,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"name": "pkid", "type": "string", "nullable": &nullable},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -678,7 +678,7 @@ func TestSystemColumnsProtection_Integration(t *testing.T) {
 				{"name": "id", "type": "integer", "nullable": &nullable},
 			},
 		}
-		body, _ := json.Marshal(updateBody)
+		body, _ := json.Marshal(map[string]any{"data": updateBody})
 		req := httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler.Update(w, req)
@@ -710,7 +710,7 @@ func TestCollectionsHandler_AddUniqueColumn_Integration(t *testing.T) {
 			{"name": "title", "type": "string", "nullable": false},
 		},
 	}
-	body, _ := json.Marshal(createBody)
+	body, _ := json.Marshal(map[string]any{"data": createBody})
 	req := httptest.NewRequest(http.MethodPost, "/collections:create", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	handler.Create(w, req)
@@ -726,7 +726,7 @@ func TestCollectionsHandler_AddUniqueColumn_Integration(t *testing.T) {
 			{"name": "slug", "type": "string", "nullable": false, "unique": true},
 		},
 	}
-	body, _ = json.Marshal(updateBody)
+	body, _ = json.Marshal(map[string]any{"data": updateBody})
 	req = httptest.NewRequest(http.MethodPost, "/collections:update", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	handler.Update(w, req)
