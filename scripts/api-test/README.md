@@ -33,6 +33,9 @@ python api-check.py -i ./tests/020-auth.json
 
 # or run all 
 python api-check.py
+
+# or against a different server than the one specified in the test files
+python api-check.py --server=http://localhost:6000
 ```
 
 Results are saved as Markdown in the output directory. this file can be copied to `cmd\moon\internal\handlers\templates\md\` to update the documentations
