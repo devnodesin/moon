@@ -99,6 +99,11 @@ def run_test_suite(
         
         # Check for token refresh or login and update tokens
         is_successful = response.status.startswith("2")
+        
+        # If expected_status is set, override success check
+        if test.expected_status is not None:
+            actual_code = response.status.split()[0] if response.status else ""
+            is_successful = actual_code == str(test.expected_status)
         if is_successful and response.response_obj:
             is_login = detect_login(test_copy)
             is_refresh = detect_token_refresh(test_copy)
@@ -299,5 +304,6 @@ def _copy_test(test: TestDefinition) -> TestDefinition:
         headers=copy.deepcopy(test.headers) if test.headers else None,
         data=copy.deepcopy(test.data) if test.data else None,
         details=test.details,
-        notes=test.notes
+        notes=test.notes,
+        expected_status=test.expected_status
     )

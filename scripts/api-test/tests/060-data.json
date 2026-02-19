@@ -15,14 +15,36 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "name": "products",
-        "columns": [
-          { "name": "title", "type": "string", "nullable": false },
-          { "name": "price", "type": "decimal", "nullable": false },
-          { "name": "details", "type": "string", "nullable": true },
-          {"name": "quantity", "type": "integer", "nullable": true},
-					{"name": "brand", "type": "string", "nullable": true}
-        ]
+        "data": {
+          "name": "products",
+          "columns": [
+            {
+              "name": "title",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "price",
+              "type": "decimal",
+              "nullable": false
+            },
+            {
+              "name": "details",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "quantity",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "brand",
+              "type": "string",
+              "nullable": true
+            }
+          ]
+        }
       }
     },
     {
@@ -145,7 +167,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "data": ["$ULID"]
+        "data": [
+          "$ULID"
+        ]
       }
     },
     {
@@ -157,7 +181,10 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "data": ["$ULID1", "$ULID2"]
+        "data": [
+          "$ULID1",
+          "$ULID2"
+        ]
       }
     },
     {

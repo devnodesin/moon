@@ -14,6 +14,7 @@ class TestDefinition:
     data: Optional[Any] = None
     details: Optional[str] = None
     notes: Optional[str] = None
+    expected_status: Optional[int] = None
 
 
 @dataclass
