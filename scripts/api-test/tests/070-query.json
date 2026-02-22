@@ -110,8 +110,8 @@
     {
       "name": "Filtering",
       "cmd": "GET",
-      "details": "**Query Option:** `?column[operator]=value`",
-      "notes": "**Operators:** eq, ne, gt, lt, gte, lte, like, in",
+      "details": "Filter results by column value using the syntax `?{column_name}[operator]=value`. You can combine multiple filters in a single request.",
+      "notes": "Supported filter operators: `eq` (equal to), `ne` (not equal to), `gt` (greater than), `lt` (less than), `gte` (greater than or equal to), `lte` (less than or equal to), `like` (pattern match, `%` is wildcard, e.g. `brand[like]=Wo%`), `in` (matches any value in a comma-separated list, e.g. `brand[in]=Wow,Orange`)",
       "endpoint": "/products:list?quantity[gt]=5&brand[eq]=Wow",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
@@ -120,8 +120,8 @@
     {
       "name": "Sorting",
       "cmd": "GET",
-      "details": "**Query Option:** `?sort={-field1,field2}`",
-      "notes": "Sort by `field` (ascending) or `-field` (descending).",
+      "details": "Use `?sort={field1,-field2,...}` to sort by one or more fields. Prefix a field name with `-` for descending order. Separate multiple fields with commas.",
+      "notes": "Sort by `field` (ascending) or `-field` (descending). Below sorts by `quantity` descending, then by `title` ascending.",
       "endpoint": "/products:list?sort=-quantity,title",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
@@ -151,6 +151,7 @@
       "name": "Limit",
       "cmd": "GET",
       "details": "**Query Option:** `?limit={limit}`",
+      "notes": "Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.",
       "endpoint": "/products:list?limit=2",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"

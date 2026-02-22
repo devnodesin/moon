@@ -131,3 +131,72 @@ curl -X POST "http://localhost:6006/apikeys:create" \
 curl -s "http://localhost:6006/collections:list" \
   -H "Authorization: Bearer moon_live_abc123..." | jq .
 ```
+
+### Standard Response Pattern for `:list` Endpoints
+
+List endpoints return paginated collections of resources. All list endpoints share a consistent request/response pattern described in this section.
+
+**Applicable Endpoints:**
+
+- List Users: `GET /users:list`
+- List API Keys: `GET /apikeys:list`
+- List Collections: `GET /collections:list`
+- List Collection Records: `GET /{collection_name}:list`
+
+**Response Structure:**
+Every list endpoint returns a JSON object with two top-level keys: `data` and `meta` similar to below reponse.
+
+```json
+{
+  "data": [
+    {
+      "id": "01KHCZKMM0N808MKSHBNWF464F",
+      "title": "Wireless Mouse",
+      "price": "29.99"
+    }
+  ],
+  "meta": {
+    "count": 15,
+    "limit": 15,
+    "next": "01KHCZKMM0N808MKSHBNWF464F",
+    "prev": "01KHCZFXAFJPS9SKSFKNBMHTP5"
+  }
+}
+```
+
+- `data` - An array of resource objects. Each record always includes an `id` field (ULID), except collections which use `name` as the identifier.
+- `meta` - Pagination metadata for the current page.
+  - `count` (integer): Number of records returned in this response
+  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 100.
+  - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
+  - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
+
+---
+
+The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
+
+### Pagination
+
+For pagination use parameter `?after={cursor}` to return records after the specified ULID cursor. Omit this parameter to start from the first page.
+
+This API uses cursor-based pagination. Each response includes `meta.next` and `meta.prev` cursors, both of which are used with the `?after` parameter.
+
+```sh
+# First page (no cursor needed)
+GET /products:list
+
+# Next page — use meta.next, meta.prev, or any valid record id from the previous response
+GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
+```
+
+**Notes:**
+
+- `meta.prev` is `null` on the first page and `meta.next` is `null` on the last page.
+- Records are always returned in chronological order (by ULID/creation time).
+ - To page backwards: pass `?after={meta.prev}` from the current response. This returns the previous page of records (the record matching the cursor is excluded). Example: `GET /products:list?after=01KHCZFXAFJPS9SKSFKNBMHTP5`.
+- For `?after={cursor}`, the cursor must always be a record's id (ULID). It can be:
+  - A valid id of an existing record,
+  - The value of `meta.prev` from the current response,
+  - The value of `meta.next` from the current response.
+- When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
+- If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](./090-error.md).

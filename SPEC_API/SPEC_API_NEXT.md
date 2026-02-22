@@ -27,6 +27,15 @@ See [Documentation Endpoints](./002-doc.md).
 | `/auth:me`      | GET    | Get current authenticated user info        |
 | `/auth:me`      | POST   | Update current user's profile/password     |
 
+### Important Notes
+
+- **Token expiration**: Access tokens expire in 1 hour (configurable). Use refresh token to obtain new access token without re-authentication.
+- **Refresh token**: Single-use tokens. Each refresh returns a new access token AND a new refresh token. Store the new refresh token for subsequent refreshes.
+- **Password change**: Changing password invalidates all existing sessions. User must login again with new credentials.
+- **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
+- **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+
 See [Authentication API](./020-auth.md).
 
 ## Manage User (Admin Only)
@@ -101,6 +110,23 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?fields={field1,field2}` | Select specific fields to return (id always included)      |
 | `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
+
+For complete details on API request and response formats, supported endpoints, and data examples, see [070-query.md](./070-query.md). All error handling must follow [Standard Error Response](./090-error.md).
+
+#### Combined Examples
+
+All query parameters can be combined in a single request.
+
+```sh
+# Filter by price range, sort descending, limit results
+GET /products:list?quantity[gte]=10&price[lt]=100&sort=-price&limit=5
+
+# Full-text search with a brand filter, returning only select fields
+GET /products:list?q=laptop&brand[eq]=Wow&fields=title,price,quantity
+
+# Multi-filter with pagination
+GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KHCZKMM0N808MKSHBNWF464F
+```
 
 
 ### Aggregation Operations

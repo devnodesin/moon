@@ -10,6 +10,7 @@
 			"name": "Login",
 			"cmd": "POST",
 			"endpoint": "/auth:login",
+			"details": "Authenticate user and retrieve access and refresh tokens.",
 			"headers": {
 				"Content-Type": "application/json"
 			},
@@ -22,6 +23,7 @@
 			"name": "Get Current User",
 			"cmd": "GET",
 			"endpoint": "/auth:me",
+			"details": "Fetch details of the currently authenticated user.",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN"
 			}
@@ -30,6 +32,7 @@
 			"name": "Update Current User (Change email)",
 			"cmd": "POST",
 			"endpoint": "/auth:me",
+			"details": "Change email for current user.",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN",
 				"Content-Type": "application/json"
@@ -42,6 +45,7 @@
 			"name": "Update Current User (Change Password)",
 			"cmd": "POST",
 			"endpoint": "/auth:me",
+			"details": "Change password for current user.",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN",
 				"Content-Type": "application/json"
@@ -55,6 +59,7 @@
 			"name": "Refresh Token",
 			"cmd": "POST",
 			"endpoint": "/auth:refresh",
+			"details": "Generate new access token using refresh token.",
 			"headers": {
 				"Content-Type": "application/json"
 			},
@@ -66,6 +71,7 @@
 			"name": "Logout",
 			"cmd": "POST",
 			"endpoint": "/auth:logout",
+			"details": "Invalidate current session and refresh token.",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN",
 				"Content-Type": "application/json"
