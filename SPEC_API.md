@@ -15,10 +15,10 @@ In database terminology, these are Tables, Columns, and Rows, respectively.
 For example, consider the table `products` below.
 
 ```md
-| id        | name           | price   | in_stock |
-|-----------|----------------|---------|----------|
-| 01H1...   | Wireless Mouse | 29.99   | true     |
-| 01H2...   | USB Keyboard   | 19.99   | false    |
+| id      | name           | price | in_stock |
+| ------- | -------------- | ----- | -------- |
+| 01H1... | Wireless Mouse | 29.99 | true     |
+| 01H2... | USB Keyboard   | 19.99 | false    |
 ```
 
 - **Collection:** `products` (the table)
@@ -80,7 +80,7 @@ Supported column data types:
 - **datetime**: Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z).
 - **json**: Arbitrary JSON object or array.
 
-***Note:*** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
+**_Note:_** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
 
 **Default Values by Type**
 
@@ -88,14 +88,14 @@ Supported column data types:
 - Defaults are assigned only to nullable fields.
 - Non-nullable fields do not receive defaults and must always be included in API requests.
 
-| Type | Default Value | Notes |
-|------|--------------|-------|
-| `string` | `""` (empty string) | Applied only if field is nullable |
-| `integer` | `0` | Applied only if field is nullable |
-| `decimal` | `"0.00"` | Applied only if field is nullable |
-| `boolean` | `false` | Applied only if field is nullable |
-| `datetime` | `null` | Applied for nullable fields |
-| `json` | `"{}"` (empty object) | Applied only if field is nullable |
+| Type       | Default Value         | Notes                             |
+| ---------- | --------------------- | --------------------------------- |
+| `string`   | `""` (empty string)   | Applied only if field is nullable |
+| `integer`  | `0`                   | Applied only if field is nullable |
+| `decimal`  | `"0.00"`              | Applied only if field is nullable |
+| `boolean`  | `false`               | Applied only if field is nullable |
+| `datetime` | `null`                | Applied for nullable fields       |
+| `json`     | `"{}"` (empty object) | Applied only if field is nullable |
 
 ---
 
@@ -260,17 +260,17 @@ Follow [090-error.md](./SPEC_API/090-error.md) for any error handling
 
 Health and documentation endpoints are accessible without authentication. All other endpoints require authentication.
 
-| Endpoint            | Method | Description                                 |
-|---------------------|--------|---------------------------------------------|
-| `/health`           | GET    | Health Endpoint (see [010-health.md](./SPEC_API/010-health.md)) |
-| `/doc/`             | GET    | API Documentation (HTML)                    |
-| `/doc/llms.md`      | GET    | API Documentation (Markdown)                |
-| `/doc/llms.txt`     | GET    | API Documentation (Plain Text, alias for `/doc/llms.md`) |
-| `/doc/llms.json`    | GET    | API Documentation (JSON)                    |
+| Endpoint         | Method | Description                                                     |
+| ---------------- | ------ | --------------------------------------------------------------- |
+| `/health`        | GET    | Health Endpoint (see [010-health.md](./SPEC_API/010-health.md)) |
+| `/doc/`          | GET    | API Documentation (HTML)                                        |
+| `/doc/llms.md`   | GET    | API Documentation (Markdown)                                    |
+| `/doc/llms.txt`  | GET    | API Documentation (Plain Text, alias for `/doc/llms.md`)        |
+| `/doc/llms.json` | GET    | API Documentation (JSON)                                        |
 
 ## Authentication
 
-Except for [Public Endpoints](#public-endpoints), all other endpoints require authentication. To access protected endpoints, include the ```Authorization: Bearer <TOKEN>``` header in your requests
+Except for [Public Endpoints](#public-endpoints), all other endpoints require authentication. To access protected endpoints, include the `Authorization: Bearer <TOKEN>` header in your requests
 
 Supported authentication types:
 
@@ -401,13 +401,13 @@ Moon provides dedicated aggregation endpoints that perform calculations directly
 
 Server-side aggregation endpoints for analytics. Replace `{collection_name}` with your collection name.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/{collection_name}:count` | GET | Count records |
-| `/{collection_name}:sum` | GET | Sum numeric field (requires `?field=...`) |
-| `/{collection_name}:avg` | GET | Average numeric field (requires `?field=...`) |
-| `/{collection_name}:min` | GET | Minimum value (requires `?field=...`) |
-| `/{collection_name}:max` | GET | Maximum value (requires `?field=...`) |
+| Endpoint                   | Method | Description                                   |
+| -------------------------- | ------ | --------------------------------------------- |
+| `/{collection_name}:count` | GET    | Count records                                 |
+| `/{collection_name}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
+| `/{collection_name}:avg`   | GET    | Average numeric field (requires `?field=...`) |
+| `/{collection_name}:min`   | GET    | Minimum value (requires `?field=...`)         |
+| `/{collection_name}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
 **Note:**
 
