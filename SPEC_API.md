@@ -99,7 +99,11 @@ Supported column data types:
 | `datetime` | `null` | Applied for nullable fields |
 | `json` | `"{}"` (empty object) | Applied only if field is nullable |
 
-### Standard Response Pattern for `:list` Endpoints
+---
+
+## Standard Response Pattern
+
+### `:list` Endpoints
 
 List endpoints return paginated collections of resources. All list endpoints share a consistent request/response pattern described in this section.
 
@@ -138,11 +142,9 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
 
----
-
 The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
 
-### Pagination
+#### Pagination
 
 For pagination use parameter `?after={cursor}` to return records after the specified ULID cursor. Omit this parameter to start from the first page.
 
@@ -167,6 +169,95 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
   - The value of `meta.next` from the current response.
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
 - If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](./SPEC_API/090-error.md).
+
+### `:get` Endpoints
+
+Get endpoints retrieve a single resource by its identifier `id` or `name`.
+
+- `id` (string): ULID of the resource (required for users, API keys, and records)
+- `name` (string): Name of the collection (required for collections)
+
+**Important Notes:**
+
+- **Single object**: The `data` field contains a single object (not an array).
+- **No meta field**: Get endpoints don't need pagination metadata.
+- **Consistent wrapper**: All `:get` endpoints use the `data` wrapper, matching `:list` endpoints.
+
+### `:create` Endpoints
+
+- **ID field**: The `id` field is system-generated and read-only. Do not include it in create requests.
+- **Array format**: Collection records must always be sent as an array in `data`, even for single records.
+- **Partial success**: If some records fail validation, successfully created records are returned in `data`.
+- **Failed records**: Failed records are excluded from the `data` array. Check `meta.failed` count to detect partial failures.
+- **Status code**: Always returns `201 Created` if at least one record was created successfully.
+- **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
+- **Message field**: Always includes a human-readable success message.
+- **API Key security**: The `key` field appears in `data` only once during creation.
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+
+### `:destroy` Endpoints
+
+**Parameters:**
+
+- `id` (string): ULID of the resource (required for users, apikeys)
+- `name` (string): Name of the collection (required for collections)
+- `data` (array): Array of record IDs to delete (required for records)
+
+**Important Notes:**
+
+- **Array format**: Collection records must be sent as an array in `data`, even for single deletions.
+- **Deleted IDs returned**: Response includes `data` array with IDs of successfully deleted records.
+- **Partial success**: If some records fail to delete, the successfully deleted count is shown in `meta`.
+- **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
+- **Status code**: Returns `200 OK` if at least one record was deleted successfully.
+- **Message field**: Always includes a human-readable success message.
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+
+### `:update` Endpoints
+
+**Parameters:**
+
+- `id` (string): ULID of the resource (required for users, apikeys)
+- Request Body (object): Fields to update OR `action` parameter for special operations
+- `action` (string): Special operation to perform (`reset_password`, `revoke_sessions`, `rotate`)
+- `name` (string): Collection name (required for collection operations)
+- `data` (array): Array with objects containing `id` plus fields to update (for records)
+
+**Important Notes:**
+
+- **Array format**: Collection records must be sent as an array in `data`, even for single updates.
+- **Partial updates**: Only fields provided are updated; other fields remain unchanged.
+- **Actions vs updates**: When `action` is specified, it takes precedence over field updates.
+- **Action-specific fields**: Some actions require additional fields (e.g., `new_password` for `reset_password`).
+- **Updated data returned**: Response includes the full updated resource(s) in `data`.
+- **Partial success**: For batch updates, successfully updated records are returned in `data`.
+- **Status code**: Returns `200 OK` if at least one record was updated successfully.
+- **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
+- **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+
+### `:schema` Endpoints
+
+Retrieve the schema definition for a collection, including all fields, their types, constraints, and defaults.
+
+`GET /{collection_name}:schema`
+
+**Field Properties:**
+
+- `name`: The field's name.
+- `type`: The data type (`string`, `integer`, `decimal`, `boolean`, `timestamp`, etc., as defined in the specification).
+- `nullable`: Indicates if the field can be omitted or set to `null` in API requests.
+- `readonly`: Indicates if the field is system-generated and cannot be modified (e.g., `id`).
+- `default`: The default value assigned when the field is not provided.
+- `unique`: Specifies whether the field must have unique values (optional).
+
+**Important Notes:**
+
+- **System fields**: The `id` and `created_at` fields are automatically included in every collection and are readonly.
+- **Total count**: Represents the total number of fields in the collection schema.
+- **Schema introspection**: Use this endpoint to dynamically discover collection structure
+- **Validation**: Schema information helps clients validate data before submission
+- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
 
 ---
 
