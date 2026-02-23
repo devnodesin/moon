@@ -172,7 +172,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
 
 ## Standard Error Response
 
-**Error Response:** Follow [090-error.md](./SPEC_API/090-error.md) for any error handling
+Follow [090-error.md](./SPEC_API/090-error.md) for any error handling
 
 ## Public Endpoints
 
@@ -233,8 +233,6 @@ See [Authentication API](./SPEC_API/SPEC_API/020-auth.md).
 
 See [Users API](./SPEC_API/030-users.md).
 
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
-
 ## Manage API Keys (Admin Only)
 
 | Endpoint           | Method | Description                           |
@@ -270,8 +268,6 @@ Update collection support following schema modification operations:
 
 See [Collection Managment API](./SPEC_API/050-collection.md).
 
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
-
 ## Data Access
 
 These endpoints manage records within a specific collection. Replace `{collection_name}` with your collection name.
@@ -285,9 +281,7 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection_name}:update`  | POST   | Update an existing record                |
 | `/{collection_name}:destroy` | POST   | Delete a record                          |
 
-For complete details on API request and response formats, supported endpoints, and data examples, see [060-data.md](./SPEC_API/060-data.md).
-
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
+See [Data Access API](./SPEC_API/060-data.md).
 
 ### Query Options
 
@@ -302,9 +296,7 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
-For complete details on API request and response formats, supported endpoints, and data examples, see [070-query.md](./SPEC_API/070-query.md).
-
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
+See [Data Access API -> Query Options](./SPEC_API/070-query.md).
 
 #### Combined Examples
 
@@ -345,9 +337,7 @@ Server-side aggregation endpoints for analytics. Replace `{collection_name}` wit
   - `/products:sum?field=quantity&brand[eq]=Wow`
   - `/products:max?field=quantity`
 
-Refer Detailed API [080-aggregation.md](./SPEC_API/080-aggregation.md)
-
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
+See [Data Access API -> Aggregation Operations](./SPEC_API/080-aggregation.md).
 
 ## Security
 
