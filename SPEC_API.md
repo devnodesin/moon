@@ -2,6 +2,27 @@
 
 Moon enables rapid, migrationless management of database tables and records through a dynamic RESTful API.
 
+## Table of Contents
+
+- [Standard API Response Patterns](#standard-api-response-patterns)
+  - [Standard Response Pattern](#standard-response-pattern)
+    - [:list Endpoints](#list-endpoints)
+    - [:get Endpoints](#get-endpoints)
+    - [:create Endpoints](#create-endpoints)
+    - [:destroy Endpoints](#destroy-endpoints)
+    - [:update Endpoints](#update-endpoints)
+    - [:schema Endpoints](#schema-endpoints)
+- [Standard Error Response](#standard-error-response)
+- [Public Endpoints](#public-endpoints)
+- [Authentication](#authentication)
+- [Manage User (Admin Only)](#manage-user-admin-only)
+- [Manage API Keys (Admin Only)](#manage-api-keys-admin-only)
+- [Manage Collections](#manage-collections)
+- [Data Access](#data-access)
+  - [Query Options](#query-options)
+  - [Aggregation Operations](#aggregation-operations)
+- [Security](#security)
+
 ## Introduction
 
 This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
