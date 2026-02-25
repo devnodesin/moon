@@ -77,12 +77,12 @@ Supported column data types:
 - **integer**: 64-bit whole numbers.
 - **decimal**: For decimal values. API input/output uses strings (e.g., "199.99"), default 2 decimal places.
 - **boolean**: true/false values.
-- **datetime**: Date/time in RFC3339 or ISO 8601 format (e.g., 2023-01-31T13:45:00Z).
+- **datetime**: Date/time in ISO 8601 format (e.g., 2023-01-31T13:45:00Z).
 - **json**: Arbitrary JSON object or array.
 
 **_Note:_** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
 
-**Default Values by Type**
+**Default Values by Type:**
 
 - Default values are applied during collection creation if not explicitly provided.
 - Defaults are assigned only to nullable fields.
@@ -159,7 +159,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
   - The value of `meta.prev` from the current response,
   - The value of `meta.next` from the current response.
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
-- If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](./SPEC_API/090-error.md).
+- If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response)
 
 ### `:get` Endpoints
 
@@ -184,7 +184,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 - **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
 - **Message field**: Always includes a human-readable success message.
 - **API Key security**: The `key` field appears in `data` only once during creation.
-- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ### `:destroy` Endpoints
 
@@ -202,7 +202,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 - **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
-- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ### `:update` Endpoints
 
@@ -225,7 +225,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 - **Status code**: Returns `200 OK` if at least one record was updated successfully.
 - **Key rotation**: `rotate` action returns the new key in `data.key` field (shown only once).
 - **Warning field**: Optional field for security warnings (e.g., key rotation, password reset).
-- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ### `:schema` Endpoints
 
@@ -248,13 +248,13 @@ Retrieve the schema definition for a collection, including all fields, their typ
 - **Total count**: Represents the total number of fields in the collection schema.
 - **Schema introspection**: Use this endpoint to dynamically discover collection structure
 - **Validation**: Schema information helps clients validate data before submission
-- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 ---
 
 ## Standard Error Response
 
-Follow [090-error.md](./SPEC_API/090-error.md) for any error handling
+See [Standard Error Response](./SPEC_API/090-error.md) for any error handling
 
 ## Public Endpoints
 
@@ -262,7 +262,7 @@ Health and documentation endpoints are accessible without authentication. All ot
 
 | Endpoint         | Method | Description                                                     |
 | ---------------- | ------ | --------------------------------------------------------------- |
-| `/health`        | GET    | Health Endpoint (see [010-health.md](./SPEC_API/010-health.md)) |
+| `/health`        | GET    | Health Endpoint (see [Health Endpoint](./SPEC_API/010-health.md)) |
 | `/doc/`          | GET    | API Documentation (HTML)                                        |
 | `/doc/llms.md`   | GET    | API Documentation (Markdown)                                    |
 | `/doc/llms.txt`  | GET    | API Documentation (Plain Text, alias for `/doc/llms.md`)        |
@@ -297,7 +297,7 @@ Supported authentication types:
 - **Password change**: Changing password invalidates all existing sessions. User must login again with new credentials.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
-- **Error Response:** Follow [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
 See [Authentication API](./SPEC_API/020-auth.md).
 
@@ -313,7 +313,7 @@ See [Authentication API](./SPEC_API/020-auth.md).
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
-See [Users API](./SPEC_API/030-users.md).
+See [Users API](./SPEC_API/030-users.md). All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage API Keys (Admin Only)
 
@@ -325,9 +325,7 @@ See [Users API](./SPEC_API/030-users.md).
 | `/apikeys:update`  | POST   | Update API key metadata or rotate key |
 | `/apikeys:destroy` | POST   | Delete API key                        |
 
-See [APIKeys API](./SPEC_API/040-apikeys.md).
-
-All error handling must follow [Standard Error Response](./SPEC_API/090-error.md).
+See [APIKeys API](./SPEC_API/040-apikeys.md). All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage Collections
 
@@ -348,7 +346,7 @@ Update collection support following schema modification operations:
 - `modify_columns` - Change column types or attributes
 - `remove_columns` - Remove existing columns
 
-See [Collection Managment API](./SPEC_API/050-collection.md).
+See [Collection Managment API](./SPEC_API/050-collection.md). All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Data Access
 
@@ -363,7 +361,7 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection_name}:update`  | POST   | Update an existing record                |
 | `/{collection_name}:destroy` | POST   | Delete a record                          |
 
-See [Data Access API](./SPEC_API/060-data.md).
+See [Data Access API](./SPEC_API/060-data.md). All error handling must follow [Standard Error Response](#standard-error-response)
 
 ### Query Options
 
@@ -378,7 +376,7 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
-See [Data Access API -> Query Options](./SPEC_API/070-query.md).
+See [Data Access API > Query Options](./SPEC_API/070-query.md). All error handling must follow [Standard Error Response](#standard-error-response)
 
 #### Combined Examples
 
@@ -409,6 +407,8 @@ Server-side aggregation endpoints for analytics. Replace `{collection_name}` wit
 | `/{collection_name}:min`   | GET    | Minimum value (requires `?field=...`)         |
 | `/{collection_name}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
+See [Data Access API > Aggregation Operations](./SPEC_API/080-aggregation.md). All error handling must follow [Standard Error Response](#standard-error-response)
+
 **Note:**
 
 - Replace `{collection_name}` with your collection name.
@@ -419,8 +419,96 @@ Server-side aggregation endpoints for analytics. Replace `{collection_name}` wit
   - `/products:sum?field=quantity&brand[eq]=Wow`
   - `/products:max?field=quantity`
 
-See [Data Access API -> Aggregation Operations](./SPEC_API/080-aggregation.md).
-
 ## Security
 
-Refer Detailed API [003-security.md](./SPEC_API/003-security.md)
+### Rate Limiting
+
+Each response includes these headers to help you track your usage:
+
+- `X-RateLimit-Limit`: Maximum requests allowed per time window
+- `X-RateLimit-Remaining`: Requests left in the current window
+- `X-RateLimit-Reset`: Unix timestamp when your quota resets
+
+**Example Response Headers:**
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1706875200
+```
+
+**If You Exceed the Limit (429 Too Many Requests):**
+
+When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), you’ll get:
+
+```json
+{
+  "message": "rate limit exceeded"
+}
+```
+
+**Response Headers:**
+
+```text
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 60
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1706875260
+```
+
+Wait until the time in `X-RateLimit-Reset` or use the `Retry-After` value (in seconds) before making more requests.
+
+---
+
+### CORS Configuration
+
+Moon supports Cross-Origin Resource Sharing (CORS) for browser clients with flexible, pattern-based configuration.
+
+**Public Endpoints (No Auth):**
+
+Refer [Public Endpoints](./010-public.md)
+
+**Default CORS Headers:**
+
+```text
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 3600
+```
+
+- CORS can be set per endpoint or pattern in config.
+- Admins can register CORS-enabled endpoints and restrict origins.
+- Public endpoints can bypass authentication.
+- See `SPEC.md` for full config details.
+
+**OPTIONS Preflight Example:**
+
+```bash
+curl -X OPTIONS "http://localhost:6006/collections:list" \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: GET"
+```
+
+**Sample Response:**
+
+```json
+{
+  "allowed_methods": ["GET", "POST", "OPTIONS"],
+  "allowed_headers": ["Authorization", "Content-Type"],
+  "max_age": 3600
+}
+```
+
+**Sample Response Headers:**
+
+```text
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 3600
+```
+
+- For credentials, set a specific allowed origin (not `*`).
