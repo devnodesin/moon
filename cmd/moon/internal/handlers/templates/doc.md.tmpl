@@ -345,7 +345,7 @@ Supported authentication types:
 - **Token storage**: Store tokens securely. Never expose tokens in URLs or logs.
 - **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
 
-See {{ include "020-auth.md" }} for Authentication API. All error handling must follow [Standard Error Response](#standard-error-response)
+{{ include "020-auth.md" }}
 
 ---
 
@@ -359,7 +359,9 @@ See {{ include "020-auth.md" }} for Authentication API. All error handling must 
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
-See {{ include "030-users.md" }} for Users API. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "030-users.md" }}
 
 ## Manage API Keys (Admin Only)
 
@@ -371,7 +373,9 @@ See {{ include "030-users.md" }} for Users API. All error handling must follow [
 | `/apikeys:update`  | POST   | Update API key metadata or rotate key |
 | `/apikeys:destroy` | POST   | Delete API key                        |
 
-See {{ include "040-apikeys.md" }} for APIKeys API. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "040-apikeys.md" }}
 
 ## Manage Collections
 
@@ -392,7 +396,9 @@ Update collection support following schema modification operations:
 - `modify_columns` - Change column types or attributes
 - `remove_columns` - Remove existing columns
 
-See {{ include "050-collection.md" }} for Collection Management API. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "050-collection.md" }}
 
 ## Data Access
 
@@ -407,7 +413,9 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection_name}:update`  | POST   | Update an existing record                |
 | `/{collection_name}:destroy` | POST   | Delete a record                          |
 
-See {{ include "060-data.md" }} for Data Access API. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "060-data.md" }}
 
 ### Query Options
 
@@ -422,7 +430,9 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
-See {{ include "070-query.md" }} for Query Options. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "070-query.md" }}
 
 #### Combined Examples
 
@@ -453,7 +463,9 @@ Server-side aggregation endpoints for analytics. Replace `{collection_name}` wit
 | `/{collection_name}:min`   | GET    | Minimum value (requires `?field=...`)         |
 | `/{collection_name}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
-See {{ include "080-aggregation.md" }} for Aggregation Operations. All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "080-aggregation.md" }}
 
 **Note:**
 
