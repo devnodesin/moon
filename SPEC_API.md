@@ -44,6 +44,8 @@ Moon is intentionally minimal. It does **not** support:
 - **Admin UI:** API-only; no built-in web UI or dashboard.
 - **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
 - **Public endpoints:** `/health`, `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`.
+- No support for API versioning.
+- No WebSocket/Realtime
 
 ### Design Constraints
 
@@ -179,7 +181,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 - **ID field**: The `id` field is system-generated and read-only. Do not include it in create requests.
 - **Array format**: Collection records must always be sent as an array in `data`, even for single records.
 - **Partial success**: If some records fail validation, successfully created records are returned in `data`.
-- **Failed records**: Failed records are excluded from the `data` array. Check `meta.failed` count to detect partial failures.
+- **Failed records**: Failed records are excluded from the `data` array. Check `meta.failed` count to detect partial failures, refer[Data Access](#data-access) section for details.
 - **Status code**: Always returns `201 Created` if at least one record was created successfully.
 - **Consistent wrapper**: All `:create` endpoints use the `data` field for created resource(s).
 - **Message field**: Always includes a human-readable success message.
@@ -199,7 +201,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 - **Array format**: Collection records must be sent as an array in `data`, even for single deletions.
 - **Deleted IDs returned**: Response includes `data` array with IDs of successfully deleted records.
 - **Partial success**: If some records fail to delete, the successfully deleted count is shown in `meta`.
-- **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array.
+- **Failed records**: Check `meta.failed` count to detect partial failures. Failed record IDs are excluded from the `data` array. refer[Data Access](#data-access) section for details.
 - **Status code**: Returns `200 OK` if at least one record was deleted successfully.
 - **Message field**: Always includes a human-readable success message.
 - **Error Response:** Follow [Standard Error Response](#standard-error-response) for any error handling
