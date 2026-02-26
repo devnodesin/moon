@@ -13,5 +13,6 @@ agent: agent
   - Achieve at least 90% test coverage for new and updated code.
   - Run all tests after each change; fix failures immediately even the failures are not related to your implmentation.
   - Review tests for completeness, clarity, and SPEC compliance.
-- Review for code style, error handling, and compliance with `SPEC_API.md` and `SPEC_API\090-errors.md`.
-- Run the moon server localy and verify it works proerply by running python api test script against the local moon server `cd scripts && python api-check.py --server=http://localhost:6000`
+- Review all code for proper style, robust error handling, and strict compliance with `SPEC_API.md` and `SPEC_API\090-errors.md`.
+- After making changes, start the moon server locally and verify correct behavior by running the Python API test script:  
+  `cd scripts && python api-check.py --server=http://localhost:6000`

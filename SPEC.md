@@ -42,7 +42,7 @@ Moon supports a simplified, portable type system that maps consistently across a
 | `integer`  | 64-bit integer values                   | INTEGER  | BIGINT       | BIGINT       |
 | `decimal`  | Exact numeric values (e.g., price)      | NUMERIC  | NUMERIC(19,2)| DECIMAL(19,2)|
 | `boolean`  | True/false values                       | INTEGER  | BOOLEAN      | BOOLEAN      |
-| `datetime` | Date and time (ISO 8601 format) | TEXT     | TIMESTAMP    | TIMESTAMP    |
+| `datetime` | Date and time (RFC3339 format) | TEXT     | TIMESTAMP    | TIMESTAMP    |
 | `json`     | Arbitrary JSON objects or arrays        | TEXT     | JSON         | JSON         |
 
 ### Decimal Type
@@ -500,7 +500,7 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 - Returns a JSON response with four fields:
   - `moon`: Service version string (e.g., `1.0.0`)
   - `status`: Service health status (`ok` or `down`)
-  - `timestamp`: ISO 8601 timestamp of the health check
+  - `timestamp`: RFC3339 timestamp of the health check
 - Always returns HTTP 200, even if the service is down.
 - Clients must check the `status` field to determine service health.
 - Internal details such as database type, collection count, or consistency status are not exposed.

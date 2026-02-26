@@ -100,7 +100,7 @@ Supported column data types:
 - **integer**: 64-bit whole numbers.
 - **decimal**: For decimal values. API input/output uses strings (e.g., "199.99"), default 2 decimal places.
 - **boolean**: true/false values.
-- **datetime**: Date/time in ISO 8601 format (e.g., 2023-01-31T13:45:00Z).
+- **datetime**: Date/time in RFC3339 format (e.g., 2023-01-31T13:45:00Z).
 - **json**: Arbitrary JSON object or array.
 
 **_Note:_** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
