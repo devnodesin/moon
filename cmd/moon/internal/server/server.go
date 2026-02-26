@@ -496,23 +496,12 @@ func (s *Server) Run() error {
 
 // Health check handler
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	status := "live"
-
-	// Check database connection
-	if err := s.db.Ping(ctx); err != nil {
-		status = "down"
+	response := map[string]any{
+		"moon":      s.version,
+		"status":    "ok",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 
-	response := map[string]string{
-		"status":  status,
-		"name":    "moon",
-		"version": s.version,
-	}
-
-	// Always return HTTP 200, even if service is down
-	// Clients must check the "status" field to determine service health
 	s.writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
 

@@ -176,7 +176,7 @@ func TestDynamicDataHandler_AllActions(t *testing.T) {
 	}
 }
 
-// TestHealthHandler_DatabaseDown tests health when database is down
+// TestHealthHandler_DatabaseDown tests health when database is down - should still return "ok"
 func TestHealthHandler_DatabaseDown(t *testing.T) {
 	cfg := &config.AppConfig{
 		Server: config.ServerConfig{
@@ -211,8 +211,9 @@ func TestHealthHandler_DatabaseDown(t *testing.T) {
 		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
-	if response["status"] != "down" {
-		t.Errorf("Expected status 'down' when db fails, got '%v'", response["status"])
+	// Health endpoint always returns "ok" per SPEC regardless of database state
+	if response["status"] != "ok" {
+		t.Errorf("Expected status 'ok', got '%v'", response["status"])
 	}
 }
 
