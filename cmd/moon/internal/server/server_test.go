@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
 	"github.com/thalib/moon/cmd/moon/internal/database"
@@ -122,21 +123,24 @@ func TestHealthHandler(t *testing.T) {
 		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
-	if response["status"] != "live" {
-		t.Errorf("Expected status 'live', got '%v'", response["status"])
+	if response["status"] != "ok" {
+		t.Errorf("Expected status 'ok', got '%v'", response["status"])
 	}
 
-	if response["name"] != "moon" {
-		t.Errorf("Expected name 'moon', got '%v'", response["name"])
+	if response["moon"] != "1-test" {
+		t.Errorf("Expected moon '1-test', got '%v'", response["moon"])
 	}
 
-	if response["version"] != "1-test" {
-		t.Errorf("Expected version '1-test', got '%v'", response["version"])
+	ts, ok2 := response["timestamp"].(string)
+	if !ok2 || ts == "" {
+		t.Error("Expected timestamp to be a non-empty string")
+	} else if _, err := time.Parse(time.RFC3339, ts); err != nil {
+		t.Errorf("Expected timestamp in RFC3339 format, got '%s': %v", ts, err)
 	}
 
-	// Ensure no other fields are present in data
+	// Ensure exactly the expected fields are present in data: moon, status, timestamp
 	if len(response) != 3 {
-		t.Errorf("Expected exactly 3 fields, got %d: %v", len(response), response)
+		t.Errorf("Expected exactly 3 fields (moon, status, timestamp), got %d: %v", len(response), response)
 	}
 }
 
