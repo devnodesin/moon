@@ -23,14 +23,14 @@
 
 ## Table of Contents
 
-- [Standard API Response Patterns](#standard-api-response-patterns)
-  - [Standard Response Pattern](#standard-response-pattern)
-    - [:list Endpoints](#list-endpoints)
-    - [:get Endpoints](#get-endpoints)
-    - [:create Endpoints](#create-endpoints)
-    - [:destroy Endpoints](#destroy-endpoints)
-    - [:update Endpoints](#update-endpoints)
-    - [:schema Endpoints](#schema-endpoints)
+- [Introduction](#introduction)
+- [Standard Response Pattern](#standard-response-pattern)
+  - [:list Endpoints](#list-endpoints)
+  - [:get Endpoints](#get-endpoints)
+  - [:create Endpoints](#create-endpoints)
+  - [:destroy Endpoints](#destroy-endpoints)
+  - [:update Endpoints](#update-endpoints)
+  - [:schema Endpoints](#schema-endpoints)
 - [Standard Error Response](#standard-error-response)
 - [Public Endpoints](#public-endpoints)
 - [Authentication](#authentication)
@@ -296,7 +296,7 @@ Retrieve the schema definition for a collection, including all fields, their typ
 
 ## Standard Error Response
 
-{{ include "090-error.md" }}
+{{ include "090-errors.md" }}
 
 ## Public Endpoints
 
@@ -524,9 +524,7 @@ Wait until the time in `X-RateLimit-Reset` or use the `Retry-After` value (in se
 
 Moon supports Cross-Origin Resource Sharing (CORS) for browser clients with flexible, pattern-based configuration.
 
-**Public Endpoints (No Auth):**
-
-Refer [Public Endpoints](./010-public.md)
+**Public Endpoints (No Auth):** Refer [Public Endpoints](#public-endpoints)
 
 **Default CORS Headers:**
 

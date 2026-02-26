@@ -4,14 +4,14 @@ Moon enables rapid, migrationless management of database tables and records thro
 
 ## Table of Contents
 
-- [Standard API Response Patterns](#standard-api-response-patterns)
-  - [Standard Response Pattern](#standard-response-pattern)
-    - [:list Endpoints](#list-endpoints)
-    - [:get Endpoints](#get-endpoints)
-    - [:create Endpoints](#create-endpoints)
-    - [:destroy Endpoints](#destroy-endpoints)
-    - [:update Endpoints](#update-endpoints)
-    - [:schema Endpoints](#schema-endpoints)
+- [Introduction](#introduction)
+- [Standard Response Pattern](#standard-response-pattern)
+  - [:list Endpoints](#list-endpoints)
+  - [:get Endpoints](#get-endpoints)
+  - [:create Endpoints](#create-endpoints)
+  - [:destroy Endpoints](#destroy-endpoints)
+  - [:update Endpoints](#update-endpoints)
+  - [:schema Endpoints](#schema-endpoints)
 - [Standard Error Response](#standard-error-response)
 - [Public Endpoints](#public-endpoints)
 - [Authentication](#authentication)
@@ -277,7 +277,7 @@ Retrieve the schema definition for a collection, including all fields, their typ
 
 ## Standard Error Response
 
-See [Standard Error Response](./SPEC_API/090-error.md) for any error handling
+See [Standard Error Response](./SPEC_API/090-errors.md) for any error handling
 
 ## Public Endpoints
 
@@ -534,4 +534,4 @@ Access-Control-Allow-Headers: Authorization, Content-Type
 Access-Control-Max-Age: 3600
 ```
 
-- For credentials, set a specific allowed origin (not `*`).
+- **TIP:** In production server set a specific allowed origin (not `*`).
