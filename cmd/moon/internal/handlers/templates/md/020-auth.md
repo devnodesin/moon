@@ -1,5 +1,7 @@
 ### Login
 
+Authenticate user and retrieve access and refresh tokens.
+
 ```bash
 curl -s -X POST "http://localhost:6006/auth:login" \
     -H "Content-Type: application/json" \
@@ -16,12 +18,12 @@ curl -s -X POST "http://localhost:6006/auth:login" \
 ```json
 {
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJleHAiOjE3NzE0NzAyNjUsIm5iZiI6MTc3MTQ2NjYzNSwiaWF0IjoxNzcxNDY2NjY1fQ.Osb7IIMBx2iCMhvhpKTN0lz-_dum0JfYGUMfEC3SWhs",
-    "refresh_token": "xWqY732xkDmydNXtuyDbNagw3kBb8ZnHXC_439mCVS4=",
-    "expires_at": "2026-02-19T03:04:25.550813514Z",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJleHAiOjE3NzIwOTQ1MDMsIm5iZiI6MTc3MjA5MDg3MywiaWF0IjoxNzcyMDkwOTAzfQ.aAu_3Ax4A0PBIXtA91AlQHPMl7a6bh6CzBiPKI4_Pjw",
+    "refresh_token": "HvYdfIspl7S_D8MrM0rHDbHMikSloPfCZJfOxxS-kME=",
+    "expires_at": "2026-02-26T08:28:23.831470496Z",
     "token_type": "Bearer",
     "user": {
-      "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+      "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
       "username": "newuser",
       "email": "newuser@example.com",
       "role": "user",
@@ -34,6 +36,8 @@ curl -s -X POST "http://localhost:6006/auth:login" \
 
 ### Get Current User
 
+Fetch details of the currently authenticated user.
+
 ```bash
 curl -s -X GET "http://localhost:6006/auth:me" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
@@ -44,7 +48,7 @@ curl -s -X GET "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
     "username": "newuser",
     "email": "newuser@example.com",
     "role": "user",
@@ -54,6 +58,8 @@ curl -s -X GET "http://localhost:6006/auth:me" \
 ```
 
 ### Update Current User (Change email)
+
+Change email for current user.
 
 ```bash
 curl -s -X POST "http://localhost:6006/auth:me" \
@@ -71,7 +77,7 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
@@ -82,6 +88,8 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```
 
 ### Update Current User (Change Password)
+
+Change password for current user.
 
 ```bash
 curl -s -X POST "http://localhost:6006/auth:me" \
@@ -100,7 +108,7 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
@@ -111,6 +119,8 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```
 
 ### Refresh Token
+
+Generate new access token using refresh token.
 
 ```bash
 curl -s -X POST "http://localhost:6006/auth:refresh" \
@@ -127,12 +137,12 @@ curl -s -X POST "http://localhost:6006/auth:refresh" \
 ```json
 {
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSFNUOEE3V1I0Q1pNRU03SzQ4S0ZFN1EiLCJleHAiOjE3NzE0NzAyNjcsIm5iZiI6MTc3MTQ2NjYzNywiaWF0IjoxNzcxNDY2NjY3fQ.zZ2DDNVADdtP6kz2xe6jqAiSJwJWZWiPHT7KR-V5ems",
-    "refresh_token": "vSyq-5vOAtnPCVO7W6zZslmzb53Ca9Py235G2gjg91g=",
-    "expires_at": "2026-02-19T03:04:27.449751842Z",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJleHAiOjE3NzIwOTQ1MDUsIm5iZiI6MTc3MjA5MDg3NSwiaWF0IjoxNzcyMDkwOTA1fQ.3hayP_WUaGEUlcnSWotMzjt42KHY5G7Oblt-4EziYDs",
+    "refresh_token": "gD_4bWQeYhu--AoSpGBB3h2N9By0vkmQy3WFNDv2pwI=",
+    "expires_at": "2026-02-26T08:28:25.573036556Z",
     "token_type": "Bearer",
     "user": {
-      "id": "01KHST8A7WR4CZMEM7K48KFE7Q",
+      "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
       "username": "newuser",
       "email": "newemail@example.com",
       "role": "user",
@@ -144,6 +154,8 @@ curl -s -X POST "http://localhost:6006/auth:refresh" \
 ```
 
 ### Logout
+
+Invalidate current session and refresh token.
 
 ```bash
 curl -s -X POST "http://localhost:6006/auth:logout" \

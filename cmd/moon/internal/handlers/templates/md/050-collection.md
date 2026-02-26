@@ -6,35 +6,37 @@ curl -s -X POST "http://localhost:6006/collections:create" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "columns": [
-          {
-            "name": "title",
-            "type": "string",
-            "nullable": false,
-            "unique": true
-          },
-          {
-            "name": "price",
-            "type": "integer",
-            "nullable": false
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "nullable": true
-          },
-          {
-            "name": "review",
-            "type": "integer",
-            "nullable": true
-          },
-          {
-            "name": "category",
-            "type": "string",
-            "nullable": true
-          }
-        ]
+        "data": {
+          "name": "products",
+          "columns": [
+            {
+              "name": "title",
+              "type": "string",
+              "nullable": false,
+              "unique": true
+            },
+            {
+              "name": "price",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "review",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "nullable": true
+            }
+          ]
+        }
       }
     ' | jq .
 ```
@@ -63,21 +65,21 @@ curl -s -X POST "http://localhost:6006/collections:create" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "category",
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       }
     ]
   },
@@ -142,21 +144,21 @@ curl -s -X GET "http://localhost:6006/collections:get?name=products" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "category",
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       }
     ]
   }
@@ -171,14 +173,16 @@ curl -s -X POST "http://localhost:6006/collections:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "add_columns": [
-          {
-            "name": "stock",
-            "type": "integer",
-            "nullable": false
-          }
-        ]
+        "data": {
+          "name": "products",
+          "add_columns": [
+            {
+              "name": "stock",
+              "type": "integer",
+              "nullable": false
+            }
+          ]
+        }
       }
     ' | jq .
 ```
@@ -207,21 +211,21 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "category",
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "stock",
@@ -243,13 +247,15 @@ curl -s -X POST "http://localhost:6006/collections:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "rename_columns": [
-          {
-            "old_name": "description",
-            "new_name": "details"
-          }
-        ]
+        "data": {
+          "name": "products",
+          "rename_columns": [
+            {
+              "old_name": "description",
+              "new_name": "details"
+            }
+          ]
+        }
       }
     ' | jq .
 ```
@@ -278,21 +284,21 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "category",
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "stock",
@@ -314,14 +320,16 @@ curl -s -X POST "http://localhost:6006/collections:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "modify_columns": [
-          {
-            "name": "category",
-            "type": "integer",
-            "nullable": true
-          }
-        ]
+        "data": {
+          "name": "products",
+          "modify_columns": [
+            {
+              "name": "category",
+              "type": "integer",
+              "nullable": true
+            }
+          ]
+        }
       }
     ' | jq .
 ```
@@ -350,21 +358,21 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "category",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "stock",
@@ -386,10 +394,12 @@ curl -s -X POST "http://localhost:6006/collections:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "remove_columns": [
-          "category"
-        ]
+        "data": {
+          "name": "products",
+          "remove_columns": [
+            "category"
+          ]
+        }
       }
     ' | jq .
 ```
@@ -418,14 +428,14 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "stock",
@@ -447,27 +457,29 @@ curl -s -X POST "http://localhost:6006/collections:update" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "name": "products",
-        "add_columns": [
-          {
-            "name": "brand",
-            "type": "string",
-            "nullable": false
-          }
-        ],
-        "rename_columns": [
-          {
-            "old_name": "stock",
-            "new_name": "quantity"
-          }
-        ],
-        "modify_columns": [
-          {
-            "name": "price",
-            "type": "integer",
-            "nullable": false
-          }
-        ]
+        "data": {
+          "name": "products",
+          "add_columns": [
+            {
+              "name": "brand",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "rename_columns": [
+            {
+              "old_name": "stock",
+              "new_name": "quantity"
+            }
+          ],
+          "modify_columns": [
+            {
+              "name": "price",
+              "type": "integer",
+              "nullable": false
+            }
+          ]
+        }
       }
     ' | jq .
 ```
@@ -496,14 +508,14 @@ curl -s -X POST "http://localhost:6006/collections:update" \
         "type": "string",
         "nullable": true,
         "unique": false,
-        "default_value": "''"
+        "default": "''"
       },
       {
         "name": "review",
         "type": "integer",
         "nullable": true,
         "unique": false,
-        "default_value": "0"
+        "default": "0"
       },
       {
         "name": "quantity",
