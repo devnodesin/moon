@@ -302,7 +302,7 @@ func (v *SchemaValidator) validateStringConstraints(fieldName string, value stri
 func (v *SchemaValidator) validateDatetime(fieldName, value string) *ValidationError {
 	// Support multiple common datetime formats
 	formats := []string{
-		time.RFC3339,
+		constants.DatetimeFormat,
 		"2006-01-02T15:04:05",
 		"2006-01-02 15:04:05",
 		"2006-01-02",

@@ -499,7 +499,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"moon":      s.version,
 		"status":    "ok",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"timestamp": time.Now().UTC().Format(constants.DatetimeFormat),
 	}
 
 	s.writeJSON(w, http.StatusOK, map[string]any{"data": response})

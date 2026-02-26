@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/thalib/moon/cmd/moon/internal/config"
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
@@ -134,8 +135,8 @@ func TestHealthHandler(t *testing.T) {
 	ts, ok2 := response["timestamp"].(string)
 	if !ok2 || ts == "" {
 		t.Error("Expected timestamp to be a non-empty string")
-	} else if _, err := time.Parse(time.RFC3339, ts); err != nil {
-		t.Errorf("Expected timestamp in RFC3339 format, got '%s': %v", ts, err)
+	} else if _, err := time.Parse(constants.DatetimeFormat, ts); err != nil {
+		t.Errorf("Expected timestamp in ISO 8601 format, got '%s': %v", ts, err)
 	}
 
 	// Ensure exactly the expected fields are present in data: moon, status, timestamp

@@ -146,7 +146,7 @@ func NewLogger(config LoggerConfig) *Logger {
 				output = os.Stdout
 			} else {
 				// Create dual writer: stdout gets console format, file gets simple format
-				consoleOut := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+				consoleOut := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: constants.DatetimeFormat}
 				fileOut := &simpleWriter{out: file}
 				output = &dualWriter{
 					consoleWriter: consoleOut,
@@ -209,7 +209,7 @@ func NewLogger(config LoggerConfig) *Logger {
 		logger = zerolog.New(output).Level(zeroLevel).With().Timestamp().Logger()
 	} else if config.Format == "console" {
 		// Console format (colorized)
-		consoleOut := zerolog.ConsoleWriter{Out: output, TimeFormat: time.RFC3339}
+		consoleOut := zerolog.ConsoleWriter{Out: output, TimeFormat: constants.DatetimeFormat}
 		logger = zerolog.New(consoleOut).Level(zeroLevel).With().Timestamp().Logger()
 	} else {
 		// Default to simple text format: [LEVEL](TIMESTAMP): {MESSAGE}

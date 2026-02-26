@@ -65,6 +65,10 @@ const (
 	SystemNamespace = "moon"
 )
 
+// DatetimeFormat is the ISO 8601 datetime format used throughout the application.
+// This is equivalent to time.RFC3339 but named to reflect the ISO 8601 standard.
+const DatetimeFormat = "2006-01-02T15:04:05Z07:00"
+
 // Regular expression patterns for validation.
 const (
 	// CollectionNamePattern is the regex pattern for valid collection names.

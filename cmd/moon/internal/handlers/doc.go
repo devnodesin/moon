@@ -542,10 +542,10 @@ func (h *DocHandler) buildJSONAppendix() string {
 			},
 			{
 				Name:        "datetime",
-				Description: "Date/time in RFC3339 or ISO 8601 format",
+				Description: "Date/time in ISO 8601 format",
 				SQLMapping:  "DATETIME",
 				Example:     "2023-01-31T13:45:00Z",
-				Format:      "RFC3339",
+				Format:      "ISO 8601",
 				Note:        "Stored as ISO 8601, nullable fields default to empty string when null",
 			},
 			{

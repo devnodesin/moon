@@ -862,8 +862,8 @@ func validateDefaultValue(column *registry.Column) error {
 		return nil
 
 	case registry.TypeDatetime:
-		if _, err := time.Parse(time.RFC3339, value); err != nil {
-			return fmt.Errorf("default value '%s' is invalid for type 'datetime'. Use RFC3339 format (e.g., '2024-01-01T00:00:00Z')", value)
+		if _, err := time.Parse(constants.DatetimeFormat, value); err != nil {
+			return fmt.Errorf("default value '%s' is invalid for type 'datetime'. Use ISO 8601 format (e.g., '2024-01-01T00:00:00Z')", value)
 		}
 		return nil
 

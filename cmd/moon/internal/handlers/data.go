@@ -1937,7 +1937,7 @@ func getDefaultValue(col registry.Column) any {
 			lower := strings.ToLower(defaultStr)
 			return lower == "true" || lower == "1"
 		case registry.TypeDatetime:
-			// Keep as string (RFC3339 format)
+			// Keep as string (ISO 8601 format)
 			return defaultStr
 		case registry.TypeJSON:
 			// Keep as string (JSON content)
