@@ -42,7 +42,7 @@ Moon supports a simplified, portable type system that maps consistently across a
 | `integer`  | 64-bit integer values                   | INTEGER  | BIGINT       | BIGINT       |
 | `decimal`  | Exact numeric values (e.g., price)      | NUMERIC  | NUMERIC(19,2)| DECIMAL(19,2)|
 | `boolean`  | True/false values                       | INTEGER  | BOOLEAN      | BOOLEAN      |
-| `datetime` | Date and time (RFC3339/ISO 8601 format) | TEXT     | TIMESTAMP    | TIMESTAMP    |
+| `datetime` | Date and time (ISO 8601 format) | TEXT     | TIMESTAMP    | TIMESTAMP    |
 | `json`     | Arbitrary JSON objects or arrays        | TEXT     | JSON         | JSON         |
 
 ### Decimal Type
