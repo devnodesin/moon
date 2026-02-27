@@ -33,12 +33,6 @@ const (
 	// Default: 60 seconds
 	HTTPIdleTimeout = 60 * time.Second
 
-	// HealthCheckTimeout is the maximum time allowed for a single health check operation.
-	// Used in: health/health.go
-	// Purpose: Ensures health checks don't block indefinitely
-	// Default: 5 seconds
-	HealthCheckTimeout = 5 * time.Second
-
 	// JWTClockSkew is the tolerance for JWT token expiration time validation.
 	// Used in: middleware/auth.go
 	// Purpose: Accounts for clock drift between servers

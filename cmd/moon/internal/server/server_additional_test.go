@@ -176,7 +176,7 @@ func TestDynamicDataHandler_AllActions(t *testing.T) {
 	}
 }
 
-// TestHealthHandler_DatabaseDown tests health when database is down - should still return "ok"
+// TestHealthHandler_DatabaseDown tests health when database is down - should still return 200
 func TestHealthHandler_DatabaseDown(t *testing.T) {
 	cfg := &config.AppConfig{
 		Server: config.ServerConfig{
@@ -211,9 +211,17 @@ func TestHealthHandler_DatabaseDown(t *testing.T) {
 		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
-	// Health endpoint always returns "ok" per SPEC regardless of database state
-	if response["status"] != "ok" {
-		t.Errorf("Expected status 'ok', got '%v'", response["status"])
+	// Per SPEC_API/010-health.md: response contains only moon and timestamp
+	if response["moon"] != "1.0" {
+		t.Errorf("Expected moon '1.0', got '%v'", response["moon"])
+	}
+
+	if _, ok := response["timestamp"].(string); !ok {
+		t.Error("Expected timestamp to be a string")
+	}
+
+	if len(response) != 2 {
+		t.Errorf("Expected exactly 2 fields (moon, timestamp), got %d: %v", len(response), response)
 	}
 }
 

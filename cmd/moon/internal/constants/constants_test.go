@@ -52,7 +52,6 @@ func TestTimeoutConstants(t *testing.T) {
 		{"HTTP read timeout", HTTPReadTimeout, 15 * time.Second},
 		{"HTTP write timeout", HTTPWriteTimeout, 15 * time.Second},
 		{"HTTP idle timeout", HTTPIdleTimeout, 60 * time.Second},
-		{"Health check timeout", HealthCheckTimeout, 5 * time.Second},
 		{"JWT clock skew", JWTClockSkew, 30 * time.Second},
 		{"Slow query threshold", SlowQueryThreshold, 500 * time.Millisecond},
 	}

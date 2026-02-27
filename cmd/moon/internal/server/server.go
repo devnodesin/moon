@@ -496,11 +496,11 @@ func (s *Server) Run() error {
 	return nil
 }
 
-// Health check handler
+// healthHandler handles GET /health per SPEC_API/010-health.md.
+// Returns only data.moon (version) and data.timestamp (RFC3339 UTC).
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"moon":      s.version,
-		"status":    "ok",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 

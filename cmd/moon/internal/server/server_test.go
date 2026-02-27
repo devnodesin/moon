@@ -123,10 +123,6 @@ func TestHealthHandler(t *testing.T) {
 		t.Fatalf("Expected data wrapper, got %v", wrapper)
 	}
 
-	if response["status"] != "ok" {
-		t.Errorf("Expected status 'ok', got '%v'", response["status"])
-	}
-
 	if response["moon"] != "1-test" {
 		t.Errorf("Expected moon '1-test', got '%v'", response["moon"])
 	}
@@ -138,9 +134,9 @@ func TestHealthHandler(t *testing.T) {
 		t.Errorf("Expected timestamp in RFC3339 format, got '%s': %v", ts, err)
 	}
 
-	// Ensure exactly the expected fields are present in data: moon, status, timestamp
-	if len(response) != 3 {
-		t.Errorf("Expected exactly 3 fields (moon, status, timestamp), got %d: %v", len(response), response)
+	// Per SPEC_API/010-health.md: response must contain exactly moon and timestamp
+	if len(response) != 2 {
+		t.Errorf("Expected exactly 2 fields (moon, timestamp), got %d: %v", len(response), response)
 	}
 }
 
