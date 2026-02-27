@@ -5,18 +5,9 @@ Compare the implementation in the source code with the following specification f
 - SPEC.md
 - SPEC_API.md
 - SPEC_AUTH.md
+- SPEC_API/*.md
 
-For each file listed below, verify that the source code is fully compliant with the corresponding API specification:
-
-- SPEC_API/010-health.md
-- SPEC_API/020-auth.md
-- SPEC_API/030-users.md
-- SPEC_API/040-apikeys.md
-- SPEC_API/050-collection.md
-- SPEC_API/060-data.md
-- SPEC_API/070-query.md
-- SPEC_API/080-aggregation.md
-- SPEC_API/090-errors.md
+For each file listed in `SPEC_API/*.md`, verify that the source code is fully compliant with the corresponding API specification:
 
 Document your findings in a new file named GAP_ANALYSIS.md. This document should include:
 
@@ -28,5 +19,5 @@ Document your findings in a new file named GAP_ANALYSIS.md. This document should
 
 Do not modify any other source code; only create and write the GAP_ANALYSIS.md file.
 
-- If needed run the moon server locally and verify correct behavior by running the Python API test script:  
+- Run the moon server locally and verify correct behavior againts the local moon server by running the Python API test script:  
   `cd scripts && python api-check.py --server=http://localhost:6000`
