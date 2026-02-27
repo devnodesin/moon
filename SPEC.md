@@ -8,21 +8,21 @@ This document outlines the architecture and design for a high-performance, API-f
 
 ## Table of Contents
 
-1. [System Philosophy](#1-system-philosophy)
+1. [System Philosophy](#system-philosophy)
 2. [Data Types](#data-types)
 3. [Default Values](#default-values)
 4. [Validation Constraints](#validation-constraints)
 5. [API Standards](#api-standards)
 6. [Configuration Architecture](#configuration-architecture)
-7. [API Endpoint Specification](#2-api-endpoint-specification)
+7. [API Endpoint Specification](#api-endpoint-specification)
 8. [Database Schema Design](#database-schema-design)
 9. [Interface & Integration](#interface--integration)
 10. [Authentication & Authorization](#authentication--authorization)
-11. [Design for AI Maintainability](#4-design-for-ai-maintainability)
-12. [Persistence Layer & Agnosticism](#5-persistence-layer--agnosticism)
-13. [End-User Testing](#6-end-user-testing)
+11. [Design for AI Maintainability](#design-for-ai-maintainability)
+12. [Persistence Layer & Agnosticism](#persistence-layer--agnosticism)
+13. [End-User Testing](#end-user-testing)
 
-## 1. System Philosophy
+## System Philosophy
 
 - **Migration-Less Data Modeling:** Database tables and columns are created, modified, and deleted via API calls rather than manual migration files.
 - **AIP-136 Custom Actions:** APIs use a colon separator (`:`) to distinguish between the resource and the action, providing a predictable and AI-friendly interface.
@@ -513,7 +513,7 @@ moon -d
 - Process continues after terminal closes
 - Supports graceful shutdown via SIGTERM/SIGINT
 
-## 2. API Endpoint Specification
+## API Endpoint Specification
 
 > **API endpoint details, request/response formats, query options, batch operations, aggregation, and error codes are fully defined in [SPEC_API.md](SPEC_API.md).**
 
@@ -562,18 +562,7 @@ The server maintains a **sync.Map** cache of collection schemas for zero-latency
 
 > **📖 Complete Specification**: See [SPEC_AUTH.md](SPEC_AUTH.md) for detailed authentication flows, JWT tokens, API keys, roles, permissions, and security configuration.
 
-**Authentication Methods:**
-
-| Method | Header Format | Use Case | Rate Limit |
-|--------|--------------|----------|------------|
-| JWT | `Authorization: Bearer <token>` | Interactive users | 100 req/min |
-| API Key | `Authorization: Bearer moon_live_*` | Machine-to-machine | 1000 req/min |
-
-**Roles:** `admin` (full access), `user` (read + optional write)  
-**Permissions:** Role-based with `can_write` flag for user role  
-**Rate Limits:** Per-user/key with headers (`X-RateLimit-*`)
-
-## 4. Design for AI Maintainability
+## Design for AI Maintainability
 
 - **Predictable Interface:** By standardizing the `:action` suffix, AI agents can guess the correct endpoint for any new collection with 100% accuracy.
 - **Statically Typed Logic:** Although data is dynamic (`map[string]any`), the internal validation logic is strictly typed, preventing AI-generated bugs from corrupting the database.
@@ -582,13 +571,13 @@ The server maintains a **sync.Map** cache of collection schemas for zero-latency
 
 ---
 
-## 5. Persistence Layer & Agnosticism
+## Persistence Layer & Agnosticism
 
 - **Dialect-Agnostic:** The server uses a driver-based approach. The user provides a connection string, and Moon-Go detects if it needs to use `Postgres`, `MySQL`, or `SQLite` syntax.
 - **Database Type Fixed at Startup:** The database type is selected at server startup and cannot be changed at runtime.
 - **Single-Tenant Focus:** Optimized as a high-speed core for a single application, ensuring maximum simplicity and maintainability.
 
-## 6. End-User Testing
+## End-User Testing
 
 **Recommended:** Use curl for endpoint testing with JWT/API key authentication  
 **Payloads:** JSON via `-d` flag with `Content-Type: application/json`  
