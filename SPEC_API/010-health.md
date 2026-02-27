@@ -10,7 +10,6 @@ curl -s -X GET "http://localhost:6006/health" | jq .
 {
   "data": {
     "moon": "1.0.0",
-    "status": "ok",    
     "timestamp": "2026-02-03T13:58:53Z"
   }
 }

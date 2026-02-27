@@ -151,15 +151,6 @@ POST /collections:create
 }
 ```
 
-**Error Response:**
-
-```json
-{
-  "code": 400,
-  "error": "unknown field 'default' in column 0"
-}
-```
-
 **Correct usage:**
 
 ```json
