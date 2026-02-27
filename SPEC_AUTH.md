@@ -211,9 +211,8 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 
 ### Rate Limiting
 
-**Limits:** 100 req/min per JWT user, 1000 req/min per API key, 5 failed login attempts per 15 min  
-**Headers:** `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`  
-**Response:** `429 Too Many Requests` when exceeded
+- **Login:** 5 failed attempts per 15 minutes per IP/username (auth-specific)
+- **Standard limits, response headers, and rate-limit error format:** See [SPEC_API.md § Security > Rate Limiting](SPEC_API.md#rate-limiting)
 
 ### Session Management
 
@@ -306,554 +305,65 @@ CREATE INDEX idx_apikeys_hash ON apikeys(key_hash);
 
 ## API Endpoints
 
-> **📖 Complete API Reference**: For standardized request/response formats, error codes, and pagination patterns used by authentication endpoints, see **[SPEC_API.md](SPEC_API.md)**.
->
-> This section documents authentication-specific endpoints. These endpoints follow the same response patterns as other Moon APIs.
-
-All auth endpoints follow the AIP-136 custom actions pattern (resource:action).
+All auth endpoints follow the AIP-136 custom actions pattern (`resource:action`). For all request/response formats, error codes, and pagination patterns, see the references below.
 
 ### Authentication Endpoints (Public)
 
-#### POST /auth:login
+> **📖 Full Reference**: [SPEC_API/020-auth.md](SPEC_API/020-auth.md)
 
-**Purpose:** Authenticate user and receive access + refresh tokens
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/auth:login` | POST | Authenticate user and receive access + refresh tokens |
+| `/auth:logout` | POST | Invalidate current session's refresh token |
+| `/auth:refresh` | POST | Exchange refresh token for new access + refresh token pair |
+| `/auth:me` | GET | Get current authenticated user information |
+| `/auth:me` | POST | Update current user's profile (email, password) |
 
-> **📖 Request/Response**: See [SPEC_API.md § Login](SPEC_API.md#login) for full request/response format.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+**Auth-specific notes:**
 
----
-
-#### POST /auth:logout
-
-**Purpose:** Invalidate current session's refresh token
-
-> **📖 Request/Response**: See [SPEC_API.md § Logout](SPEC_API.md#logout) for full request/response format.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### POST /auth:refresh
-
-**Purpose:** Exchange refresh token for new access + refresh token pair
-
-> **📖 Request/Response**: See [SPEC_API.md § Refresh Token](SPEC_API.md#refresh-token) for full request/response format.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### GET /auth:me
-
-**Purpose:** Get current authenticated user information
-
-> **📖 Request/Response**: See [SPEC_API.md § Get Current User](SPEC_API.md#get-current-user) for full response format.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### POST /auth:me
-
-**Purpose:** Update current user's profile (email, password)
-
-> **📖 Request/Response**: See [SPEC_API.md § Update Current User](SPEC_API.md#update-current-user) for full request/response format.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- Password change invalidates all refresh tokens (forces re-login)
-- Email change requires re-verification (if email verification enabled)
+- `POST /auth:me` password change invalidates all refresh tokens (forces re-login)
 
 ---
 
 ### User Management Endpoints (Admin Only)
 
-#### GET /users:list
+> **📖 Full Reference**: [SPEC_API/030-users.md](SPEC_API/030-users.md)
 
-**Purpose:** List all users with pagination
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/users:list` | GET | List all users with pagination |
+| `/users:get` | GET | Get specific user by ID |
+| `/users:create` | POST | Create new user (admin only — no self-registration) |
+| `/users:update` | POST | Update user properties or perform admin actions (`reset_password`, `revoke_sessions`) |
+| `/users:destroy` | POST | Delete user account |
 
-**Headers:**
+**Auth-specific notes:**
 
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `limit` (optional, default: 50, max: 100)
-- `after` (optional): Cursor for pagination (user ULID)
-- `role` (optional): Filter by role ("admin" or "user")
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "username": "admin",
-      "email": "admin@example.com",
-      "role": "admin",
-      "can_write": true,
-      "created_at": "2024-01-10T08:00:00Z",
-      "last_login_at": "2024-01-16T09:00:00Z"
-    },
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-      "username": "user1",
-      "email": "user1@example.com",
-      "role": "user",
-      "can_write": false,
-      "created_at": "2024-01-12T10:30:00Z",
-      "last_login_at": "2024-01-15T14:20:00Z"
-    }
-  ],
-  "meta": {
-    "count": 2,
-    "limit": 50,
-    "next": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-    "prev": null
-  }
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints) for pagination details.
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
----
-
-#### GET /users:get
-
-**Purpose:** Get specific user by ID
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): User ULID
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user1",
-    "email": "user1@example.com",
-    "role": "user",
-    "can_write": false,
-    "created_at": "2024-01-12T10:30:00Z",
-    "updated_at": "2024-01-15T11:00:00Z",
-    "last_login_at": "2024-01-15T14:20:00Z"
-  }
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### POST /users:create
-
-**Purpose:** Create new user (admin only - no self-registration)
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Request:**
-
-```json
-{
-  "username": "newuser",
-  "email": "newuser@example.com",
-  "password": "SecurePass123",
-  "role": "user",
-  "can_write": false
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "newuser",
-    "email": "newuser@example.com",
-    "role": "user",
-    "can_write": false,
-    "created_at": "2024-01-16T15:30:00Z"
-  },
-  "message": "User created successfully"
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### POST /users:update
-
-**Purpose:** Update user properties or perform admin actions
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): User ULID
-
-**Request (update role and permissions):**
-
-```json
-{
-  "role": "user",
-  "can_write": true
-}
-```
-
-**Request (reset password):**
-
-```json
-{
-  "action": "reset_password",
-  "new_password": "NewSecurePass456"
-}
-```
-
-**Request (revoke all sessions):**
-
-```json
-{
-  "action": "revoke_sessions"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "username": "user1",
-    "email": "user1@example.com",
-    "role": "user",
-    "can_write": true,
-    "created_at": "2024-01-12T10:30:00Z",
-    "updated_at": "2024-01-16T16:00:00Z"
-  },
-  "message": "User updated successfully"
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- Password reset invalidates all user's refresh tokens
-- Revoking sessions invalidates all user's refresh tokens
-- Cannot downgrade the last admin user to regular user (must have at least one admin)
-
----
-
-#### POST /users:destroy
-
-**Purpose:** Delete user account
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): User ULID
-
-**Response (200 OK):**
-
-```json
-{
-  "message": "User deleted successfully"
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- Cannot delete the last admin user (must have at least one admin)
-- Deleting user cascades to refresh_tokens (via foreign key)
+- `reset_password` action invalidates all user's refresh tokens
+- `revoke_sessions` action invalidates all user's refresh tokens
+- Cannot downgrade the last admin user (must always have at least one admin)
+- Cannot delete the last admin user
+- Deleting a user cascades to all their refresh tokens (via foreign key)
 
 ---
 
 ### API Key Management Endpoints (Admin Only)
 
-#### GET /apikeys:list
+> **📖 Full Reference**: [SPEC_API/040-apikeys.md](SPEC_API/040-apikeys.md)
 
-**Purpose:** List all API keys (metadata only)
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/apikeys:list` | GET | List all API keys (metadata only — key value never returned) |
+| `/apikeys:get` | GET | Get specific API key metadata by ID |
+| `/apikeys:create` | POST | Create new API key |
+| `/apikeys:update` | POST | Update metadata or rotate key (`rotate` action) |
+| `/apikeys:destroy` | POST | Delete API key |
 
-**Headers:**
+**Auth-specific notes:**
 
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `limit` (optional, default: 50, max: 100)
-- `after` (optional): Cursor for pagination (key ULID)
-
-**Response (200 OK):**
-
-```json
-{
-  "data": [
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-      "name": "Production Service",
-      "description": "Main API integration",
-      "role": "user",
-      "can_write": true,
-      "created_at": "2024-01-10T10:00:00Z",
-      "last_used_at": "2024-01-16T14:30:00Z"
-    },
-    {
-      "id": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-      "name": "Analytics Service",
-      "description": "Read-only analytics integration",
-      "role": "user",
-      "can_write": false,
-      "created_at": "2024-01-12T11:00:00Z",
-      "last_used_at": "2024-01-16T15:00:00Z"
-    }
-  ],
-  "meta": {
-    "count": 2,
-    "limit": 50,
-    "next": "01ARZ3NDEKTSV4RRFFQ69G5FBX",
-    "prev": null
-  }
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:list` Endpoints](SPEC_API.md#standard-response-pattern-for-list-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- Actual API key value is never returned (only metadata)
-
----
-
-#### GET /apikeys:get
-
-**Purpose:** Get specific API key metadata by ID
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): API key ULID
-
-**Response (200 OK):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "name": "Production Service",
-    "description": "Main API integration",
-    "role": "user",
-    "can_write": true,
-    "created_at": "2024-01-10T10:00:00Z",
-    "last_used_at": "2024-01-16T14:30:00Z"
-  }
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:get` Endpoints](SPEC_API.md#standard-response-pattern-for-get-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
----
-
-#### POST /apikeys:create
-
-**Purpose:** Create new API key
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Request:**
-
-```json
-{
-  "name": "New Service",
-  "description": "Optional description",
-  "role": "user",
-  "can_write": false
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "name": "New Service",
-    "description": "Optional description",
-    "role": "user",
-    "can_write": false,
-    "key": "moon_live_abc123...xyz789",
-    "created_at": "2024-01-16T16:30:00Z"
-  },
-  "message": "API key created successfully",
-  "warning": "Store this key securely. It will not be shown again."
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:create` Endpoints](SPEC_API.md#standard-response-pattern-for-create-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- API key value returned only once during creation
-- Key format: `moon_live_` prefix + 64 characters (base62)
-- Key stored as SHA-256 hash in database
-
----
-
-#### POST /apikeys:update
-
-**Purpose:** Update API key metadata or rotate key
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): API key ULID
-
-**Request (update metadata):**
-
-```json
-{
-  "name": "Updated Service Name",
-  "description": "Updated description",
-  "can_write": true
-}
-```
-
-**Request (rotate key):**
-
-```json
-{
-  "action": "rotate"
-}
-```
-
-**Response (200 OK - metadata update):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "name": "Updated Service Name",
-    "description": "Updated description",
-    "role": "user",
-    "can_write": true,
-    "updated_at": "2024-01-16T17:00:00Z"
-  },
-  "message": "API key updated successfully"
-}
-```
-
-**Response (200 OK - key rotation):**
-
-```json
-{
-  "data": {
-    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    "name": "Production Service",
-    "key": "moon_live_def456...uvw012",
-    "created_at": "2024-01-16T17:00:00Z"
-  },
-  "message": "API key rotated successfully",
-  "warning": "Store this key securely. The old key is now invalid."
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:update` Endpoints](SPEC_API.md#standard-response-pattern-for-update-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
-
-**Notes:**
-
-- Key rotation invalidates old key immediately
-- New key returned only once after rotation
-
----
-
-#### POST /apikeys:destroy
-
-**Purpose:** Delete API key
-
-**Headers:**
-
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Query Parameters:**
-
-- `id` (required): API key ULID
-
-**Response (200 OK):**
-
-```json
-{
-  "message": "API key deleted successfully"
-}
-```
-
-> **📖 Response Pattern**: See [SPEC_API.md § Standard Response Pattern for `:destroy` Endpoints](SPEC_API.md#standard-response-pattern-for-destroy-endpoints).
->
-> **Error Response:** All errors follow the [Standard Error Response](SPEC_API.md#standard-error-response) for any error handling
+- API key value returned only once during creation (`key` field in response) — store it securely
+- `rotate` action invalidates the old key immediately; new key returned once only
+- Key value is never retrievable after creation (stored as SHA-256 hash)
 
 ---
 

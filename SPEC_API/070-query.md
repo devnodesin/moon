@@ -169,7 +169,7 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 
 **Query Option:** `?limit={limit}`
 
-Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.
+Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 200.
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?limit=2" \

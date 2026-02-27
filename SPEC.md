@@ -464,30 +464,15 @@ Moon includes robust consistency checking and recovery logic that ensures the in
 - Results are logged and displayed during startup
 - Startup fails if critical issues cannot be repaired
 
+
 **Health Endpoint:**
 
 - The `/health` endpoint provides health check information for liveness and readiness.
-- Returns a JSON response with four fields:
+- Returns a JSON response with two fields:
   - `moon`: Service version string (e.g., `1.0.0`)
-  - `status`: Service health status (`ok` or `down`)
   - `timestamp`: RFC3339 timestamp of the health check
 - Always returns HTTP 200, even if the service is down.
-- Clients must check the `status` field to determine service health.
-- Internal details such as database type, collection count, or consistency status are not exposed.
-
-**Monitoring note:** Returning HTTP 200 for all health checks is an intentional design choice to keep the endpoint simple for edge clients and proxies. However, this differs from common monitoring practices that treat non-2xx as unhealthy. We recommend health probes either:
-
-- Inspect the JSON `status` field and fail the probe when `status` != `ok`.
-- Or configure an external readiness probe that interprets `status` and returns a non-2xx HTTP code (for example, a small wrapper that returns `503` when `status: down`).
-
-Example probe (curl + jq):
-
-```bash
-curl -sS https://example.com/health | jq -r '.status' | grep -q '^ok$'
-if [ $? -ne 0 ]; then
-  echo "service unhealthy"; exit 2
-fi
-```
+- Internal details such as database type, collection count, or consistency details are not exposed.
 
 See [Health Endpoint](SPEC_API.md#health-endpoint) for API request/response details, error format, HTTP status codes, and examples.
 

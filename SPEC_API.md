@@ -152,7 +152,7 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
 - `data` - An array of resource objects. Each record always includes an `id` field (ULID), except collections which use `name` as the identifier.
 - `meta` - Pagination metadata for the current page.
   - `count` (integer): Number of records returned in this response
-  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 100.
+  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 200.
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
 
@@ -422,7 +422,7 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending)     |
 | `?q={term}`               | Full-text search across all text columns                   |
 | `?fields={field1,field2}` | Select specific fields to return (id always included)      |
-| `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
+| `?limit={number}`         | Limit number of records returned (default: 15, max: 200)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
 See [Data Access API > Query Options](./SPEC_API/070-query.md). All error handling must follow [Standard Error Response](#standard-error-response)
