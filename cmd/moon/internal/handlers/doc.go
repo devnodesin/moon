@@ -982,7 +982,7 @@ func (h *DocHandler) buildJSONAppendix() string {
 		},
 		CORS: map[string]any{
 			"allowed_methods": []string{"GET", "POST", "OPTIONS"},
-			"allowed_headers": []string{"Authorization", "Content-Type", "X-API-Key"},
+			"allowed_headers": []string{"Authorization", "Content-Type"},
 		},
 		Guarantees: map[string]bool{
 			"transactions":    false,
