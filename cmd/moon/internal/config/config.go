@@ -16,7 +16,7 @@ const (
 	// VersionMajor is the major version number
 	VersionMajor = 1
 	// VersionMinor is the minor version number
-	VersionMinor = 00
+	VersionMinor = 99
 	// RootMessage is the plain text response for the root endpoint.
 	RootMessage = "Moon is running."
 )
