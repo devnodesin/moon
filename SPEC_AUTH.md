@@ -16,7 +16,7 @@ Moon's authentication system provides two authentication methods:
 1. **JWT-based authentication** for interactive users (web/mobile applications)
 2. **API Key authentication** for machine-to-machine integrations
 
-Both methods support role-based access control (RBAC) with three roles: `admin`, `user`, and `readonly`.
+Both methods support role-based access control (RBAC) with two roles: `admin` and `user`.
 
 ## Access Types
 
@@ -61,7 +61,7 @@ Access tokens contain the following claims:
 - `user_id`: User's ULID identifier (string, from `id` column)
 - `username`: User's username (string)
 - `email`: User's email address (string)
-- `role`: User's role (`admin`, `user`, or `readonly`)
+- `role`: User's role (`admin`, `user`)
 - `can_write`: Write permission flag (boolean)
 - Standard JWT claims: `iss`, `exp`, `iat`, `sub`
 
@@ -82,7 +82,7 @@ Access tokens contain the following claims:
 - Minimum 64 characters after prefix (base62: alphanumeric + `-` + `_`)
 - Total length: ~74 characters (`moon_live_` + 64 chars)
 - Stored as SHA-256 hashes in database
-- Each key assigned a role (`admin`, `user`, or `readonly`)
+- Each key assigned a role (`admin`, `user`)
 - **Usage Tracking:** `last_used_at` timestamp updated on each request
 
 **Authentication Header:**
@@ -176,26 +176,16 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 - **Cannot** manage collections schema (create/update/destroy collections)
 - **Cannot** manage users or API keys
 
-**readonly Role:**
-
-- **Read-only access** (enforced regardless of `can_write` flag)
-- Can read collections metadata
-- Can read data from all collections
-- Can use query, filter, and aggregation endpoints
-- **Cannot** write data even if `can_write` flag is set to true
-- **Cannot** manage collections schema
-- **Cannot** manage users or API keys
-
 ### Permission Matrix
 
-| Action | Admin | User (can_write: false) | User (can_write: true) | Readonly |
-|--------|-------|-------------------------|------------------------|----------|
-| Manage users/apikeys | ✓ | ✗ | ✗ | ✗ |
-| Create/update/delete collections | ✓ | ✗ | ✗ | ✗ |
-| Read collections metadata | ✓ | ✓ | ✓ | ✓ |
-| Read data from collections | ✓ | ✓ | ✓ | ✓ |
-| Create/update/delete data | ✓ | ✗ | ✓ | ✗ |
-| Query/filter/aggregate data | ✓ | ✓ | ✓ | ✓ |
+| Action | Admin | User (can_write: false) | User (can_write: true) |
+|--------|-------|-------------------------|------------------------|
+| Manage users/apikeys | ✓ | ✗ | ✗ |
+| Create/update/delete collections | ✓ | ✗ | ✗ |
+| Read collections metadata | ✓ | ✓ | ✓ |
+| Read data from collections | ✓ | ✓ | ✓ |
+| Create/update/delete data | ✓ | ✗ | ✓ |
+| Query/filter/aggregate data | ✓ | ✓ | ✓ |
 
 ## Security Configuration
 
@@ -214,7 +204,7 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 
 ### Validation Constraints
 
-**Users:** Email (RFC-compliant), unique username, role (`admin`, `user`, `readonly`)  
+**Users:** Email (RFC-compliant), unique username, role (`admin`, `user`)  
 **API Keys:** Name (3-100 chars, unique), role, key format (`moon_live_` + 64 base62 chars)  
 **Protection:** Cannot delete/demote last admin. Admin cannot modify own role.  
 **Cascade:** Deleting user removes all refresh tokens.

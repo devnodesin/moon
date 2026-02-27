@@ -584,7 +584,7 @@ The server maintains a **sync.Map** cache of collection schemas for zero-latency
 | JWT | `Authorization: Bearer <token>` | Interactive users | 100 req/min |
 | API Key | `Authorization: Bearer moon_live_*` | Machine-to-machine | 1000 req/min |
 
-**Roles:** `admin` (full access), `user` (read + optional write), `readonly` (read-only)  
+**Roles:** `admin` (full access), `user` (read + optional write)  
 **Permissions:** Role-based with `can_write` flag for user role  
 **Rate Limits:** Per-user/key with headers (`X-RateLimit-*`)
 
