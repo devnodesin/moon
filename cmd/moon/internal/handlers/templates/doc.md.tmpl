@@ -273,7 +273,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 
 Retrieve the schema definition for a collection, including all fields, their types, constraints, and defaults.
 
-`GET /{collection_name}:schema`
+`GET /{collection}:schema`
 
 **Field Properties:**
 
@@ -294,7 +294,9 @@ Retrieve the schema definition for a collection, including all fields, their typ
 
 ---
 
-## Standard Error Response
+## Standard Error Response {#error-responses}
+
+### Error Responses
 
 The API uses a simple, consistent error handling approach and strictly follows standard HTTP semantics.
 
@@ -426,16 +428,16 @@ All error handling must follow [Standard Error Response](#standard-error-respons
 
 ## Data Access
 
-These endpoints manage records within a specific collection. Replace `{collection_name}` with your collection name.
+These endpoints manage records within a specific collection. Replace `{collection}` with your collection name (e.g., `products`).
 
-| Endpoint                     | Method | Description                              |
-| ---------------------------- | ------ | ---------------------------------------- |
-| `/{collection_name}:list`    | GET    | List all records                         |
-| `/{collection_name}:schema`  | GET    | Get collection schema (read-only)        |
-| `/{collection_name}:get`     | GET    | Get a single record (requires `?id=...`) |
-| `/{collection_name}:create`  | POST   | Create a new record                      |
-| `/{collection_name}:update`  | POST   | Update an existing record                |
-| `/{collection_name}:destroy` | POST   | Delete a record                          |
+| Endpoint                | Method | Description                              |
+| ----------------------- | ------ | ---------------------------------------- |
+| `/{collection}:list`    | GET    | List all records                         |
+| `/{collection}:schema`  | GET    | Get collection schema (read-only)        |
+| `/{collection}:get`     | GET    | Get a single record (requires `?id=...`) |
+| `/{collection}:create`  | POST   | Create a new record                      |
+| `/{collection}:update`  | POST   | Update an existing record                |
+| `/{collection}:destroy` | POST   | Delete a record                          |
 
 All error handling must follow [Standard Error Response](#standard-error-response)
 
@@ -477,15 +479,15 @@ GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KH
 
 Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
 
-Server-side aggregation endpoints for analytics. Replace `{collection_name}` with your collection name.
+Server-side aggregation endpoints for analytics. Replace `{collection}` with your collection name.
 
-| Endpoint                   | Method | Description                                   |
-| -------------------------- | ------ | --------------------------------------------- |
-| `/{collection_name}:count` | GET    | Count records                                 |
-| `/{collection_name}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
-| `/{collection_name}:avg`   | GET    | Average numeric field (requires `?field=...`) |
-| `/{collection_name}:min`   | GET    | Minimum value (requires `?field=...`)         |
-| `/{collection_name}:max`   | GET    | Maximum value (requires `?field=...`)         |
+| Endpoint              | Method | Description                                   |
+| --------------------- | ------ | --------------------------------------------- |
+| `/{collection}:count` | GET    | Count records                                 |
+| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
+| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
+| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
+| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
 All error handling must follow [Standard Error Response](#standard-error-response)
 
@@ -493,7 +495,7 @@ All error handling must follow [Standard Error Response](#standard-error-respons
 
 **Note:**
 
-- Replace `{collection_name}` with your collection name.
+- Replace `{collection}` with your collection name.
 - Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
 - Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
 - Combine aggregation with query filters for calculations on specific subsets:
