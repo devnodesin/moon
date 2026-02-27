@@ -24,12 +24,6 @@ import (
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
-const (
-	// Default JWT token expiry times (in seconds)
-	defaultAccessExpirySeconds  = 900    // 15 minutes
-	defaultRefreshExpirySeconds = 604800 // 7 days
-)
-
 // Server represents the HTTP server
 type Server struct {
 	config         *config.AppConfig
@@ -73,12 +67,8 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 		Endpoints:        convertCORSEndpoints(cfg.CORS.Endpoints), // PRD-058
 	}
 
-	// Create token service for authentication
-	accessExpiry := cfg.JWT.AccessExpiry
-	if accessExpiry == 0 {
-		accessExpiry = defaultAccessExpirySeconds
-	}
-	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
+	// Create token service for authentication (uses centralized config defaults)
+	tokenService := auth.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 
 	srv := &Server{
 		config:         cfg,
@@ -119,22 +109,14 @@ func (s *Server) setupRoutes() {
 	// Create documentation handler
 	docHandler := handlers.NewDocHandler(s.registry, s.config, s.version)
 
-	// Create auth handler with login rate limiting
-	accessExpiry := s.config.JWT.AccessExpiry
-	if accessExpiry == 0 {
-		accessExpiry = defaultAccessExpirySeconds
-	}
-	refreshExpiry := s.config.JWT.RefreshExpiry
-	if refreshExpiry == 0 {
-		refreshExpiry = defaultRefreshExpirySeconds
-	}
-	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	// Create auth handler (uses centralized config defaults for expiry)
+	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Create users handler (admin only endpoints)
-	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Create API keys handler (admin only endpoints)
-	apiKeysHandler := handlers.NewAPIKeysHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	apiKeysHandler := handlers.NewAPIKeysHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Get the prefix from config
 	prefix := s.config.Server.Prefix
@@ -312,7 +294,10 @@ func (s *Server) loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// authMiddleware extracts and validates JWT or API key and sets the auth entity in context.
+// authMiddleware extracts and validates JWT or API key from the Authorization: Bearer
+// header and sets the auth entity in context. Token type is detected automatically:
+// API keys start with "moon_live_", JWTs have 3 dot-separated segments.
+// The legacy X-API-Key header is not supported.
 func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -323,82 +308,99 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Try JWT authentication first (Authorization: Bearer <token>)
+		// Extract token from Authorization: Bearer header only
 		authHeader := r.Header.Get(constants.HeaderAuthorization)
-		if authHeader != "" {
-			parts := strings.SplitN(authHeader, " ", 2)
-			if len(parts) == 2 && strings.ToLower(parts[0]) == strings.ToLower(constants.AuthSchemeBearer) {
-				token := strings.TrimSpace(parts[1])
-				if token != "" {
-					// Check if token is blacklisted
-					blacklisted, err := s.tokenBlacklist.IsBlacklisted(ctx, token)
-					if err != nil {
-						log.Printf("Error checking token blacklist: %v", err)
-						s.writeAuthError(w, http.StatusInternalServerError, "authentication error")
-						return
-					}
-					if blacklisted {
-						s.writeAuthError(w, http.StatusUnauthorized, "token has been revoked")
-						return
-					}
-
-					claims, err := s.tokenService.ValidateAccessToken(token)
-					if err == nil {
-						// Valid JWT - create auth entity
-						entity := &middleware.AuthEntity{
-							ID:       claims.UserID,
-							Type:     middleware.EntityTypeUser,
-							Role:     claims.Role,
-							CanWrite: claims.CanWrite,
-							Username: claims.Username,
-						}
-						ctx = middleware.SetAuthEntity(ctx, entity)
-						next(w, r.WithContext(ctx))
-						return
-					}
-					// Invalid JWT token
-					s.writeAuthError(w, http.StatusUnauthorized, "invalid or expired token")
-					return
-				}
-			}
-		}
-
-		// Try API key authentication (X-API-Key header)
-		apiKey := r.Header.Get(s.config.APIKey.Header)
-		if apiKey == "" && s.config.APIKey.Header != constants.HeaderAPIKey {
-			apiKey = r.Header.Get(constants.HeaderAPIKey)
-		}
-		if apiKey != "" {
-			keyHash := auth.HashAPIKey(apiKey)
-			apiKeyObj, err := s.apiKeyRepo.GetByHash(ctx, keyHash)
-			if err == nil && apiKeyObj != nil {
-				// Valid API key - create auth entity
-				entity := &middleware.AuthEntity{
-					ID:       apiKeyObj.ID,
-					Type:     middleware.EntityTypeAPIKey,
-					Role:     apiKeyObj.Role,
-					CanWrite: apiKeyObj.CanWrite,
-				}
-				ctx = middleware.SetAuthEntity(ctx, entity)
-
-				// Update last used (non-blocking)
-				go func(pkid int64) {
-					if err := s.apiKeyRepo.UpdateLastUsed(context.Background(), pkid); err != nil {
-						log.Printf("Failed to update API key last used: %v", err)
-					}
-				}(apiKeyObj.PKID)
-
-				next(w, r.WithContext(ctx))
-				return
-			}
-			// Invalid API key
-			s.writeAuthError(w, http.StatusUnauthorized, "invalid API key")
+		if authHeader == "" {
+			s.writeAuthError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
 
-		// No authentication provided
-		s.writeAuthError(w, http.StatusUnauthorized, "authentication required")
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || strings.ToLower(parts[0]) != strings.ToLower(constants.AuthSchemeBearer) {
+			s.writeAuthError(w, http.StatusUnauthorized, "authorization header must use Bearer scheme")
+			return
+		}
+
+		token := strings.TrimSpace(parts[1])
+		if token == "" {
+			s.writeAuthError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		// Detect token type and route to appropriate validation
+		if strings.HasPrefix(token, constants.APIKeyPrefix) {
+			// API key candidate
+			s.authenticateAPIKey(w, r, ctx, token, next)
+			return
+		}
+
+		// JWT candidate: exactly 3 non-empty dot-separated segments
+		if segments := strings.Split(token, "."); len(segments) == 3 && segments[0] != "" && segments[1] != "" && segments[2] != "" {
+			s.authenticateJWT(w, r, ctx, token, next)
+			return
+		}
+
+		// Unknown token format
+		s.writeAuthError(w, http.StatusUnauthorized, "invalid token format")
 	}
+}
+
+// authenticateJWT validates a JWT token and sets the auth entity in context.
+func (s *Server) authenticateJWT(w http.ResponseWriter, r *http.Request, ctx context.Context, token string, next http.HandlerFunc) {
+	// Check if token is blacklisted
+	blacklisted, err := s.tokenBlacklist.IsBlacklisted(ctx, token)
+	if err != nil {
+		log.Printf("Error checking token blacklist: %v", err)
+		s.writeAuthError(w, http.StatusInternalServerError, "authentication error")
+		return
+	}
+	if blacklisted {
+		s.writeAuthError(w, http.StatusUnauthorized, "token has been revoked")
+		return
+	}
+
+	claims, err := s.tokenService.ValidateAccessToken(token)
+	if err != nil {
+		s.writeAuthError(w, http.StatusUnauthorized, "invalid or expired token")
+		return
+	}
+
+	entity := &middleware.AuthEntity{
+		ID:       claims.UserID,
+		Type:     middleware.EntityTypeUser,
+		Role:     claims.Role,
+		CanWrite: claims.CanWrite,
+		Username: claims.Username,
+	}
+	ctx = middleware.SetAuthEntity(ctx, entity)
+	next(w, r.WithContext(ctx))
+}
+
+// authenticateAPIKey validates an API key and sets the auth entity in context.
+func (s *Server) authenticateAPIKey(w http.ResponseWriter, r *http.Request, ctx context.Context, apiKey string, next http.HandlerFunc) {
+	keyHash := auth.HashAPIKey(apiKey)
+	apiKeyObj, err := s.apiKeyRepo.GetByHash(ctx, keyHash)
+	if err != nil || apiKeyObj == nil {
+		s.writeAuthError(w, http.StatusUnauthorized, "invalid API key")
+		return
+	}
+
+	entity := &middleware.AuthEntity{
+		ID:       apiKeyObj.ID,
+		Type:     middleware.EntityTypeAPIKey,
+		Role:     apiKeyObj.Role,
+		CanWrite: apiKeyObj.CanWrite,
+	}
+	ctx = middleware.SetAuthEntity(ctx, entity)
+
+	// Update last used (non-blocking)
+	go func(pkid int64) {
+		if err := s.apiKeyRepo.UpdateLastUsed(context.Background(), pkid); err != nil {
+			log.Printf("Failed to update API key last used: %v", err)
+		}
+	}(apiKeyObj.PKID)
+
+	next(w, r.WithContext(ctx))
 }
 
 // shouldBypassAuth checks if the request path should bypass authentication (PRD-058)
@@ -494,11 +496,11 @@ func (s *Server) Run() error {
 	return nil
 }
 
-// Health check handler
+// healthHandler handles GET /health per SPEC_API/010-health.md.
+// Returns only data.moon (version) and data.timestamp (RFC3339 UTC).
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"moon":      s.version,
-		"status":    "ok",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 

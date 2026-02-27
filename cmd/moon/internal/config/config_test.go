@@ -316,8 +316,8 @@ func TestDefaults(t *testing.T) {
 		t.Errorf("Expected default logging path /var/log/moon, got %s", Defaults.Logging.Path)
 	}
 
-	if Defaults.JWT.Expiry != 3600 {
-		t.Errorf("Expected default JWT expiry 3600, got %d", Defaults.JWT.Expiry)
+	if Defaults.JWT.Expiry != 900 {
+		t.Errorf("Expected default JWT expiry 900, got %d", Defaults.JWT.Expiry)
 	}
 
 	if Defaults.APIKey.Header != "X-API-KEY" {

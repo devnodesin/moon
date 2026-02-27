@@ -60,6 +60,13 @@ type DocHandler struct {
 
 // NewDocHandler creates a new documentation handler
 func NewDocHandler(reg *registry.SchemaRegistry, cfg *config.AppConfig, version string) *DocHandler {
+	// Build prefix-aware base URL for include file URL substitution
+	baseURL := fmt.Sprintf("http://localhost:%d", cfg.Server.Port)
+	prefixedURL := baseURL
+	if cfg.Server.Prefix != "" {
+		prefixedURL = baseURL + cfg.Server.Prefix
+	}
+
 	// Create custom template function to include markdown files
 	funcMap := template.FuncMap{
 		"include": func(filename string) (string, error) {
@@ -89,7 +96,10 @@ func NewDocHandler(reg *registry.SchemaRegistry, cfg *config.AppConfig, version 
 				log.Printf("WARNING: Failed to read markdown file %s: %v", cleanFilename, err)
 				return fmt.Sprintf("<!-- Error: Failed to include %s -->", cleanFilename), nil
 			}
-			return string(content), nil
+
+			// Replace hardcoded base URL with prefix-aware URL in included content
+			result := strings.ReplaceAll(string(content), baseURL+"/", prefixedURL+"/")
+			return result, nil
 		},
 	}
 
@@ -972,7 +982,7 @@ func (h *DocHandler) buildJSONAppendix() string {
 		},
 		CORS: map[string]any{
 			"allowed_methods": []string{"GET", "POST", "OPTIONS"},
-			"allowed_headers": []string{"Authorization", "Content-Type", "X-API-Key"},
+			"allowed_headers": []string{"Authorization", "Content-Type"},
 		},
 		Guarantees: map[string]bool{
 			"transactions":    false,

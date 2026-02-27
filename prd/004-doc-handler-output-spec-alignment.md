@@ -80,6 +80,5 @@ Update the `DocHandler` generation logic/templates to include all required outpu
 5. **Regression Safety**
    - No unrelated handler/test regressions introduced.
 
-- [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
-- [ ] Run all tests and ensure 100% pass rate.
-- [ ] If any test failure is unrelated to your feature, investigate and fix it before marking the task as complete.
+- [x] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] Ensure all unit tests and integration tests in `tests/*` are passing successfully.

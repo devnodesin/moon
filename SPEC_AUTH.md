@@ -26,7 +26,7 @@ Both methods support role-based access control (RBAC) with three roles: `admin`,
 
 **Token Types:**
 
-- **Access Token:** Short-lived (configurable, default 1 hour)
+- **Access Token:** Short-lived (configurable, default 15 minutes)
 - **Refresh Token:** Longer-lived (7 days), single-use
 
 **Authentication Header:**
@@ -899,7 +899,7 @@ jwt:
 
 **Common Options:**
 
-- `jwt.access_expiry`: Access token lifetime (default: 3600s / 1 hour)
+- `jwt.access_expiry`: Access token lifetime (default: 900s / 15 minutes)
 - `jwt.refresh_expiry`: Refresh token lifetime (default: 604800s / 7 days)
 - `apikey.enabled`: Enable API key authentication (default: false)
 - `rate_limit.user_rpm`: JWT user request limit (default: 100/min)
