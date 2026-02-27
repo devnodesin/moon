@@ -341,7 +341,7 @@ Supported authentication types:
 
 ### Important Notes
 
-- **Token expiration**: Access tokens expire in 1 hour (configurable). Use refresh token to obtain new access token without re-authentication.
+- **Token expiration**: Access tokens expire in 15 minutes by default (configurable via `jwt.access_expiry`). Use refresh token to obtain new access token without re-authentication.
 - **Refresh token**: Single-use tokens. Each refresh returns a new access token AND a new refresh token. Store the new refresh token for subsequent refreshes.
 - **Password change**: Changing password invalidates all existing sessions. User must login again with new credentials.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.

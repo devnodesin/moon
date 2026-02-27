@@ -24,12 +24,6 @@ import (
 	"github.com/thalib/moon/cmd/moon/internal/registry"
 )
 
-const (
-	// Default JWT token expiry times (in seconds)
-	defaultAccessExpirySeconds  = 900    // 15 minutes
-	defaultRefreshExpirySeconds = 604800 // 7 days
-)
-
 // Server represents the HTTP server
 type Server struct {
 	config         *config.AppConfig
@@ -73,12 +67,8 @@ func New(cfg *config.AppConfig, db database.Driver, reg *registry.SchemaRegistry
 		Endpoints:        convertCORSEndpoints(cfg.CORS.Endpoints), // PRD-058
 	}
 
-	// Create token service for authentication
-	accessExpiry := cfg.JWT.AccessExpiry
-	if accessExpiry == 0 {
-		accessExpiry = defaultAccessExpirySeconds
-	}
-	tokenService := auth.NewTokenService(cfg.JWT.Secret, accessExpiry, cfg.JWT.RefreshExpiry)
+	// Create token service for authentication (uses centralized config defaults)
+	tokenService := auth.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessExpiry, cfg.JWT.RefreshExpiry)
 
 	srv := &Server{
 		config:         cfg,
@@ -119,22 +109,14 @@ func (s *Server) setupRoutes() {
 	// Create documentation handler
 	docHandler := handlers.NewDocHandler(s.registry, s.config, s.version)
 
-	// Create auth handler with login rate limiting
-	accessExpiry := s.config.JWT.AccessExpiry
-	if accessExpiry == 0 {
-		accessExpiry = defaultAccessExpirySeconds
-	}
-	refreshExpiry := s.config.JWT.RefreshExpiry
-	if refreshExpiry == 0 {
-		refreshExpiry = defaultRefreshExpirySeconds
-	}
-	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	// Create auth handler (uses centralized config defaults for expiry)
+	authHandler := handlers.NewAuthHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Create users handler (admin only endpoints)
-	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	usersHandler := handlers.NewUsersHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Create API keys handler (admin only endpoints)
-	apiKeysHandler := handlers.NewAPIKeysHandler(s.db, s.config.JWT.Secret, accessExpiry, refreshExpiry)
+	apiKeysHandler := handlers.NewAPIKeysHandler(s.db, s.config.JWT.Secret, s.config.JWT.AccessExpiry, s.config.JWT.RefreshExpiry)
 
 	// Get the prefix from config
 	prefix := s.config.Server.Prefix

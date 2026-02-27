@@ -132,8 +132,8 @@ var Defaults = struct {
 		AccessExpiry  int
 		RefreshExpiry int
 	}{
-		Expiry:        3600,
-		AccessExpiry:  3600,   // 1 hour
+		Expiry:        900,
+		AccessExpiry:  900,    // 15 minutes (centralized default per PRD-002)
 		RefreshExpiry: 604800, // 7 days
 	},
 	APIKey: struct {
@@ -552,6 +552,14 @@ func validate(cfg *AppConfig) error {
 	// JWT secret is required for authentication
 	if cfg.JWT.Secret == "" {
 		return fmt.Errorf("JWT secret is required (set in config file under jwt.secret)")
+	}
+
+	// Apply default JWT expiry values if not provided (PRD-002: centralized config)
+	if cfg.JWT.AccessExpiry <= 0 {
+		cfg.JWT.AccessExpiry = Defaults.JWT.AccessExpiry
+	}
+	if cfg.JWT.RefreshExpiry <= 0 {
+		cfg.JWT.RefreshExpiry = Defaults.JWT.RefreshExpiry
 	}
 
 	// Validate pagination configuration (PRD-046)
