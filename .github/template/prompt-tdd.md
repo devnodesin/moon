@@ -1,7 +1,3 @@
----
-agent: agent
----
-
 ## Striclty follow Test-Driven Development (TDD)
 
 - For every feature, bugfix, or refactor:
