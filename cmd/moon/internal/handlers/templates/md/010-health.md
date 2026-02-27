@@ -9,9 +9,8 @@ curl -s -X GET "http://localhost:6006/health" | jq .
 ```json
 {
   "data": {
-    "moon": "1.0.0",
-    "status": "ok",    
-    "timestamp": "2026-02-03T13:58:53Z"
+    "moon": "1.99",
+    "timestamp": "2026-02-27T18:21:43Z"
   }
 }
 ```
