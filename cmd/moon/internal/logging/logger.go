@@ -404,8 +404,12 @@ func (rl *RequestLogger) Middleware(next http.HandlerFunc) http.HandlerFunc {
 		requestID := r.Header.Get(constants.HeaderRequestID)
 		if requestID == "" {
 			b := make([]byte, 16)
-			_, _ = rand.Read(b)
-			requestID = hex.EncodeToString(b)
+			if _, err := rand.Read(b); err != nil {
+				// Fallback to timestamp-based ID on crypto/rand failure
+				requestID = fmt.Sprintf("%d", time.Now().UnixNano())
+			} else {
+				requestID = hex.EncodeToString(b)
+			}
 		}
 
 		// Add request ID to response header

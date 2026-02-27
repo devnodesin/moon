@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -2007,6 +2008,7 @@ func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, fir
 
 	rows, err := h.db.Query(ctx, sqlStr, args...)
 	if err != nil {
+		log.Printf("WARNING: computePrevCursor query failed for collection '%s': %v", collectionName, err)
 		return nil
 	}
 	defer rows.Close()
@@ -2015,11 +2017,13 @@ func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, fir
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
+			log.Printf("WARNING: computePrevCursor scan failed for collection '%s': %v", collectionName, err)
 			return nil
 		}
 		ids = append(ids, id)
 	}
-	if rows.Err() != nil {
+	if err := rows.Err(); err != nil {
+		log.Printf("WARNING: computePrevCursor iteration failed for collection '%s': %v", collectionName, err)
 		return nil
 	}
 

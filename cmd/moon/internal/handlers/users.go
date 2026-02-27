@@ -280,7 +280,7 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine can_write (default based on role)
+	// Determine can_write: default is true for all roles; admin always gets write access
 	canWrite := true
 	if req.CanWrite != nil {
 		canWrite = *req.CanWrite

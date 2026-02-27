@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/thalib/moon/cmd/moon/internal/constants"
+	"log"
 	"time"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
 )
@@ -412,6 +413,7 @@ func (r *UserRepository) FindPrevCursorID(ctx context.Context, firstCurrentID, r
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
+		log.Printf("WARNING: FindPrevCursorID query failed for users: %v", err)
 		return ""
 	}
 	defer rows.Close()
@@ -420,6 +422,7 @@ func (r *UserRepository) FindPrevCursorID(ctx context.Context, firstCurrentID, r
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
+			log.Printf("WARNING: FindPrevCursorID scan failed for users: %v", err)
 			return ""
 		}
 		ids = append(ids, id)
@@ -430,8 +433,6 @@ func (r *UserRepository) FindPrevCursorID(ctx context.Context, firstCurrentID, r
 	}
 	return ""
 }
-
-// DeleteByID deletes a user by their ID (ULID).
 func (r *UserRepository) DeleteByID(ctx context.Context, id string) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", constants.TableUsers)
 	if r.db.Dialect() == database.DialectPostgres {
