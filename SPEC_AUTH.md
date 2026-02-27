@@ -51,8 +51,8 @@ Authorization: Bearer <access_token>
 - Access tokens are stateless (JWT claims validated cryptographically)
 - Refresh tokens are single-use and invalidated after use
 - Multiple concurrent sessions supported (each gets separate refresh token)
-- Logout only invalidates current session's refresh token
-- **Token Blacklist:** In-database blacklist for revoked tokens (logout, password changes)
+- Logout invalidates both the current session's refresh token and access token
+- **Token Blacklist:** In-database blacklist for immediately revoking tokens (logout, password changes). On logout, both the refresh token is deleted from the database and the access token is added to the blacklist so it cannot be reused before expiry.
 
 **JWT Claims Structure:**
 
@@ -218,7 +218,7 @@ curl -H "Authorization: Bearer moon_live_abc123..." \
 
 **Sessions:** Multiple concurrent sessions per user. Each login creates unique refresh token.  
 **Refresh Tokens:** Single-use, stored in database, invalidated after use. New token issued on refresh.  
-**Invalidation:** Logout (current session only), password change (all sessions), admin revoke (`revoke_sessions` action).  
+**Invalidation:** Logout (deletes refresh token + blacklists access token for immediate revocation), password change (all sessions revoked + access token blacklisted), admin revoke (`revoke_sessions` action).  
 **Cleanup:** Expired tokens should be purged periodically.
 
 ### First Admin Bootstrap
@@ -237,9 +237,16 @@ On first start, if no admin exists, create from `auth.bootstrap_admin` config se
 
 ### Middleware Order
 
-1. CORS → 2. Rate Limiting → 3. Authentication → 4. Authorization → 5. Validation → 6. Logging → 7. Handler → 8. Error Handling
+1. CORS → 2. Logging → 3. Authentication → 4. Rate Limiting → 5. Authorization → 6. Handler
 
-JWT takes precedence over API key. Rate limiting uses user/key ID.
+**Rationale:**
+- **CORS** is always first so that browser preflight requests are handled before any other processing.
+- **Logging** comes before authentication to ensure all requests (including unauthorized ones) are captured for security auditing and debugging.
+- **Authentication** validates the identity of the requester (JWT token or API key).
+- **Rate Limiting** is applied after authentication to enable per-user/per-key rate limiting. Authenticated identity is required for accurate rate limit tracking. Login endpoints use a separate IP-based rate limiter.
+- **Authorization** verifies that the authenticated entity has the required permissions for the requested action.
+
+JWT takes precedence over API key. Rate limiting uses user/key ID after authentication.
 
 ### Database Schema
 

@@ -26,13 +26,11 @@ const (
 	RoleAdmin UserRole = "admin"
 	// RoleUser has limited access to the system.
 	RoleUser UserRole = "user"
-	// RoleReadOnly has read-only access to the system.
-	RoleReadOnly UserRole = "readonly"
 )
 
 // ValidRoles returns the list of valid user roles.
 func ValidRoles() []UserRole {
-	return []UserRole{RoleAdmin, RoleUser, RoleReadOnly}
+	return []UserRole{RoleAdmin, RoleUser}
 }
 
 // IsValidRole checks if a role string is valid.

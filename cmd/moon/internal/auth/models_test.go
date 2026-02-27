@@ -12,7 +12,7 @@ func TestIsValidRole(t *testing.T) {
 	}{
 		{"admin", true},
 		{"user", true},
-		{"readonly", true},
+		{"readonly", false},
 		{"", false},
 		{"superadmin", false},
 		{"ADMIN", false},
@@ -30,14 +30,13 @@ func TestIsValidRole(t *testing.T) {
 
 func TestValidRoles(t *testing.T) {
 	roles := ValidRoles()
-	if len(roles) != 3 {
-		t.Errorf("ValidRoles() returned %d roles, want 3", len(roles))
+	if len(roles) != 2 {
+		t.Errorf("ValidRoles() returned %d roles, want 2", len(roles))
 	}
 
 	expected := map[UserRole]bool{
-		RoleAdmin:    true,
-		RoleUser:     true,
-		RoleReadOnly: true,
+		RoleAdmin: true,
+		RoleUser:  true,
 	}
 
 	for _, role := range roles {
@@ -98,8 +97,5 @@ func TestUserRoleConstants(t *testing.T) {
 	}
 	if RoleUser != "user" {
 		t.Errorf("RoleUser = %q, want %q", RoleUser, "user")
-	}
-	if RoleReadOnly != "readonly" {
-		t.Errorf("RoleReadOnly = %q, want %q", RoleReadOnly, "readonly")
 	}
 }

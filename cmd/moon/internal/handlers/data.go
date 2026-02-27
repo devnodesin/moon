@@ -186,6 +186,8 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 	}
 
 	// Add cursor condition if provided (AFTER counting)
+	// Save base conditions (without cursor) for prev cursor computation
+	baseConditions := conditions
 	if after != "" {
 		conditions = append(conditions, query.Condition{
 			Column:   "id",
@@ -261,6 +263,15 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 		}
 	}
 
+	// Determine prev cursor: only when after cursor was provided and we have results
+	var prevCursor *string
+	if after != "" && len(data) > 0 {
+		firstID, _ := data[0]["id"].(string)
+		if firstID != "" {
+			prevCursor = h.computePrevCursor(ctx, collectionName, firstID, baseConditions, limit)
+		}
+	}
+
 	// Build response per SPEC_API.md
 	response := DataListResponse{
 		Data: data,
@@ -268,7 +279,7 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 			"count": len(data),
 			"limit": limit,
 			"next":  nextCursor,
-			"prev":  nil,
+			"prev":  prevCursor,
 		},
 	}
 
@@ -1969,5 +1980,53 @@ func getDefaultValue(col registry.Column) any {
 	}
 
 	// For nullable fields without explicit default, use NULL
+	return nil
+}
+
+// computePrevCursor determines the prev pagination cursor.
+// It returns the cursor (ULID) that, when passed as ?after, would return the page
+// of records immediately preceding the current page.
+// Returns nil if the current page is the first page or near the beginning.
+func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, firstCurrentID string, baseConditions []query.Condition, limit int) *string {
+	// Build conditions: same base filters + id < firstCurrentID (reversed direction)
+	prevConditions := make([]query.Condition, len(baseConditions)+1)
+	copy(prevConditions, baseConditions)
+	prevConditions[len(baseConditions)] = query.Condition{
+		Column:   "id",
+		Operator: query.OpLessThan,
+		Value:    firstCurrentID,
+	}
+
+	// Query limit+1 records before the current first record in DESC order.
+	// If we get limit+1 results, the last one is the prev cursor.
+	// If we get <= limit results, the prev page is the first page (prev = null).
+	var sqlStr string
+	var args []any
+	b := query.NewBuilder(h.db.Dialect())
+	sqlStr, args = b.Select(collectionName, []string{"id"}, prevConditions, "id DESC", limit+1, 0)
+
+	rows, err := h.db.Query(ctx, sqlStr, args...)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil
+		}
+		ids = append(ids, id)
+	}
+	if rows.Err() != nil {
+		return nil
+	}
+
+	// If we got more than limit results, the (limit+1)th is the prev cursor
+	if len(ids) > limit {
+		prev := ids[limit]
+		return &prev
+	}
 	return nil
 }

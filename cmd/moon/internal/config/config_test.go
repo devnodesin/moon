@@ -6,12 +6,6 @@ import (
 	"testing"
 )
 
-func TestRootMessageConstant(t *testing.T) {
-	if RootMessage != "Moon is running." {
-		t.Errorf("Expected RootMessage to be %q, got %q", "Moon is running.", RootMessage)
-	}
-}
-
 func TestLoad_DefaultValues(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()

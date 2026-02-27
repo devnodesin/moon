@@ -296,6 +296,54 @@ func (r *APIKeyRepository) ListPaginated(ctx context.Context, opts APIKeyListOpt
 	return keys, nil
 }
 
+// FindPrevCursorID finds the cursor ID for backward pagination.
+// It returns the ID that, when used as ?after, returns the previous page.
+// Returns empty string if the current page is the first page.
+func (r *APIKeyRepository) FindPrevCursorID(ctx context.Context, firstCurrentID string, limit int) string {
+	var query string
+	var args []any
+	argIdx := 1
+
+	base := fmt.Sprintf("SELECT id FROM %s WHERE ", constants.TableAPIKeys)
+
+	if r.db.Dialect() == database.DialectPostgres {
+		base += fmt.Sprintf("id < $%d", argIdx)
+	} else {
+		base += "id < ?"
+	}
+	args = append(args, firstCurrentID)
+	argIdx++
+
+	base += " ORDER BY id DESC"
+
+	if r.db.Dialect() == database.DialectPostgres {
+		query = base + fmt.Sprintf(" LIMIT $%d", argIdx)
+	} else {
+		query = base + " LIMIT ?"
+	}
+	args = append(args, limit+1)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return ""
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return ""
+		}
+		ids = append(ids, id)
+	}
+
+	if len(ids) > limit {
+		return ids[limit]
+	}
+	return ""
+}
+
 // NameExists checks if an API key name already exists (optionally excluding a primary key ID).
 func (r *APIKeyRepository) NameExists(ctx context.Context, name string, excludePKID int64) (bool, error) {
 	var query string

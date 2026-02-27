@@ -660,8 +660,8 @@ func TestAuthHandler_Login_RateLimiting(t *testing.T) {
 
 	handler.Login(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Rate limited login: expected status %d, got %d, body: %s", http.StatusBadRequest, w.Code, w.Body.String())
+	if w.Code != http.StatusTooManyRequests {
+		t.Errorf("Rate limited login: expected status %d, got %d, body: %s", http.StatusTooManyRequests, w.Code, w.Body.String())
 	}
 }
 

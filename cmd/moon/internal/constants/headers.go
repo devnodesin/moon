@@ -7,7 +7,7 @@ package constants
 // These constants ensure consistent header naming across all components.
 const (
 	// HeaderRequestID is the HTTP header used for request tracking and correlation.
-	// Used in: errors/errors.go, logging/logger.go
+	// Used in: logging/logger.go
 	// Purpose: Enables request tracing across distributed systems and logs
 	HeaderRequestID = "X-Request-ID"
 
