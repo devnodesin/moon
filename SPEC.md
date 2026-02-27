@@ -123,18 +123,7 @@ The `nullable` property controls API request validation and default value applic
 
 When collections are created, Moon automatically applies type-based default values for nullable fields at the database level.
 
-**Default Values by Type** (automatically applied during collection creation for nullable fields):
-
-| Type | Default Value | Notes |
-|------|--------------|-------|
-| `string` | `""` (empty string) | Applied only if field is nullable |
-| `integer` | `0` | Applied only if field is nullable |
-| `decimal` | `"0.00"` | Applied only if field is nullable |
-| `boolean` | `false` | Applied only if field is nullable |
-| `datetime` | `null` | Applied for nullable fields |
-| `json` | `"{}"` (empty object) | Applied only if field is nullable |
-
-**Important:** Defaults are automatically set for nullable fields during collection creation by the Moon backend. Non-nullable fields have NO default and must always be provided in API requests.
+See [Default Values by Type](SPEC_API.md#data-types)
 
 ### API Restrictions on Default Values
 
@@ -329,17 +318,7 @@ This design choice:
 - Works universally with all HTTP clients and proxies
 - Follows the AIP-136 custom actions pattern where the action is in the URL (`:create`, `:update`, `:destroy`)
 - Ensures compatibility with restrictive network environments that may filter uncommon HTTP methods
-
-### Rate Limiting Headers
-
-When rate limiting is enabled, all responses include rate limit headers:
-
-| Header | Description | Example |
-|--------|-------------|---------|
-| `X-RateLimit-Limit` | Maximum requests per window | `100` |
-| `X-RateLimit-Remaining` | Remaining requests in window | `87` |
-| `X-RateLimit-Reset` | Unix timestamp when window resets | `1704067200` |
-| `Retry-After` | Seconds until retry (429 responses only) | `60` |
+- See [Rate Limiting](SPEC_API.md#rate-limiting)
 
 ### Error Response Format
 
@@ -560,127 +539,9 @@ moon -d
 
 ## 2. API Endpoint Specification
 
-The system uses a strict pattern to ensure that AI agents and developers can interact with any collection without new code deployment.
+> **API endpoint details, request/response formats, query options, batch operations, aggregation, and error codes are fully defined in [SPEC_API.md](SPEC_API.md).**
 
-- **RESTful API:** A standardized API following strict predictable patterns, making it easy for AI to generate documentation.
-- **Configurable Prefix:** All API endpoints are mounted under a configurable URL prefix (default: empty string).
-  - Default (no prefix): `/health`, `/collections:list`, `/{collection}:list`
-  - With custom prefix: `/{prefix}/health`, `/{prefix}/collections:list`, `/{prefix}/{collection}:list`
-  - Example With `/api/v1` prefix: `/api/v1/health`, `/api/v1/collections:list`, `/api/v1/{collection}:list`
-- Endpoints in this specification are shown without a prefix — if a prefix is configured (e.g., `/api/v1`), prepend it to all paths.
-
-### A. Schema Management (`/collections`)
-
-These endpoints manage the database tables and metadata.
-
-| Endpoint                    | Method | Purpose                                                |
-| --------------------------- | ------ | ------------------------------------------------------ |
-| `GET /collections:list`     | `GET`  | List all managed collections from the cache.           |
-| `GET /collections:get`      | `GET`  | Retrieve the schema (fields/types) for one collection. |
-| `POST /collections:create`  | `POST` | Create a new table in the database.                    |
-| `POST /collections:update`  | `POST` | Modify table columns (add/remove/rename).              |
-| `POST /collections:destroy` | `POST` | Drop the table and purge it from the cache.            |
-
-> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
-
-The `POST /collections:update` endpoint manages column lifecycle (add, remove, rename, modify).
-
-### B. Data Access (`/{collectionName}`)
-
-These endpoints manage the records within a specific collection.
-
-| Endpoint               | Method | Purpose                                            |
-| ---------------------- | ------ | -------------------------------------------------- |
-| `GET /{name}:list`     | `GET`  | Fetch all records from the specified table.        |
-| `GET /{name}:get`      | `GET`  | Fetch a single record by its unique ID.            |
-| `GET /{name}:schema`   | `GET`  | Retrieve the schema for a specific collection.     |
-| `POST /{name}:create`  | `POST` | Insert a new record (validated against the cache). |
-| `POST /{name}:update`  | `POST` | Update an existing record.                         |
-| `POST /{name}:destroy` | `POST` | Delete a record from the table.                    |
-
-> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
-
-#### Batch Operations
-
-The `:create`, `:update`, and `:destroy` endpoints support both **single-object** and **batch** modes.
-
-> **📖 Complete Documentation**: See [SPEC_API.md](SPEC_API.md) for detailed request/response formats, atomic mode, error handling, examples, and configuration.
-
-**Key Features:**
-
-- **Automatic Detection:** Array = batch mode, object = single mode
-- **Best-Effort (Default):** Process each record independently
-- **Atomic Mode:** `?atomic=true` - all succeed or all fail (transaction)
-- **Size Limits:** Default 50 records, 2MB payload (configurable)
-
-Status codes for batch operations:
-
-- Batch write endpoints (`:create`, `:update`, `:destroy`) return `201 Created` when at least one record in the batch succeeded. The response body contains per-record results and summary metadata. When `?atomic=true` is used the endpoint behaves transactionally and will return a single `201` on success or an appropriate `4xx/5xx` on failure.
-
-**Configuration:**
-
-```yaml
-batch:
-  max_size: 50               # Maximum records per batch
-  max_payload_bytes: 2097152 # Maximum payload (2MB)
-```
-
-#### Query Parameters
-
-The list endpoint supports powerful query parameters for filtering, sorting, searching, and field selection.
-
-> **📖 Complete Documentation**: See [SPEC_API.md](SPEC_API.md) for all operators, pagination, field selection, full-text search, and examples.
-
-**Filtering:** `?column[operator]=value` (operators: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `in`, `null`)  
-**Sorting:** `?sort=field` or `?sort=-field` (descending), multiple: `?sort=-created_at,name`  
-**Search:** `?q=searchterm` (searches all text columns)  
-**Fields:** `?fields=field1,field2` (select specific fields)  
-**Pagination:** `?after=<ulid>&limit=N` (cursor-based)
-
-**Example:** `GET /products:list?q=laptop&price[gt]=500&sort=-price&fields=name,price&limit=10`
-
-#### Schema Retrieval
-
-- Retrieve a collection schema using `GET /{collection}:schema`.
-- The response includes the collection name, field definitions (name, type, nullable, readonly), and the total record count.
-- Authentication is required (Bearer token or API key).
-
-See [SPEC_API.md](SPEC_API.md) for api request/response and error format, HTTP status codes, and examples.
-
-### C. Aggregation Operations (`/{collectionName}`)
-
-Server-side aggregation for analytics without fetching full datasets.
-
-> **📖 Complete Documentation**: See [SPEC_API.md § Aggregation Operations](SPEC_API.md) for all operations, filtering, response formats, and examples.
-
-| Endpoint                    | Purpose                                |
-| --------------------------- | -------------------------------------- |
-| `GET /{name}:count`         | Count records                          |
-| `GET /{name}:sum?field=...` | Sum numeric field values               |
-| `GET /{name}:avg?field=...` | Calculate average of numeric field     |
-| `GET /{name}:min?field=...` | Find minimum value of numeric field    |
-| `GET /{name}:max?field=...` | Find maximum value of numeric field    |
-
-**Key Features:**
-
-- Supports filtering (same syntax as `:list`)
-- Works with `integer` and `decimal` types
-- Returns `{"value": <number>}` format
-- Database-level processing for performance
-
-### D. Documentation Endpoints
-
-Moon provides auto-generated documentation endpoints.
-
-| Endpoint                     | Purpose                                    |
-| ---------------------------- | ------------------------------------------ |
-| `GET /doc/`                  | HTML documentation                         |
-| `GET /doc`                   | HTML documentation (alias to /doc/)        |
-| `GET /doc/llms.md`           | Markdown for AI agents                     |
-| `GET /doc/llms.txt`          | Text format (alias to /doc/llms.md)        |
-| `GET /doc/llms.json`         | JSON schema for machine consumption        |
-
-> **See SPEC_API.md** for complete endpoint documentation including request/response formats, query options, pagination, filtering, and aggregation operations.
+> This section intentionally omits detailed API patterns to avoid duplication. Refer to SPEC_API.md for authoritative API documentation.
 
 ## Database Schema Design
 

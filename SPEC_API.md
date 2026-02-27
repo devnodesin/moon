@@ -486,7 +486,7 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1706875200
 ```
 
-**If You Exceed the Limit (429 Too Many Requests):**
+**If You Exceed the Limit (400 Too Many Requests):**
 
 When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), you’ll get:
 
@@ -499,7 +499,7 @@ When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), yo
 **Response Headers:**
 
 ```text
-HTTP/1.1 429 Too Many Requests
+HTTP/1.1 400 Too Many Requests
 Content-Type: application/json
 Retry-After: 60
 X-RateLimit-Limit: 100
