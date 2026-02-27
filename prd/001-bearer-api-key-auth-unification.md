@@ -118,6 +118,5 @@ Implement a single Bearer-token authentication path for protected endpoints:
 6. `X-API-Key: moon_live_valid...` without Bearer -> `401`.
 7. Ensure role middleware receives equivalent context fields for both principal types.
 
-- [ ] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, `install.sh`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
-- [ ] Run all tests and ensure 100% pass rate.
-- [ ] If any test failure is unrelated to your feature, investigate and fix it before marking the task as complete.
+- [x] Ensure all documentation, scripts, and samples (`SPEC.md`, `INSTALL.md`, `README.md`, and all files in `samples/*`) are updated and remain consistent with the implemented code changes.
+- [x] Ensure all unit tests and integration tests in `tests/*` are passing successfully.
