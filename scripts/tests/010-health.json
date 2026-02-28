@@ -9,10 +9,27 @@
 			"endpoint": "/health"
 		},
 		{
-			"name": "Check Health",
+			"name": "Get Root",
 			"cmd": "GET",
 			"endpoint": "/",
-			"details": "alias for /health"
+			"details": "`/` is alias for `/health`"
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/users:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"username": "newuser",
+					"email": "newuser@example.com",
+					"password": "UserPass123#",
+					"role": "user"
+				}
+			}
 		}
 	]
 }

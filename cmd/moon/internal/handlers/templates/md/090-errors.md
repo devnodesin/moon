@@ -78,7 +78,7 @@ curl -s -X GET "http://localhost:6006/users:list" \
 
 ```json
 {
-  "message": "invalid or expired token"
+  "message": "invalid token format"
 }
 ```
 

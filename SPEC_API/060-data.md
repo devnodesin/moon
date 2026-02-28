@@ -81,7 +81,7 @@ curl -s -X POST "http://localhost:6006/products:create" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+      "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -132,7 +132,7 @@ curl -s -X POST "http://localhost:6006/products:create" \
     {
       "brand": "KeyPro",
       "details": "Mechanical keyboard",
-      "id": "01KJ27WBC4E639MQETA62WEDAX",
+      "id": "01KJHCX4QQTBQJPQ91GRMENRD6",
       "price": "49.99",
       "quantity": 5,
       "title": "Keyboard"
@@ -140,7 +140,7 @@ curl -s -X POST "http://localhost:6006/products:create" \
     {
       "brand": "ViewMax",
       "details": "24-inch FHD monitor",
-      "id": "01KJ27WBC8TR09XYT5S3YW3E88",
+      "id": "01KJHCX4QXAM6XFS6Y8TV9MD6J",
       "price": "199.99",
       "quantity": 2,
       "title": "Monitor"
@@ -170,7 +170,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+      "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -178,7 +178,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "KeyPro",
       "details": "Mechanical keyboard",
-      "id": "01KJ27WBC4E639MQETA62WEDAX",
+      "id": "01KJHCX4QQTBQJPQ91GRMENRD6",
       "price": "49.99",
       "quantity": 5,
       "title": "Keyboard"
@@ -186,7 +186,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
     {
       "brand": "ViewMax",
       "details": "24-inch FHD monitor",
-      "id": "01KJ27WBC8TR09XYT5S3YW3E88",
+      "id": "01KJHCX4QXAM6XFS6Y8TV9MD6J",
       "price": "199.99",
       "quantity": 2,
       "title": "Monitor"
@@ -204,7 +204,7 @@ curl -s -X GET "http://localhost:6006/products:list" \
 ### Get Single Record
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:get?id=01KJ27WB5BJSZQQG3ENZEF0ASQ" \
+curl -s -X GET "http://localhost:6006/products:get?id=01KJHCX4EF5SWJ7WGEJCQXTB87" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -215,7 +215,7 @@ curl -s -X GET "http://localhost:6006/products:get?id=01KJ27WB5BJSZQQG3ENZEF0ASQ
   "data": {
     "brand": "Wow",
     "details": "Ergonomic wireless mouse",
-    "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+    "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
     "price": "29.99",
     "quantity": 10,
     "title": "Wireless Mouse"
@@ -233,7 +233,7 @@ curl -s -X POST "http://localhost:6006/products:update" \
       {
         "data": [
           {
-            "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+            "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
             "price": "6000.00"
           }
         ]
@@ -247,7 +247,7 @@ curl -s -X POST "http://localhost:6006/products:update" \
 {
   "data": [
     {
-      "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+      "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
       "price": "6000.00"
     }
   ],
@@ -270,12 +270,12 @@ curl -s -X POST "http://localhost:6006/products:update" \
       {
         "data": [
           {
-            "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+            "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
             "price": "100.00",
             "title": "Updated Product 1"
           },
           {
-            "id": "01KJ27WBC4E639MQETA62WEDAX",
+            "id": "01KJHCX4QQTBQJPQ91GRMENRD6",
             "price": "200.00",
             "title": "Updated Product 2"
           }
@@ -290,12 +290,12 @@ curl -s -X POST "http://localhost:6006/products:update" \
 {
   "data": [
     {
-      "id": "01KJ27WB5BJSZQQG3ENZEF0ASQ",
+      "id": "01KJHCX4EF5SWJ7WGEJCQXTB87",
       "price": "100.00",
       "title": "Updated Product 1"
     },
     {
-      "id": "01KJ27WBC4E639MQETA62WEDAX",
+      "id": "01KJHCX4QQTBQJPQ91GRMENRD6",
       "price": "200.00",
       "title": "Updated Product 2"
     }
@@ -318,7 +318,7 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
     -d '
       {
         "data": [
-          "01KJ27WB5BJSZQQG3ENZEF0ASQ"
+          "01KJHCX4EF5SWJ7WGEJCQXTB87"
         ]
       }
     ' | jq .
@@ -329,7 +329,7 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
 ```json
 {
   "data": [
-    "01KJ27WB5BJSZQQG3ENZEF0ASQ"
+    "01KJHCX4EF5SWJ7WGEJCQXTB87"
   ],
   "message": "1 record(s) deleted successfully",
   "meta": {
@@ -349,8 +349,8 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
     -d '
       {
         "data": [
-          "01KJ27WBC4E639MQETA62WEDAX",
-          "01KJ27WBC8TR09XYT5S3YW3E88"
+          "01KJHCX4QQTBQJPQ91GRMENRD6",
+          "01KJHCX4QXAM6XFS6Y8TV9MD6J"
         ]
       }
     ' | jq .
@@ -361,8 +361,8 @@ curl -s -X POST "http://localhost:6006/products:destroy" \
 ```json
 {
   "data": [
-    "01KJ27WBC4E639MQETA62WEDAX",
-    "01KJ27WBC8TR09XYT5S3YW3E88"
+    "01KJHCX4QQTBQJPQ91GRMENRD6",
+    "01KJHCX4QXAM6XFS6Y8TV9MD6J"
   ],
   "message": "2 record(s) deleted successfully",
   "meta": {

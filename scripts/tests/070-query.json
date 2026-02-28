@@ -151,18 +151,66 @@
       "name": "Limit",
       "cmd": "GET",
       "details": "**Query Option:** `?limit={limit}`",
-      "notes": "Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.",
+      "notes": "Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 200.",
       "endpoint": "/products:list?limit=2",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/products:create",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": [
+          {
+            "title": "Product 1",
+            "price": "49.99",
+            "details": "Mechanical keyboard",
+            "quantity": 5,
+            "brand": "SuperBrand"
+          },
+          {
+            "title": "Product 2",
+            "price": "199.99",
+            "details": "24-inch FHD monitor",
+            "quantity": 2,
+            "brand": "SuperBrand"
+          },
+          {
+            "title": "Product 3",
+            "price": "199.99",
+            "details": "24-inch FHD monitor",
+            "quantity": 2,
+            "brand": "SuperBrand"
+          },
+          {
+            "title": "Product 4",
+            "price": "199.99",
+            "details": "24-inch FHD monitor",
+            "quantity": 2,
+            "brand": "Wow"
+          },
+          {
+            "title": "Product 5",
+            "price": "199.99",
+            "details": "24-inch FHD monitor",
+            "quantity": 2,
+            "brand": "Wow"
+          }
+        ]
+      }
+    },
+    {
       "name": "Pagination",
       "cmd": "GET",
       "details": "**Query Option:** `?after={cursor}`",
-      "notes": " (Response includes `next_cursor` when more results are available.)",
-      "endpoint": "/products:list?after=$NEXT_CURSOR&limit=1",
+      "notes": "Response includes `next_cursor` when more results are available. (If `next_cursor` is present, use its value from the response to fetch subsequent pages.)",
+      "endpoint": "/products:list?after=$NEXT_CURSOR&limit=3",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }

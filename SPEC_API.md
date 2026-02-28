@@ -472,6 +472,25 @@ See [Data Access API > Aggregation Operations](./SPEC_API/080-aggregation.md). A
 
 ## Security
 
+### Request Correlation (`X-Request-ID`)
+
+Moon supports request correlation using the `X-Request-ID` header.
+
+**Lifecycle:**
+
+1. **Client sends (optional):** Clients may include `X-Request-ID` in the request.
+2. **Server resolves ID:**
+  - If `X-Request-ID` is provided, Moon uses that value.
+  - If not provided, Moon generates a request ID.
+3. **Server returns ID:** Moon sets `X-Request-ID` on the response so clients can correlate request/response pairs.
+4. **Logs include ID:** The same value is written to logs as `request_id` for tracing and debugging.
+
+**Operational Notes:**
+
+- Use `X-Request-ID` when reporting errors to support teams.
+- For failed requests (4xx/5xx), use the response `X-Request-ID` to locate related server logs.
+- In browser clients, this header can be read when CORS exposes `X-Request-ID`.
+
 ### Rate Limiting
 
 Each response includes these headers to help you track your usage:

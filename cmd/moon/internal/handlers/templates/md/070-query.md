@@ -17,7 +17,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJC6F0CCWCV88JH3CPRYR858",
+      "id": "01KJHCX911TZJFYRFDF8B6KW73",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -25,7 +25,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KJC6F0N87B98RG7DCXXBKRS0",
+      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -59,7 +59,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -67,7 +67,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KJC6F0N87B98RG7DCXXBKRS0",
+      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -75,7 +75,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJC6F0CCWCV88JH3CPRYR858",
+      "id": "01KJHCX911TZJFYRFDF8B6KW73",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -109,7 +109,7 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJC6F0CCWCV88JH3CPRYR858",
+      "id": "01KJHCX911TZJFYRFDF8B6KW73",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -141,17 +141,17 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 {
   "data": [
     {
-      "id": "01KJC6F0CCWCV88JH3CPRYR858",
+      "id": "01KJHCX911TZJFYRFDF8B6KW73",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KJC6F0N87B98RG7DCXXBKRS0",
+      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
@@ -169,7 +169,7 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 
 **Query Option:** `?limit={limit}`
 
-Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 100.
+Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 200.
 
 ```bash
 curl -s -X GET "http://localhost:6006/products:list?limit=2" \
@@ -184,7 +184,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJC6F0CCWCV88JH3CPRYR858",
+      "id": "01KJHCX911TZJFYRFDF8B6KW73",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -192,7 +192,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -201,7 +201,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
   "meta": {
     "count": 2,
     "limit": 2,
-    "next": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+    "next": "01KJHCX99Z4WBV5CE1TXS6BZA2",
     "prev": null
   }
 }
@@ -211,10 +211,10 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
 
 **Query Option:** `?after={cursor}`
 
- (Response includes `next_cursor` when more results are available.)
+Response includes `next_cursor` when more results are available. (If `next_cursor` is present, use its value from the response to fetch subsequent pages.)
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:list?after=01KJC6F0CCWCV88JH3CPRYR858&limit=1" \
+curl -s -X GET "http://localhost:6006/products:list?after=01KJHCX911TZJFYRFDF8B6KW73&limit=3" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -226,16 +226,32 @@ curl -s -X GET "http://localhost:6006/products:list?after=01KJC6F0CCWCV88JH3CPRY
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
+    },
+    {
+      "brand": "Wow",
+      "details": "Full HD monitor",
+      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
+      "price": "199.99",
+      "quantity": 20,
+      "title": "Monitor 21 inch"
+    },
+    {
+      "brand": "SuperBrand",
+      "details": "Mechanical keyboard",
+      "id": "01KJHCXAZ2VH0WTN792CXC92WV",
+      "price": "49.99",
+      "quantity": 5,
+      "title": "Product 1"
     }
   ],
   "meta": {
-    "count": 1,
-    "limit": 1,
-    "next": "01KJC6F0H0WRMVGTYD5R0AS2RX",
+    "count": 3,
+    "limit": 3,
+    "next": "01KJHCXAZ2VH0WTN792CXC92WV",
     "prev": null
   }
 }

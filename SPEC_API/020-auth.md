@@ -18,12 +18,12 @@ curl -s -X POST "http://localhost:6006/auth:login" \
 ```json
 {
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJleHAiOjE3NzIwOTQ1MDMsIm5iZiI6MTc3MjA5MDg3MywiaWF0IjoxNzcyMDkwOTAzfQ.aAu_3Ax4A0PBIXtA91AlQHPMl7a6bh6CzBiPKI4_Pjw",
-    "refresh_token": "HvYdfIspl7S_D8MrM0rHDbHMikSloPfCZJfOxxS-kME=",
-    "expires_at": "2026-02-26T08:28:23.831470496Z",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJleHAiOjE3NzIyNjE1NTgsIm5iZiI6MTc3MjI1NzkyOCwiaWF0IjoxNzcyMjU3OTU4fQ.lZ8oFckKcKAKLkWAAQ-CibKrNCKN55cUrDr1zbxadAI",
+    "refresh_token": "SEb54NKdpecktQN0s2qjSziWlhdWM8r-Ts6TzQ-jOT4=",
+    "expires_at": "2026-02-28T06:52:38.69599201Z",
     "token_type": "Bearer",
     "user": {
-      "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
+      "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
       "username": "newuser",
       "email": "newuser@example.com",
       "role": "user",
@@ -48,7 +48,7 @@ curl -s -X GET "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
+    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
     "username": "newuser",
     "email": "newuser@example.com",
     "role": "user",
@@ -77,7 +77,7 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
+    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
@@ -108,7 +108,7 @@ curl -s -X POST "http://localhost:6006/auth:me" \
 ```json
 {
   "data": {
-    "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
+    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
     "username": "newuser",
     "email": "newemail@example.com",
     "role": "user",
@@ -137,12 +137,12 @@ curl -s -X POST "http://localhost:6006/auth:refresh" \
 ```json
 {
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkNESko1Q0dOWUI0WDZQMlhHN0pHVlQiLCJleHAiOjE3NzIwOTQ1MDUsIm5iZiI6MTc3MjA5MDg3NSwiaWF0IjoxNzcyMDkwOTA1fQ.3hayP_WUaGEUlcnSWotMzjt42KHY5G7Oblt-4EziYDs",
-    "refresh_token": "gD_4bWQeYhu--AoSpGBB3h2N9By0vkmQy3WFNDv2pwI=",
-    "expires_at": "2026-02-26T08:28:25.573036556Z",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJleHAiOjE3NzIyNjE1NjAsIm5iZiI6MTc3MjI1NzkzMCwiaWF0IjoxNzcyMjU3OTYwfQ.b3miIPvXZGt-7-58mayTA3Zy79q53S1MOnx0beT59mg",
+    "refresh_token": "aDSM1M5z61WgwHfEHcgTZxqhMgjC0PbrCtg1iaKU7bw=",
+    "expires_at": "2026-02-28T06:52:40.914567576Z",
     "token_type": "Bearer",
     "user": {
-      "id": "01KJCDJJ5CGNYB4X6P2XG7JGVT",
+      "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
       "username": "newuser",
       "email": "newemail@example.com",
       "role": "user",
