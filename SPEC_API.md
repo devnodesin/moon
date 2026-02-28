@@ -64,7 +64,7 @@ Moon is intentionally minimal. It does **not** support:
 - **Encryption at Rest:** No built-in data encryption at rest.
 - **Admin UI:** API-only; no built-in web UI or dashboard.
 - **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
-- **Public endpoints:** `GET /` (alias for `/health`), `/health`, `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`. The root path `GET /` is only available when no URL prefix is configured.
+- **Public endpoints:** `/health`, `/` (alias for `/health`), `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`. The root path `GET /` is only available when no URL prefix is configured.
 - No support for API versioning.
 - No WebSocket/Realtime
 
@@ -284,6 +284,7 @@ The API uses a simple, consistent error handling approach and strictly follows s
 - `400`: Invalid request (validation error, invalid parameter, malformed request)
 - `401`: Authentication required
 - `404`: Resource not found
+- `429`: Too Many Requests
 - `500`: Server error
 - Only the codes listed above are permitted; do not use any others.
 
@@ -311,6 +312,7 @@ Health and documentation endpoints are accessible without authentication. All ot
 
 | Endpoint         | Method | Description                                                     |
 | ---------------- | ------ | --------------------------------------------------------------- |
+| `/`              | GET    | (alias for `/health`) |
 | `/health`        | GET    | Health Endpoint (see [Health Endpoint](./SPEC_API/010-health.md)) |
 | `/doc/`          | GET    | API Documentation (HTML)                                        |
 | `/doc/llms.md`   | GET    | API Documentation (Markdown)                                    |

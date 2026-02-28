@@ -7,6 +7,23 @@
 	"health": "/health",
 	"tests": [
 		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/users:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"username": "newuser",
+					"email": "newuser@example.com",
+					"password": "UserPass123#",
+					"role": "user"
+				}
+			}
+		},
+		{
 			"name": "Login",
 			"cmd": "POST",
 			"endpoint": "/auth:login",
