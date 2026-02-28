@@ -144,7 +144,8 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
     "count": 15,
     "limit": 15,
     "next": "01KHCZKMM0N808MKSHBNWF464F",
-    "prev": "01KHCZFXAFJPS9SKSFKNBMHTP5"
+    "prev": "01KHCZFXAFJPS9SKSFKNBMHTP5",
+    "total": 42
   }
 }
 ```
@@ -155,6 +156,7 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
   - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 200.
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
+  - `total` (integer): Total number of records matching the current filters, regardless of pagination cursor.
 
 The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
 

@@ -585,6 +585,10 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Errorf("Expected count 5, got %v", resp.Meta["count"])
 		}
 
+		if total, _ := resp.Meta["total"].(float64); total != 5 {
+			t.Errorf("Expected total 5, got %v", resp.Meta["total"])
+		}
+
 		if len(resp.Data) != 5 {
 			t.Errorf("Expected 5 data items, got %d", len(resp.Data))
 		}
@@ -610,6 +614,10 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 			t.Errorf("Expected count 3 for electronics, got %v", resp.Meta["count"])
 		}
 
+		if total, _ := resp.Meta["total"].(float64); total != 3 {
+			t.Errorf("Expected total 3 for electronics filter, got %v", resp.Meta["total"])
+		}
+
 		if len(resp.Data) != 3 {
 			t.Errorf("Expected 3 data items, got %d", len(resp.Data))
 		}
@@ -633,6 +641,11 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 		// Count reflects items in current page
 		if count, _ := resp.Meta["count"].(float64); count != 2 {
 			t.Errorf("Expected count 2 (page count), got %v", resp.Meta["count"])
+		}
+
+		// Total reflects all records regardless of limit
+		if total, _ := resp.Meta["total"].(float64); total != 5 {
+			t.Errorf("Expected total 5 (all records), got %v", resp.Meta["total"])
 		}
 
 		if len(resp.Data) != 2 {
@@ -679,6 +692,10 @@ func TestDataHandler_List_TotalField(t *testing.T) {
 
 		if count, _ := resp.Meta["count"].(float64); count != 0 {
 			t.Errorf("Expected count 0 for empty collection, got %v", resp.Meta["count"])
+		}
+
+		if total, _ := resp.Meta["total"].(float64); total != 0 {
+			t.Errorf("Expected total 0 for empty collection, got %v", resp.Meta["total"])
 		}
 
 		if len(resp.Data) != 0 {

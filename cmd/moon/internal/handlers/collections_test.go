@@ -992,6 +992,41 @@ func TestUpdate_RenameColumns_Conflict(t *testing.T) {
 	}
 }
 
+func TestUpdate_RenameColumns_OldColumnNotFound(t *testing.T) {
+	handler, driver := setupTestHandler(t)
+	defer driver.Close()
+
+	// Create a collection with known columns
+	createReq := CreateRequest{
+		Name: "test_table",
+		Columns: []registry.Column{
+			{Name: "name", Type: registry.TypeString, Nullable: false},
+		},
+	}
+	body, _ := json.Marshal(map[string]any{"data": createReq})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/collections:create", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	handler.Create(w, req)
+
+	// Try to rename a column that does not exist
+	updateReq := UpdateRequest{
+		Name: "test_table",
+		RenameColumns: []RenameColumn{
+			{OldName: "nonexistent_column", NewName: "new_name"},
+		},
+	}
+	body, _ = json.Marshal(map[string]any{"data": updateReq})
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/collections:update", bytes.NewReader(body))
+	w = httptest.NewRecorder()
+
+	handler.Update(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d for missing old column, got %d. Body: %s",
+			http.StatusBadRequest, w.Code, w.Body.String())
+	}
+}
+
 // Tests for Modify Columns functionality
 func TestUpdate_ModifyColumns_Success(t *testing.T) {
 	handler, driver := setupTestHandler(t)
