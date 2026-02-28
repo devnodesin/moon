@@ -196,7 +196,8 @@ curl -s -X GET "http://localhost:6006/products:list" \
     "count": 3,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 3
   }
 }
 ```

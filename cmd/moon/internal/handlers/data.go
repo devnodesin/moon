@@ -281,6 +281,7 @@ func (h *DataHandler) List(w http.ResponseWriter, r *http.Request, collectionNam
 			"limit": limit,
 			"next":  nextCursor,
 			"prev":  prevCursor,
+			"total": total,
 		},
 	}
 
