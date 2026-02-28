@@ -1,25 +1,14 @@
-{{- $ApiURL := .BaseURL -}}
-{{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
-
 # Moon – Instructions and API Documentation for AI Coding Agents
 
-> **Quick Start:**
-> 1. [View HTML docs]({{$ApiURL}}/doc/) or [Markdown docs]({{$ApiURL}}/doc/llms.md)
-> 2. [Authenticate](#authentication) (see below)
-> 3. [Try a sample request](#collection-management)
-> 4. [See JSON Appendix]({{$ApiURL}}/doc/llms.json) for machine-readable spec
-> 5. For help or to report issues, visit [GitHub Issues](https://github.com/devnodesin/moon/issues)
-
-| Property    | Value                                               |
-|-------------|-----------------------------------------------------|
-| Version     | {{.Version}}                                        |
-| Service     | moon                                                |
-| Base URL    | `{{.BaseURL}}`                                      |
-| URL Prefix  | {{if .Prefix}}`{{.Prefix}}`{{else}}N/A{{end}}       |
-| Github URL  | https://github.com/devnodesin/moon                  |
-
-{{if .Prefix}} All endpoints are prefixed with `{{.Prefix}}`. {{end}}
-
+```text
+{{- $ApiURL := .BaseURL -}}
+{{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
+Version:    {{.Version}}
+Service:    moon
+Base URL:   {{.BaseURL}}
+URL Prefix: {{if .Prefix}}{{.Prefix}} (All endpoints are prefixed with `{{.Prefix}}`.) {{else}}N/A{{end}}
+Github URL: https://github.com/devnodesin/moon
+```
 
 ## Table of Contents
 
@@ -83,7 +72,7 @@ Moon is intentionally minimal. It does **not** support:
 - **Encryption at Rest:** No built-in data encryption at rest.
 - **Admin UI:** API-only; no built-in web UI or dashboard.
 - **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
-- **Public endpoints:** `/health`, `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`.
+- **Public endpoints:** `/health`, `/` (alias for `/health`), `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`. The root path `GET /` is only available when no URL prefix is configured.
 - No support for API versioning.
 - No WebSocket/Realtime
 
@@ -119,7 +108,7 @@ Supported column data types:
 - **integer**: 64-bit whole numbers.
 - **decimal**: For decimal values. API input/output uses strings (e.g., "199.99"), default 2 decimal places.
 - **boolean**: true/false values.
-- **datetime**: Date/time in ISO 8601 format (e.g., 2023-01-31T13:45:00Z).
+- **datetime**: Date/time in RFC3339 format (e.g., 2023-01-31T13:45:00Z).
 - **json**: Arbitrary JSON object or array.
 
 **_Note:_** Aggregation functions (sum, avg, min, max) are supported on both `integer` and `decimal` field types.
@@ -163,7 +152,8 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
     "count": 15,
     "limit": 15,
     "next": "01KHCZKMM0N808MKSHBNWF464F",
-    "prev": "01KHCZFXAFJPS9SKSFKNBMHTP5"
+    "prev": "01KHCZFXAFJPS9SKSFKNBMHTP5",
+    "total": 42
   }
 }
 ```
@@ -171,9 +161,10 @@ Every list endpoint returns a JSON object with two top-level keys: `data` and `m
 - `data` - An array of resource objects. Each record always includes an `id` field (ULID), except collections which use `name` as the identifier.
 - `meta` - Pagination metadata for the current page.
   - `count` (integer): Number of records returned in this response
-  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 100.
+  - `limit` (integer): The page size limit that was applied. Default is 15; maximum allowed is 200.
   - `next` (string | null): Cursor pointing to the last record on the current page. Pass to ?after to get the next page. null on the last page.
   - `prev` (string | null): Cursor pointing to the record before the current page. Pass to ?after to return to the previous page. null on the first page.
+  - `total` (integer): Total number of records matching the current filters, regardless of pagination cursor.
 
 The `:list` endpoint supports the following query parameters: `limit`, `after`, `sort`, `filter`, `q` (full-text search), and `fields` (field selection).
 
@@ -294,9 +285,7 @@ Retrieve the schema definition for a collection, including all fields, their typ
 
 ---
 
-## Standard Error Response {#error-responses}
-
-### Error Responses
+## Standard Error Response
 
 The API uses a simple, consistent error handling approach and strictly follows standard HTTP semantics.
 
@@ -305,6 +294,7 @@ The API uses a simple, consistent error handling approach and strictly follows s
 - `400`: Invalid request (validation error, invalid parameter, malformed request)
 - `401`: Authentication required
 - `404`: Resource not found
+- `429`: Too Many Requests
 - `500`: Server error
 - Only the codes listed above are permitted; do not use any others.
 
@@ -324,7 +314,7 @@ When an error occurs, the API responds with the appropriate HTTP status code and
 }
 ```
 
-{{ include "090-errors.md" }}
+See [Standard Error Response](#standard-error-response) for any error handling
 
 ## Public Endpoints
 
@@ -332,6 +322,7 @@ Health and documentation endpoints are accessible without authentication. All ot
 
 | Endpoint         | Method | Description                                                     |
 | ---------------- | ------ | --------------------------------------------------------------- |
+| `/`              | GET    | (alias for `/health`) |
 | `/health`        | GET    | Health Endpoint |
 | `/doc/`          | GET    | API Documentation (HTML)                                        |
 | `/doc/llms.md`   | GET    | API Documentation (Markdown)                                    |
@@ -364,7 +355,7 @@ Supported authentication types:
 
 ### Important Notes
 
-- **Token expiration**: Access tokens expire in 1 hour (configurable). Use refresh token to obtain new access token without re-authentication.
+- **Token expiration**: Access tokens expire in 15 minutes by default (configurable via `jwt.access_expiry`). Use refresh token to obtain new access token without re-authentication.
 - **Refresh token**: Single-use tokens. Each refresh returns a new access token AND a new refresh token. Store the new refresh token for subsequent refreshes.
 - **Password change**: Changing password invalidates all existing sessions. User must login again with new credentials.
 - **Authorization header**: Format is `Authorization: Bearer {access_token}`. Include this header in all authenticated requests.
@@ -385,9 +376,9 @@ Supported authentication types:
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
-All error handling must follow [Standard Error Response](#standard-error-response)
-
 {{ include "030-users.md" }}
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage API Keys (Admin Only)
 
@@ -399,9 +390,9 @@ All error handling must follow [Standard Error Response](#standard-error-respons
 | `/apikeys:update`  | POST   | Update API key metadata or rotate key |
 | `/apikeys:destroy` | POST   | Delete API key                        |
 
-All error handling must follow [Standard Error Response](#standard-error-response)
-
 {{ include "040-apikeys.md" }}
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage Collections
 
@@ -422,9 +413,9 @@ Update collection support following schema modification operations:
 - `modify_columns` - Change column types or attributes
 - `remove_columns` - Remove existing columns
 
-All error handling must follow [Standard Error Response](#standard-error-response)
-
 {{ include "050-collection.md" }}
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Data Access
 
@@ -439,9 +430,9 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection}:update`  | POST   | Update an existing record                |
 | `/{collection}:destroy` | POST   | Delete a record                          |
 
-All error handling must follow [Standard Error Response](#standard-error-response)
-
 {{ include "060-data.md" }}
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ### Query Options
 
@@ -453,12 +444,12 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?sort={fields}`          | Sort by one or more fields (prefix `-` for descending)     |
 | `?q={term}`               | Full-text search across all text columns                   |
 | `?fields={field1,field2}` | Select specific fields to return (id always included)      |
-| `?limit={number}`         | Limit number of records returned (default: 15, max: 100)   |
+| `?limit={number}`         | Limit number of records returned (default: 15, max: 200)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
-All error handling must follow [Standard Error Response](#standard-error-response)
-
 {{ include "070-query.md" }}
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 #### Combined Examples
 
@@ -505,6 +496,25 @@ All error handling must follow [Standard Error Response](#standard-error-respons
 
 ## Security
 
+### Request Correlation (`X-Request-ID`)
+
+Moon supports request correlation using the `X-Request-ID` header.
+
+**Lifecycle:**
+
+1. **Client sends (optional):** Clients may include `X-Request-ID` in the request.
+2. **Server resolves ID:**
+  - If `X-Request-ID` is provided, Moon uses that value.
+  - If not provided, Moon generates a request ID.
+3. **Server returns ID:** Moon sets `X-Request-ID` on the response so clients can correlate request/response pairs.
+4. **Logs include ID:** The same value is written to logs as `request_id` for tracing and debugging.
+
+**Operational Notes:**
+
+- Use `X-Request-ID` when reporting errors to support teams.
+- For failed requests (4xx/5xx), use the response `X-Request-ID` to locate related server logs.
+- In browser clients, this header can be read when CORS exposes `X-Request-ID`.
+
 ### Rate Limiting
 
 Each response includes these headers to help you track your usage:
@@ -550,7 +560,9 @@ Wait until the time in `X-RateLimit-Reset` or use the `Retry-After` value (in se
 
 Moon supports Cross-Origin Resource Sharing (CORS) for browser clients with flexible, pattern-based configuration.
 
-**Public Endpoints (No Auth):** Refer [Public Endpoints](#public-endpoints)
+**Public Endpoints (No Auth):**
+
+Refer [Public Endpoints](#public-endpoints)
 
 **Default CORS Headers:**
 
@@ -593,7 +605,7 @@ Access-Control-Allow-Headers: Authorization, Content-Type
 Access-Control-Max-Age: 3600
 ```
 
-- For credentials, set a specific allowed origin (not `*`).
+- **TIP:** In production server set a specific allowed origin (not `*`).
 
 ---
 

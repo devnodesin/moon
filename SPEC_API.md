@@ -1,6 +1,14 @@
-# Standard API Response Patterns
+# Moon – Instructions and API Documentation for AI Coding Agents
 
-Moon enables rapid, migrationless management of database tables and records through a dynamic RESTful API.
+```text
+{{- $ApiURL := .BaseURL -}}
+{{- if .Prefix }}{{- $ApiURL = printf "%s%s" .BaseURL .Prefix -}}{{- end -}}
+Version:    {{.Version}}
+Service:    moon
+Base URL:   {{.BaseURL}}
+URL Prefix: {{if .Prefix}}{{.Prefix}} (All endpoints are prefixed with `{{.Prefix}}`.) {{else}}N/A{{end}}
+Github URL: https://github.com/devnodesin/moon
+```
 
 ## Table of Contents
 
@@ -256,7 +264,7 @@ Get endpoints retrieve a single resource by its identifier `id` or `name`.
 
 Retrieve the schema definition for a collection, including all fields, their types, constraints, and defaults.
 
-`GET /{collection_name}:schema`
+`GET /{collection}:schema`
 
 **Field Properties:**
 
@@ -306,7 +314,7 @@ When an error occurs, the API responds with the appropriate HTTP status code and
 }
 ```
 
-See [Standard Error Response](./SPEC_API/090-errors.md) for any error handling
+See [Standard Error Response](#standard-error-response) for any error handling
 
 ## Public Endpoints
 
@@ -315,11 +323,13 @@ Health and documentation endpoints are accessible without authentication. All ot
 | Endpoint         | Method | Description                                                     |
 | ---------------- | ------ | --------------------------------------------------------------- |
 | `/`              | GET    | (alias for `/health`) |
-| `/health`        | GET    | Health Endpoint (see [Health Endpoint](./SPEC_API/010-health.md)) |
+| `/health`        | GET    | Health Endpoint |
 | `/doc/`          | GET    | API Documentation (HTML)                                        |
 | `/doc/llms.md`   | GET    | API Documentation (Markdown)                                    |
 | `/doc/llms.txt`  | GET    | API Documentation (Plain Text, alias for `/doc/llms.md`)        |
 | `/doc/llms.json` | GET    | API Documentation (JSON)                                        |
+
+See [Health Enpoint](./SPEC_API/010-health.md).
 
 ## Authentication
 
@@ -366,7 +376,9 @@ See [Authentication API](./SPEC_API/020-auth.md).
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
-See [Users API](./SPEC_API/030-users.md). All error handling must follow [Standard Error Response](#standard-error-response)
+See [Users API](./SPEC_API/030-users.md).
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage API Keys (Admin Only)
 
@@ -378,7 +390,9 @@ See [Users API](./SPEC_API/030-users.md). All error handling must follow [Standa
 | `/apikeys:update`  | POST   | Update API key metadata or rotate key |
 | `/apikeys:destroy` | POST   | Delete API key                        |
 
-See [APIKeys API](./SPEC_API/040-apikeys.md). All error handling must follow [Standard Error Response](#standard-error-response)
+See [APIKeys API](./SPEC_API/040-apikeys.md).
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Manage Collections
 
@@ -399,22 +413,26 @@ Update collection support following schema modification operations:
 - `modify_columns` - Change column types or attributes
 - `remove_columns` - Remove existing columns
 
-See [Collection Managment API](./SPEC_API/050-collection.md). All error handling must follow [Standard Error Response](#standard-error-response)
+See [Collection Managment API](./SPEC_API/050-collection.md).
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ## Data Access
 
-These endpoints manage records within a specific collection. Replace `{collection_name}` with your collection name.
+These endpoints manage records within a specific collection. Replace `{collection}` with your collection name (e.g., `products`).
 
-| Endpoint                     | Method | Description                              |
-| ---------------------------- | ------ | ---------------------------------------- |
-| `/{collection_name}:list`    | GET    | List all records                         |
-| `/{collection_name}:schema`  | GET    | Get collection schema (read-only)        |
-| `/{collection_name}:get`     | GET    | Get a single record (requires `?id=...`) |
-| `/{collection_name}:create`  | POST   | Create a new record                      |
-| `/{collection_name}:update`  | POST   | Update an existing record                |
-| `/{collection_name}:destroy` | POST   | Delete a record                          |
+| Endpoint                | Method | Description                              |
+| ----------------------- | ------ | ---------------------------------------- |
+| `/{collection}:list`    | GET    | List all records                         |
+| `/{collection}:schema`  | GET    | Get collection schema (read-only)        |
+| `/{collection}:get`     | GET    | Get a single record (requires `?id=...`) |
+| `/{collection}:create`  | POST   | Create a new record                      |
+| `/{collection}:update`  | POST   | Update an existing record                |
+| `/{collection}:destroy` | POST   | Delete a record                          |
 
-See [Data Access API](./SPEC_API/060-data.md). All error handling must follow [Standard Error Response](#standard-error-response)
+See [Data Access API](./SPEC_API/060-data.md).
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 ### Query Options
 
@@ -429,7 +447,9 @@ Query parameters for filtering, sorting, searching, field selection, and paginat
 | `?limit={number}`         | Limit number of records returned (default: 15, max: 200)   |
 | `?after={cursor}`         | Get records after the specified cursor                     |
 
-See [Data Access API > Query Options](./SPEC_API/070-query.md). All error handling must follow [Standard Error Response](#standard-error-response)
+See [Data Access API > Query Options](./SPEC_API/070-query.md).
+
+All error handling must follow [Standard Error Response](#standard-error-response)
 
 #### Combined Examples
 
@@ -450,21 +470,23 @@ GET /products:list?price[gte]=100&quantity[gt]=0&sort=-price&limit=10&after=01KH
 
 Moon provides dedicated aggregation endpoints that perform calculations directly on the server. This enables fast, efficient analytics—such as counting records, summing numeric fields, computing averages, and finding minimum or maximum values—without transferring unnecessary data.
 
-Server-side aggregation endpoints for analytics. Replace `{collection_name}` with your collection name.
+Server-side aggregation endpoints for analytics. Replace `{collection}` with your collection name.
 
-| Endpoint                   | Method | Description                                   |
-| -------------------------- | ------ | --------------------------------------------- |
-| `/{collection_name}:count` | GET    | Count records                                 |
-| `/{collection_name}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
-| `/{collection_name}:avg`   | GET    | Average numeric field (requires `?field=...`) |
-| `/{collection_name}:min`   | GET    | Minimum value (requires `?field=...`)         |
-| `/{collection_name}:max`   | GET    | Maximum value (requires `?field=...`)         |
+| Endpoint              | Method | Description                                   |
+| --------------------- | ------ | --------------------------------------------- |
+| `/{collection}:count` | GET    | Count records                                 |
+| `/{collection}:sum`   | GET    | Sum numeric field (requires `?field=...`)     |
+| `/{collection}:avg`   | GET    | Average numeric field (requires `?field=...`) |
+| `/{collection}:min`   | GET    | Minimum value (requires `?field=...`)         |
+| `/{collection}:max`   | GET    | Maximum value (requires `?field=...`)         |
 
-See [Data Access API > Aggregation Operations](./SPEC_API/080-aggregation.md). All error handling must follow [Standard Error Response](#standard-error-response)
+All error handling must follow [Standard Error Response](#standard-error-response)
+
+{{ include "080-aggregation.md" }}
 
 **Note:**
 
-- Replace `{collection_name}` with your collection name.
+- Replace `{collection}` with your collection name.
 - Aggregation can be combined with filters (e.g., `?quantity[gt]=10`) to perform calculations on specific subsets of data.
 - Aggregation functions (`sum`, `avg`, `min`, `max`) are supported only on `integer` and `decimal` field types.
 - Combine aggregation with query filters for calculations on specific subsets:
@@ -540,7 +562,7 @@ Moon supports Cross-Origin Resource Sharing (CORS) for browser clients with flex
 
 **Public Endpoints (No Auth):**
 
-Refer [Public Endpoints](./010-public.md)
+Refer [Public Endpoints](#public-endpoints)
 
 **Default CORS Headers:**
 
@@ -584,3 +606,9 @@ Access-Control-Max-Age: 3600
 ```
 
 - **TIP:** In production server set a specific allowed origin (not `*`).
+
+---
+
+**[Moon](https://github.com/devnodesin/moon)** made by [Devnodes.in](https://devnodes.in)
+
+---
