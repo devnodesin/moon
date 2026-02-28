@@ -5,6 +5,8 @@ package logging
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/thalib/moon/cmd/moon/internal/constants"
 )
@@ -402,7 +403,13 @@ func (rl *RequestLogger) Middleware(next http.HandlerFunc) http.HandlerFunc {
 		// Generate or get request ID
 		requestID := r.Header.Get(constants.HeaderRequestID)
 		if requestID == "" {
-			requestID = uuid.New().String()
+			b := make([]byte, 16)
+			if _, err := rand.Read(b); err != nil {
+				// Fallback to timestamp-based ID on crypto/rand failure
+				requestID = fmt.Sprintf("%d", time.Now().UnixNano())
+			} else {
+				requestID = hex.EncodeToString(b)
+			}
 		}
 
 		// Add request ID to response header

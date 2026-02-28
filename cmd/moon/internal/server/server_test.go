@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -537,59 +538,36 @@ func TestDynamicDataHandler_WithPrefix(t *testing.T) {
 	}
 }
 
-func TestRootMessageHandler(t *testing.T) {
+func TestRootHandler_AliasesHealth(t *testing.T) {
 	srv := setupTestServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	srv.rootMessageHandler(w, req)
+	srv.mux.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
 	contentType := w.Header().Get("Content-Type")
-	if contentType != "text/plain; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/plain; charset=utf-8', got '%s'", contentType)
-	}
-
-	expectedBody := "Moon is running."
-	actualBody := w.Body.String()
-	if actualBody != expectedBody {
-		t.Errorf("Expected body '%s', got '%s'", expectedBody, actualBody)
+	if !strings.Contains(contentType, "application/json") {
+		t.Errorf("Expected Content-Type application/json, got '%s'", contentType)
 	}
 }
 
-func TestRootMessageHandler_NonRootPath(t *testing.T) {
-	srv := setupTestServer(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/something", nil)
-	w := httptest.NewRecorder()
-
-	srv.rootMessageHandler(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("Expected status code %d for non-root path, got %d", http.StatusNotFound, w.Code)
-	}
-}
-
-func TestRootMessageHandler_Integration(t *testing.T) {
+func TestRootHandler_Integration(t *testing.T) {
 	tests := []struct {
-		name                string
-		prefix              string
-		requestPath         string
-		expectedStatus      int
-		expectedBody        string
-		expectedContentType string
+		name           string
+		prefix         string
+		requestPath    string
+		expectedStatus int
 	}{
 		{
-			name:                "Root message with no prefix",
-			prefix:              "",
-			requestPath:         "/",
-			expectedStatus:      http.StatusOK,
-			expectedBody:        "Moon is running.",
-			expectedContentType: "text/plain; charset=utf-8",
+			name:           "Root path returns health with no prefix",
+			prefix:         "",
+			requestPath:    "/",
+			expectedStatus: http.StatusOK,
 		},
 		{
 			name:           "Root path should 404 with prefix",
@@ -598,7 +576,7 @@ func TestRootMessageHandler_Integration(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 		{
-			name:           "Other routes should still work with no prefix",
+			name:           "Health endpoint still works with no prefix",
 			prefix:         "",
 			requestPath:    "/health",
 			expectedStatus: http.StatusOK,
@@ -622,20 +600,6 @@ func TestRootMessageHandler_Integration(t *testing.T) {
 
 			if w.Code != tt.expectedStatus {
 				t.Errorf("Expected status code %d, got %d", tt.expectedStatus, w.Code)
-			}
-
-			if tt.expectedBody != "" {
-				actualBody := w.Body.String()
-				if actualBody != tt.expectedBody {
-					t.Errorf("Expected body '%s', got '%s'", tt.expectedBody, actualBody)
-				}
-			}
-
-			if tt.expectedContentType != "" {
-				contentType := w.Header().Get("Content-Type")
-				if contentType != tt.expectedContentType {
-					t.Errorf("Expected Content-Type '%s', got '%s'", tt.expectedContentType, contentType)
-				}
 			}
 		})
 	}

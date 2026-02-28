@@ -262,7 +262,7 @@ func (m *RateLimitMiddleware) writeRateLimitError(w http.ResponseWriter, limit i
 	}
 	w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
-	w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(http.StatusTooManyRequests)
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "rate limit exceeded",
 	})
@@ -427,7 +427,7 @@ func (lrl *LoginRateLimiter) IsBlocked(ip, username string) (blocked bool, reset
 // WriteLoginRateLimitError writes a login rate limit error response.
 func WriteLoginRateLimitError(w http.ResponseWriter, resetAt time.Time) {
 	w.Header().Set(constants.HeaderContentType, constants.MIMEApplicationJSON)
-	w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(http.StatusTooManyRequests)
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "too many login attempts",
 	})

@@ -127,11 +127,6 @@ func (s *Server) setupRoutes() {
 		return s.corsMiddle.HandleDynamic(s.loggingMiddleware(h))
 	}
 
-	// Public endpoints: Standard CORS + logging (for endpoints like root message)
-	public := func(h http.HandlerFunc) http.HandlerFunc {
-		return s.corsMiddle.Handle(s.loggingMiddleware(h))
-	}
-
 	// Auth endpoints: CORS + logging + auth (login/refresh don't need rate limit or authz)
 	authNoLimit := func(h http.HandlerFunc) http.HandlerFunc {
 		return s.corsMiddle.Handle(s.loggingMiddleware(h))
@@ -164,9 +159,9 @@ func (s *Server) setupRoutes() {
 						s.authzMiddle.RequireWrite(h)))))
 	}
 
-	// Root message endpoint (only for exact "/" path with no prefix)
+	// Root endpoint: alias for /health (only for exact "/" path with no prefix)
 	if prefix == "" {
-		s.mux.HandleFunc("GET /{$}", public(s.rootMessageHandler))
+		s.mux.HandleFunc("GET /{$}", dynamicCORS(s.healthHandler))
 	}
 
 	// ==========================================
@@ -512,19 +507,6 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) corsPreflightHandler(w http.ResponseWriter, r *http.Request) {
 	// The CORS middleware handles everything for OPTIONS requests
 	// This is just a no-op handler that allows the route to exist
-}
-
-// Root message handler - returns a friendly message at the root path
-func (s *Server) rootMessageHandler(w http.ResponseWriter, r *http.Request) {
-	// Only respond to exact root path
-	if r.URL.Path != "/" {
-		s.notFoundHandler(w, r)
-		return
-	}
-
-	w.Header().Set(constants.HeaderContentType, constants.MIMETextPlain)
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(config.RootMessage))
 }
 
 // Not found handler

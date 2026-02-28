@@ -64,7 +64,7 @@ Moon is intentionally minimal. It does **not** support:
 - **Encryption at Rest:** No built-in data encryption at rest.
 - **Admin UI:** API-only; no built-in web UI or dashboard.
 - **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
-- **Public endpoints:** `/health`, `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`.
+- **Public endpoints:** `GET /` (alias for `/health`), `/health`, `/doc`, `/doc/llms.md`, `/doc/llms.txt`, `/doc/llms.json`. The root path `GET /` is only available when no URL prefix is configured.
 - No support for API versioning.
 - No WebSocket/Realtime
 
@@ -486,7 +486,7 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1706875200
 ```
 
-**If You Exceed the Limit (400 Too Many Requests):**
+**If You Exceed the Limit (429 Too Many Requests):**
 
 When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), you’ll get:
 
@@ -499,7 +499,7 @@ When you go over your limit (100/min/user for JWT, 1000/min/key for API Key), yo
 **Response Headers:**
 
 ```text
-HTTP/1.1 400 Too Many Requests
+HTTP/1.1 429 Too Many Requests
 Content-Type: application/json
 Retry-After: 60
 X-RateLimit-Limit: 100

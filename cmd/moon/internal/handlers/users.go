@@ -119,6 +119,15 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 		nextCursor = &cursor
 	}
 
+	// Determine prev cursor for backward pagination
+	var prevCursor *string
+	if after != "" && len(users) > 0 {
+		prevID := h.userRepo.FindPrevCursorID(ctx, users[0].ID, roleFilter, limit)
+		if prevID != "" {
+			prevCursor = &prevID
+		}
+	}
+
 	// Convert to public info
 	publicUsers := make([]UserPublicInfo, len(users))
 	for i, user := range users {
@@ -132,7 +141,7 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 		"count": len(publicUsers),
 		"limit": limit,
 		"next":  nextCursor,
-		"prev":  nil,
+		"prev":  prevCursor,
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -271,12 +280,10 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine can_write (default based on role)
+	// Determine can_write: default is true for all roles; admin always gets write access
 	canWrite := true
 	if req.CanWrite != nil {
 		canWrite = *req.CanWrite
-	} else if req.Role == string(auth.RoleReadOnly) {
-		canWrite = false
 	}
 
 	// Create user

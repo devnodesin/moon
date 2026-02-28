@@ -7,9 +7,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"github.com/thalib/moon/cmd/moon/internal/constants"
+	"log"
 	"time"
 
+	"github.com/thalib/moon/cmd/moon/internal/constants"
 	"github.com/thalib/moon/cmd/moon/internal/database"
 	moonulid "github.com/thalib/moon/cmd/moon/internal/ulid"
 )
@@ -296,7 +297,55 @@ func (r *APIKeyRepository) ListPaginated(ctx context.Context, opts APIKeyListOpt
 	return keys, nil
 }
 
-// NameExists checks if an API key name already exists (optionally excluding a primary key ID).
+// FindPrevCursorID finds the cursor ID for backward pagination.
+// It returns the ID that, when used as ?after, returns the previous page.
+// Returns empty string if the current page is the first page.
+func (r *APIKeyRepository) FindPrevCursorID(ctx context.Context, firstCurrentID string, limit int) string {
+	var query string
+	var args []any
+	argIdx := 1
+
+	base := fmt.Sprintf("SELECT id FROM %s WHERE ", constants.TableAPIKeys)
+
+	if r.db.Dialect() == database.DialectPostgres {
+		base += fmt.Sprintf("id < $%d", argIdx)
+	} else {
+		base += "id < ?"
+	}
+	args = append(args, firstCurrentID)
+	argIdx++
+
+	base += " ORDER BY id DESC"
+
+	if r.db.Dialect() == database.DialectPostgres {
+		query = base + fmt.Sprintf(" LIMIT $%d", argIdx)
+	} else {
+		query = base + " LIMIT ?"
+	}
+	args = append(args, limit+1)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		log.Printf("WARNING: FindPrevCursorID query failed for apikeys: %v", err)
+		return ""
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			log.Printf("WARNING: FindPrevCursorID scan failed for apikeys: %v", err)
+			return ""
+		}
+		ids = append(ids, id)
+	}
+
+	if len(ids) > limit {
+		return ids[limit]
+	}
+	return ""
+}
 func (r *APIKeyRepository) NameExists(ctx context.Context, name string, excludePKID int64) (bool, error) {
 	var query string
 	var args []any

@@ -8,7 +8,7 @@ package constants
 // backwards compatibility, we're using string constants here.
 const (
 	// ContextKeyRequestID is the context key for storing request IDs.
-	// Used in: errors/errors.go, logging/logger.go
+	// Used in: logging/logger.go
 	// Purpose: Request tracking and correlation across logs
 	ContextKeyRequestID = "request_id"
 

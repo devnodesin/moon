@@ -118,6 +118,15 @@ func (h *APIKeysHandler) List(w http.ResponseWriter, r *http.Request) {
 		nextCursor = &cursor
 	}
 
+	// Determine prev cursor for backward pagination
+	var prevCursor *string
+	if after != "" && len(keys) > 0 {
+		prevID := h.apiKeyRepo.FindPrevCursorID(ctx, keys[0].ID, limit)
+		if prevID != "" {
+			prevCursor = &prevID
+		}
+	}
+
 	publicKeys := make([]APIKeyPublicInfo, len(keys))
 	for i, key := range keys {
 		publicKeys[i] = apiKeyToPublicInfo(key)
@@ -130,7 +139,7 @@ func (h *APIKeysHandler) List(w http.ResponseWriter, r *http.Request) {
 		"count": len(publicKeys),
 		"limit": limit,
 		"next":  nextCursor,
-		"prev":  nil,
+		"prev":  prevCursor,
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
