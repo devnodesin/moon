@@ -23,7 +23,8 @@ from .placeholders import (
     replace_auth_placeholders,
     replace_record_placeholders,
     extract_record_id_from_response,
-    extract_record_ids_from_response
+    extract_record_ids_from_response,
+    extract_cursors_from_response
 )
 from .formatters import (
     format_markdown_result,
@@ -82,7 +83,7 @@ def run_test_suite(
                     replace_record_placeholders(test_copy, temp_context)
         
         # Replace single record placeholders if we have a captured ID
-        elif placeholder_context.captured_record_id:
+        else:
             placeholder_type = replace_record_placeholders(test_copy, placeholder_context)
             if placeholder_type:
                 placeholder_context.placeholder_type = placeholder_type
@@ -139,7 +140,12 @@ def run_test_suite(
         
         # Try to capture single record ID from successful create/list responses
         if is_successful and response.response_obj:
-            endpoint = test_copy.endpoint
+            endpoint = test_copy.endpoint.split('?')[0]
+            # Always refresh pagination cursors from list responses
+            if ":list" in endpoint:
+                next_cur, prev_cur = extract_cursors_from_response(response.response_obj)
+                placeholder_context.update_cursors(next_cur, prev_cur)
+            # Capture the first available record ID (once set, never overwritten)
             if ":create" in endpoint or ":list" in endpoint:
                 if not placeholder_context.captured_record_id:
                     record_id = extract_record_id_from_response(response.response_obj)

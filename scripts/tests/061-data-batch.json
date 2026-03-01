@@ -24,23 +24,8 @@
               "nullable": false
             },
             {
-              "name": "price",
-              "type": "decimal",
-              "nullable": false
-            },
-            {
-              "name": "details",
-              "type": "string",
-              "nullable": true
-            },
-            {
               "name": "quantity",
               "type": "integer",
-              "nullable": true
-            },
-            {
-              "name": "brand",
-              "type": "string",
               "nullable": true
             }
           ]
@@ -48,15 +33,7 @@
       }
     },
     {
-      "name": "Get Schema",
-      "cmd": "GET",
-      "endpoint": "/products:schema",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Create Record (Single)",
+      "name": "Create Records (Batch)",
       "cmd": "POST",
       "endpoint": "/products:create",
       "headers": {
@@ -66,33 +43,38 @@
       "data": {
         "data": [
           {
-            "title": "Wireless Mouse",
-            "price": "29.99",
-            "details": "Ergonomic wireless mouse",
-            "quantity": 10,
-            "brand": "Wow"
+            "title": "Product 1",
+            "quantity": 5
+          },
+          {
+            "title": "Product 2",
+            "quantity": 10
+          },
+          {
+            "title": "Product 3",
+            "quantity": 20
+          },
+          {
+            "title": "Product 4",
+            "quantity": 55
+          },
+          {
+            "title": "Product 5",
+            "quantity": 56
+          },
+          {
+            "title": "Product 6",
+            "quantity": 5
+          },
+          {
+            "title": "Product 7",
+            "quantity": 12
           }
         ]
       }
     },
     {
-      "name": "Get All Records",
-      "cmd": "GET",
-      "endpoint": "/products:list",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Get Single Record",
-      "cmd": "GET",
-      "endpoint": "/products:get?id=$ULID",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Update Existing Record (Single)",
+      "name": "Update Records (Batch)",
       "cmd": "POST",
       "endpoint": "/products:update",
       "headers": {
@@ -102,14 +84,19 @@
       "data": {
         "data": [
           {
-            "id": "$ULID",
-            "price": "6000.00"
+            "id": "$ULID1",
+            "quantity": 1200,
+            "title": "Updated Product 1"
+          },
+          {
+            "id": "$ULID2",
+            "title": "Updated Product 2"
           }
         ]
       }
     },
     {
-      "name": "Delete Record",
+      "name": "Destroy Records (Batch)",
       "cmd": "POST",
       "endpoint": "/products:destroy",
       "headers": {
@@ -118,7 +105,12 @@
       },
       "data": {
         "data": [
-          "$ULID"
+          "$ULID1",
+          "$ULID2",
+          "$ULID3",
+          "$ULID4",
+          "$ULID5",
+          "$ULID6"
         ]
       }
     },

@@ -3,7 +3,7 @@
 import json
 import re
 import requests
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 from .types import TestDefinition, PlaceholderContext, AuthState
 
@@ -39,61 +39,82 @@ def replace_record_placeholders(
     context: PlaceholderContext
 ) -> Optional[str]:
     """
-    Replace $ULID, $ULID1, $ULID2, etc., and $NEXT_CURSOR placeholders in test definition.
-    
+    Replace $PREV_CURSOR, $NEXT_CURSOR, $ULID, $ULID1, $ULID2, etc. in test definition.
+
+    Replacement order (all independent — multiple placeholders can coexist):
+      1. $PREV_CURSOR  — meta.prev from the most recent list response
+      2. $NEXT_CURSOR  — meta.next from the most recent list response;
+                         falls back to captured_record_id when cursors have
+                         not yet been initialised by a list response.
+      3. $ULID1/$ULID2 — numbered placeholders from a fresh collection fetch
+      4. $ULID         — single captured record ID
+
     Args:
         test: Test definition to modify in-place
-        context: Placeholder context with captured record ID(s)
-        
+        context: Placeholder context with captured record ID(s) and cursors
+
     Returns:
-        The placeholder type that was used ('$ULID', '$NEXT_CURSOR', or None)
+        The last placeholder type that was substituted, or None
     """
     placeholder_used = None
-    
-    # Handle numbered ULID placeholders (e.g., $ULID1, $ULID2)
+
+    def _sub(text: str, old: str, new: str) -> str:
+        return text.replace(old, new) if old in text else text
+
+    # 1. $PREV_CURSOR
+    if context.prev_cursor:
+        if test.endpoint and "$PREV_CURSOR" in test.endpoint:
+            test.endpoint = _sub(test.endpoint, "$PREV_CURSOR", context.prev_cursor)
+            placeholder_used = "$PREV_CURSOR"
+        if test.data:
+            data_str = json.dumps(test.data)
+            if "$PREV_CURSOR" in data_str:
+                test.data = json.loads(_sub(data_str, "$PREV_CURSOR", context.prev_cursor))
+                placeholder_used = "$PREV_CURSOR"
+
+    # 2. $NEXT_CURSOR
+    # When cursors have been initialised by a list response use next_cursor
+    # (may be None on the last page).  Before any list response has run,
+    # fall back to the captured_record_id so legacy tests still work.
+    if context.cursors_initialized:
+        next_cursor_value = context.next_cursor
+    else:
+        next_cursor_value = context.captured_record_id
+
+    if next_cursor_value:
+        if test.endpoint and "$NEXT_CURSOR" in test.endpoint:
+            test.endpoint = _sub(test.endpoint, "$NEXT_CURSOR", next_cursor_value)
+            placeholder_used = "$NEXT_CURSOR"
+        if test.data:
+            data_str = json.dumps(test.data)
+            if "$NEXT_CURSOR" in data_str:
+                test.data = json.loads(_sub(data_str, "$NEXT_CURSOR", next_cursor_value))
+                placeholder_used = "$NEXT_CURSOR"
+
+    # 3. Numbered $ULID1, $ULID2, … placeholders
     if context.captured_record_ids:
-        # Replace in endpoint
         if test.endpoint:
             test.endpoint = _replace_numbered_placeholders(
                 test.endpoint, context.captured_record_ids
             )
-        
-        # Replace in data
         if test.data:
-            data_str = json.dumps(test.data)
             data_str = _replace_numbered_placeholders(
-                data_str, context.captured_record_ids
+                json.dumps(test.data), context.captured_record_ids
             )
             test.data = json.loads(data_str)
-            if "$ULID" in json.dumps(context.captured_record_ids):
-                placeholder_used = "$ULID"
-    
-    # Handle single record ID placeholders
-    if not context.captured_record_id:
-        return placeholder_used
-    
-    record_id = context.captured_record_id
-    
-    # Replace in endpoint
-    if test.endpoint:
-        if "$NEXT_CURSOR" in test.endpoint:
-            test.endpoint = test.endpoint.replace("$NEXT_CURSOR", record_id)
-            placeholder_used = "$NEXT_CURSOR"
-        elif "$ULID" in test.endpoint:
-            test.endpoint = test.endpoint.replace("$ULID", record_id)
-            placeholder_used = "$ULID"
-    
-    # Replace in data (recursive)
-    if test.data:
-        data_str = json.dumps(test.data)
-        if "$NEXT_CURSOR" in data_str:
-            data_str = data_str.replace("$NEXT_CURSOR", record_id)
-            placeholder_used = "$NEXT_CURSOR"
-        elif "$ULID" in data_str:
-            data_str = data_str.replace("$ULID", record_id)
-            placeholder_used = "$ULID"
-        test.data = json.loads(data_str)
-    
+        placeholder_used = placeholder_used or "$ULID"
+
+    # 4. Single $ULID
+    if context.captured_record_id:
+        if test.endpoint and "$ULID" in test.endpoint:
+            test.endpoint = _sub(test.endpoint, "$ULID", context.captured_record_id)
+            placeholder_used = placeholder_used or "$ULID"
+        if test.data:
+            data_str = json.dumps(test.data)
+            if "$ULID" in data_str:
+                test.data = json.loads(_sub(data_str, "$ULID", context.captured_record_id))
+                placeholder_used = placeholder_used or "$ULID"
+
     return placeholder_used
 
 
@@ -120,6 +141,26 @@ def _replace_numbered_placeholders(text: str, record_ids: List[str]) -> str:
             text = text.replace(placeholder, record_ids[index])
     
     return text
+
+
+def extract_cursors_from_response(
+    response_obj: Optional[Dict[str, Any]]
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Extract pagination cursors from the meta field of a list response.
+
+    Args:
+        response_obj: Response JSON object
+
+    Returns:
+        Tuple of (next_cursor, prev_cursor); either value may be None
+    """
+    if not response_obj or not isinstance(response_obj, dict):
+        return None, None
+    meta = response_obj.get("meta")
+    if not isinstance(meta, dict):
+        return None, None
+    return meta.get("next"), meta.get("prev")
 
 
 def extract_record_id_from_response(

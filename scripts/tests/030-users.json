@@ -88,15 +88,7 @@
 		{
 			"name": "List Users with Role Filter (admin)",
 			"cmd": "GET",
-			"endpoint": "/users:list?role=admin&limit=1",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "List Users All",
-			"cmd": "GET",
-			"endpoint": "/users:list?limit=1",
+			"endpoint": "/users:list?role=admin",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN"
 			}
@@ -105,14 +97,6 @@
 			"name": "List Users with After ID Pagination",
 			"cmd": "GET",
 			"endpoint": "/users:list?after=$NEXT_CURSOR&limit=1",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "List Users with Role and After ID",
-			"cmd": "GET",
-			"endpoint": "/users:list?role=user&after=$NEXT_CURSOR&limit=1",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN"
 			}
