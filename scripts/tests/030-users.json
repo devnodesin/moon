@@ -74,7 +74,7 @@
 			}
 		},
 		{
-			"name": "Revoke All User Sessions",
+			"name": "Revoke User Sessions",
 			"cmd": "POST",
 			"endpoint": "/users:update?id=$ULID",
 			"headers": {
@@ -89,6 +89,22 @@
 			"name": "List Users with Role Filter (admin)",
 			"cmd": "GET",
 			"endpoint": "/users:list?role=admin",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "List All Users",
+			"cmd": "GET",
+			"endpoint": "/users:list",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "List Users with After ID Pagination",
+			"cmd": "GET",
+			"endpoint": "/users:list?limit=1",
 			"headers": {
 				"Authorization": "Bearer $ACCESS_TOKEN"
 			}

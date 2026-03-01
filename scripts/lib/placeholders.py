@@ -44,8 +44,8 @@ def replace_record_placeholders(
     Replacement order (all independent — multiple placeholders can coexist):
       1. $PREV_CURSOR  — meta.prev from the most recent list response
       2. $NEXT_CURSOR  — meta.next from the most recent list response;
-                         falls back to captured_record_id when cursors have
-                         not yet been initialised by a list response.
+                         always falls back to captured_record_id when
+                         meta.next is null (last page or no list seen yet).
       3. $ULID1/$ULID2 — numbered placeholders from a fresh collection fetch
       4. $ULID         — single captured record ID
 
@@ -73,13 +73,10 @@ def replace_record_placeholders(
                 placeholder_used = "$PREV_CURSOR"
 
     # 2. $NEXT_CURSOR
-    # When cursors have been initialised by a list response use next_cursor
-    # (may be None on the last page).  Before any list response has run,
-    # fall back to the captured_record_id so legacy tests still work.
-    if context.cursors_initialized:
-        next_cursor_value = context.next_cursor
-    else:
-        next_cursor_value = context.captured_record_id
+    # Prefer meta.next from the most recent list response; fall back to
+    # captured_record_id so the placeholder always resolves to a real value
+    # (covers legacy tests and last-page responses where meta.next is null).
+    next_cursor_value = context.next_cursor or context.captured_record_id
 
     if next_cursor_value:
         if test.endpoint and "$NEXT_CURSOR" in test.endpoint:
