@@ -192,6 +192,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
   - The value of `meta.prev` from the current response,
   - The value of `meta.next` from the current response.
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
+- Moon only supports the `?after={cursor}` parameter; there is no support for a `before` parameter. Use `?after={cursor}` for both forward and backward pagination, for example: `?after={meta.next}` or `?after={meta.prev}`.
 - If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response)
 
 ### `:get` Endpoints
