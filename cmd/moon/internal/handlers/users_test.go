@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/thalib/moon/cmd/moon/internal/auth"
@@ -1059,6 +1060,303 @@ func TestParseIntWithDefault(t *testing.T) {
 		result := parseIntWithDefault(tt.input, tt.defVal)
 		if result != tt.expected {
 			t.Errorf("parseIntWithDefault(%q, %d) = %d, want %d", tt.input, tt.defVal, result, tt.expected)
+		}
+	}
+}
+
+func TestUsersHandler_List_MetaTotal(t *testing.T) {
+	handler, _, adminToken, db := setupTestUsersHandler(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	// Create 2 extra users
+	userRepo := auth.NewUserRepository(db)
+	for i := 0; i < 2; i++ {
+		passwordHash, _ := auth.HashPassword("UserPass123")
+		u := &auth.User{
+			Username:     "extrauser" + strconv.Itoa(i+1),
+			Email:        "extra" + strconv.Itoa(i+1) + "@example.com",
+			PasswordHash: passwordHash,
+			Role:         string(auth.RoleUser),
+			CanWrite:     true,
+		}
+		if err := userRepo.Create(ctx, u); err != nil {
+			t.Fatalf("failed to create extra user: %v", err)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/users:list", nil)
+	req.Header.Set("Authorization", "Bearer "+adminToken)
+	w := httptest.NewRecorder()
+
+	handler.List(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	meta, ok := resp["meta"].(map[string]any)
+	if !ok {
+		t.Fatal("List() meta is missing or not an object")
+	}
+
+	total, ok := meta["total"]
+	if !ok {
+		t.Fatal("List() meta.total is missing")
+	}
+
+	// 1 admin + 2 extra users = 3 total
+	totalFloat, ok := total.(float64)
+	if !ok {
+		t.Fatalf("List() meta.total type = %T, want float64", total)
+	}
+	if int(totalFloat) != 3 {
+		t.Errorf("List() meta.total = %d, want 3", int(totalFloat))
+	}
+}
+
+func TestUsersHandler_List_MetaTotalWithRoleFilter(t *testing.T) {
+	handler, _, adminToken, db := setupTestUsersHandler(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	// Create 2 regular users
+	userRepo := auth.NewUserRepository(db)
+	for i := 0; i < 2; i++ {
+		passwordHash, _ := auth.HashPassword("UserPass123")
+		u := &auth.User{
+			Username:     "regularuser" + strconv.Itoa(i+1),
+			Email:        "regular" + strconv.Itoa(i+1) + "@example.com",
+			PasswordHash: passwordHash,
+			Role:         string(auth.RoleUser),
+			CanWrite:     true,
+		}
+		if err := userRepo.Create(ctx, u); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/users:list?role=user", nil)
+	req.Header.Set("Authorization", "Bearer "+adminToken)
+	w := httptest.NewRecorder()
+
+	handler.List(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("List() status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	meta := resp["meta"].(map[string]any)
+	totalFloat := meta["total"].(float64)
+	if int(totalFloat) != 2 {
+		t.Errorf("List() meta.total with role=user = %d, want 2", int(totalFloat))
+	}
+}
+
+func TestUsersHandler_List_BackwardPagination(t *testing.T) {
+	handler, _, adminToken, db := setupTestUsersHandler(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	// Create 4 more users (admin already exists = 5 total)
+	userRepo := auth.NewUserRepository(db)
+	var createdUsers []*auth.User
+	for i := 1; i <= 4; i++ {
+		passwordHash, _ := auth.HashPassword("UserPass123")
+		u := &auth.User{
+			Username:     "paginationuser" + strconv.Itoa(i),
+			Email:        "paginationuser" + strconv.Itoa(i) + "@example.com",
+			PasswordHash: passwordHash,
+			Role:         string(auth.RoleUser),
+			CanWrite:     true,
+		}
+		if err := userRepo.Create(ctx, u); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+		createdUsers = append(createdUsers, u)
+	}
+
+	// Page 1: limit=2, no cursor
+	req1 := httptest.NewRequest(http.MethodGet, "/users:list?limit=2", nil)
+	req1.Header.Set("Authorization", "Bearer "+adminToken)
+	w1 := httptest.NewRecorder()
+	handler.List(w1, req1)
+
+	if w1.Code != http.StatusOK {
+		t.Fatalf("List() page1 status = %d, want %d", w1.Code, http.StatusOK)
+	}
+
+	var resp1 map[string]any
+	json.NewDecoder(w1.Body).Decode(&resp1)
+	meta1 := resp1["meta"].(map[string]any)
+
+	// Page 1: prev should be null, next should be set
+	if meta1["prev"] != nil {
+		t.Errorf("Page 1: prev should be null, got %v", meta1["prev"])
+	}
+	if meta1["next"] == nil {
+		t.Error("Page 1: next should be non-null")
+	}
+	// Verify total
+	if int(meta1["total"].(float64)) != 5 {
+		t.Errorf("Page 1: total = %d, want 5", int(meta1["total"].(float64)))
+	}
+
+	nextPage1 := meta1["next"].(string)
+
+	// Page 2: limit=2, after=nextPage1
+	req2 := httptest.NewRequest(http.MethodGet, "/users:list?limit=2&after="+nextPage1, nil)
+	req2.Header.Set("Authorization", "Bearer "+adminToken)
+	w2 := httptest.NewRecorder()
+	handler.List(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("List() page2 status = %d, want %d", w2.Code, http.StatusOK)
+	}
+
+	var resp2 map[string]any
+	json.NewDecoder(w2.Body).Decode(&resp2)
+	meta2 := resp2["meta"].(map[string]any)
+
+	// Page 2: prev should be null (previous page has no cursor = first page), next should be set
+	if meta2["prev"] != nil {
+		t.Logf("Page 2: prev=%v (null expected - page 1 needs no cursor)", meta2["prev"])
+	}
+	if meta2["next"] == nil {
+		t.Error("Page 2: next should be non-null")
+	}
+
+	nextPage2 := meta2["next"].(string)
+
+	// Page 3: limit=2, after=nextPage2
+	req3 := httptest.NewRequest(http.MethodGet, "/users:list?limit=2&after="+nextPage2, nil)
+	req3.Header.Set("Authorization", "Bearer "+adminToken)
+	w3 := httptest.NewRecorder()
+	handler.List(w3, req3)
+
+	if w3.Code != http.StatusOK {
+		t.Fatalf("List() page3 status = %d, want %d", w3.Code, http.StatusOK)
+	}
+
+	var resp3 map[string]any
+	json.NewDecoder(w3.Body).Decode(&resp3)
+	meta3 := resp3["meta"].(map[string]any)
+
+	// Page 3: prev should be non-null (can navigate back to page 2)
+	if meta3["prev"] == nil {
+		t.Error("Page 3: prev should be non-null (backward pagination should be available)")
+	}
+
+	prevPage3 := meta3["prev"].(string)
+
+	// Navigate backward using prevPage3: should give page 2 data
+	reqBack := httptest.NewRequest(http.MethodGet, "/users:list?limit=2&after="+prevPage3, nil)
+	reqBack.Header.Set("Authorization", "Bearer "+adminToken)
+	wBack := httptest.NewRecorder()
+	handler.List(wBack, reqBack)
+
+	if wBack.Code != http.StatusOK {
+		t.Fatalf("List() back-navigate status = %d, want %d", wBack.Code, http.StatusOK)
+	}
+
+	var respBack map[string]any
+	json.NewDecoder(wBack.Body).Decode(&respBack)
+	dataBack := respBack["data"].([]any)
+	data3 := resp3["data"].([]any)
+
+	// The back-navigated data should NOT be the same as page 3 data
+	// (it should be page 2 data = the page before page 3)
+	if len(dataBack) == 0 {
+		t.Error("Back-navigation should return users")
+	}
+
+	// Ensure the back-navigated page ends before the first user of page 3
+	page3FirstID := data3[0].(map[string]any)["id"].(string)
+	for _, u := range dataBack {
+		userMap := u.(map[string]any)
+		if userMap["id"].(string) >= page3FirstID {
+			t.Errorf("Back-navigated user %v should come before page 3 first user %v", userMap["id"], page3FirstID)
+		}
+	}
+}
+
+func TestUsersHandler_List_ForwardPagination(t *testing.T) {
+	handler, _, adminToken, db := setupTestUsersHandler(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	// Create 3 more users (admin already = 4 total)
+	userRepo := auth.NewUserRepository(db)
+	for i := 1; i <= 3; i++ {
+		passwordHash, _ := auth.HashPassword("UserPass123")
+		u := &auth.User{
+			Username:     "pageuser" + strconv.Itoa(i),
+			Email:        "pageuser" + strconv.Itoa(i) + "@example.com",
+			PasswordHash: passwordHash,
+			Role:         string(auth.RoleUser),
+			CanWrite:     true,
+		}
+		if err := userRepo.Create(ctx, u); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+	}
+
+	// Page through all users with limit=1 and collect IDs
+	var allIDs []string
+	after := ""
+	for {
+		url := "/users:list?limit=1"
+		if after != "" {
+			url += "&after=" + after
+		}
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+adminToken)
+		w := httptest.NewRecorder()
+		handler.List(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("List() status = %d, want %d", w.Code, http.StatusOK)
+		}
+
+		var resp map[string]any
+		json.NewDecoder(w.Body).Decode(&resp)
+
+		data := resp["data"].([]any)
+		for _, u := range data {
+			userMap := u.(map[string]any)
+			allIDs = append(allIDs, userMap["id"].(string))
+		}
+
+		meta := resp["meta"].(map[string]any)
+		if meta["next"] == nil {
+			break
+		}
+		after = meta["next"].(string)
+	}
+
+	// Should have 4 users total
+	if len(allIDs) != 4 {
+		t.Errorf("Forward pagination collected %d users, want 4", len(allIDs))
+	}
+
+	// Verify IDs are in ascending order
+	for i := 1; i < len(allIDs); i++ {
+		if allIDs[i] <= allIDs[i-1] {
+			t.Errorf("Forward pagination not in order: %s should be after %s", allIDs[i], allIDs[i-1])
 		}
 	}
 }

@@ -100,6 +100,18 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get total count (before cursor filtering, respecting role filter)
+	var total int64
+	if roleFilter != "" {
+		total, err = h.userRepo.CountByRole(ctx, roleFilter)
+	} else {
+		total, err = h.userRepo.Count(ctx)
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to count users")
+		return
+	}
+
 	// List users
 	users, err := h.userRepo.List(ctx, auth.ListOptions{
 		Limit:      limit + 1, // Fetch one extra to determine if there are more
@@ -136,12 +148,13 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	h.logAdminAction("user_list", claims.UserID, "")
 
-	// Build meta with prev/next cursors per SPEC_API.md
+	// Build meta with prev/next cursors and total per SPEC_API.md
 	meta := map[string]any{
 		"count": len(publicUsers),
 		"limit": limit,
 		"next":  nextCursor,
 		"prev":  prevCursor,
+		"total": total,
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
