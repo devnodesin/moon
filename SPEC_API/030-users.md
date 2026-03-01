@@ -40,6 +40,14 @@ curl -s -X GET "http://localhost:6006/users:list" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
+**Query Parameters:**
+
+| Parameter | Type   | Description                                         |
+|-----------|--------|-----------------------------------------------------|
+| `limit`   | int    | Maximum users per page (default: 15, max: 100)      |
+| `after`   | string | Cursor (ULID) for forward pagination                |
+| `role`    | string | Filter by role: `admin` or `user`                   |
+
 **Response (200 OK):**
 
 ```json
@@ -79,10 +87,112 @@ curl -s -X GET "http://localhost:6006/users:list" \
     "count": 3,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 3
   }
 }
 ```
+
+**Meta fields:**
+
+| Field   | Type        | Description                                                        |
+|---------|-------------|--------------------------------------------------------------------|
+| `count` | int         | Number of users returned in this page                              |
+| `limit` | int         | Page size limit used for this request                              |
+| `next`  | string/null | Cursor of the last user on this page; use as `?after=<next>` to fetch the next page. `null` if there are no more pages. |
+| `prev`  | string/null | Cursor to fetch the previous page using `?after=<prev>`. `null` on page 1 (no previous page) and page 2 (page 1 requires no cursor; navigate there by removing the `?after` parameter entirely). |
+| `total` | int         | Total number of users matching the filter (ignores pagination cursor) |
+
+### List Users with Pagination
+
+Fetch the first page (limit=2):
+
+```bash
+curl -s -X GET "http://localhost:6006/users:list?limit=2" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "data": [
+    { "id": "01KJHCW4P59AQVEPY55668SDBY", "username": "admin", ... },
+    { "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6", "username": "newuser", ... }
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
+    "prev": null,
+    "total": 4
+  }
+}
+```
+
+Fetch the next page using the `next` cursor:
+
+```bash
+curl -s -X GET "http://localhost:6006/users:list?limit=2&after=01KJHCWNDJ3QN2Z3CR3Y9H36A6" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+**Response (200 OK) — page 2:**
+
+```json
+{
+  "data": [
+    { "id": "01KJHCWTYTG4ZFFFHAWGJ26XG2", "username": "moonuser", ... },
+    { "id": "01KJHCWZ12345ABCDEFGHJKLMN", "username": "anotheruser", ... }
+  ],
+  "meta": {
+    "count": 2,
+    "limit": 2,
+    "next": "01KJHCWZ12345ABCDEFGHJKLMN",
+    "prev": null,
+    "total": 4
+  }
+}
+```
+
+Fetch the next page (page 3), which also provides a `prev` cursor for backward navigation:
+
+```bash
+curl -s -X GET "http://localhost:6006/users:list?limit=2&after=01KJHCWZ12345ABCDEFGHJKLMN" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+**Response (200 OK) — page 3 with backward cursor:**
+
+```json
+{
+  "data": [
+    { "id": "01KJHCXABC123ABCDEFGHJKLMN", "username": "user5", ... }
+  ],
+  "meta": {
+    "count": 1,
+    "limit": 2,
+    "next": null,
+    "prev": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
+    "total": 4
+  }
+}
+```
+
+Navigate backward by passing the `prev` cursor as `?after`:
+
+```bash
+curl -s -X GET "http://localhost:6006/users:list?limit=2&after=01KJHCWNDJ3QN2Z3CR3Y9H36A6" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
+```
+
+This returns page 2 (the page just before page 3).
+
+**Pagination notes:**
+- `next` is the cursor to advance forward; use `?after=<next>` to fetch the next page.
+- `prev` is the cursor to navigate backward; use `?after=<prev>` to fetch the previous page. It is `null` on page 1 (no previous page) and page 2 (page 1 has no cursor representation; navigate there by removing the `?after` parameter).
+- `total` reflects the total count of users matching the role filter, independent of the cursor position.
+
 
 ### Get Specific User by ID
 
