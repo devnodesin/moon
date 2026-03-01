@@ -10,7 +10,7 @@ curl -s -X GET "http://localhost:6006/health" | jq .
 {
   "data": {
     "moon": "1.99",
-    "timestamp": "2026-02-28T05:52:36Z"
+    "timestamp": "2026-03-01T12:48:49Z"
   }
 }
 ```
@@ -29,7 +29,7 @@ curl -s -X GET "http://localhost:6006/" | jq .
 {
   "data": {
     "moon": "1.99",
-    "timestamp": "2026-02-28T05:52:36Z"
+    "timestamp": "2026-03-01T12:48:49Z"
   }
 }
 ```

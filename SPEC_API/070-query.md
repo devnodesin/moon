@@ -17,7 +17,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJHCX911TZJFYRFDF8B6KW73",
+      "id": "01KJMQ46SPZXRYZ1WV87NP292N",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -25,7 +25,7 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
+      "id": "01KJMQ47BYZE57GEWTE6C91MZ6",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -35,7 +35,8 @@ curl -s -X GET "http://localhost:6006/products:list?quantity[gt]=5&brand[eq]=Wow
     "count": 2,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 2
   }
 }
 ```
@@ -59,7 +60,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
+      "id": "01KJMQ473FZH1HD427M2BMWEKN",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -67,7 +68,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
+      "id": "01KJMQ47BYZE57GEWTE6C91MZ6",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -75,7 +76,7 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJHCX911TZJFYRFDF8B6KW73",
+      "id": "01KJMQ46SPZXRYZ1WV87NP292N",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -85,7 +86,8 @@ curl -s -X GET "http://localhost:6006/products:list?sort=-quantity,title" \
     "count": 3,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 3
   }
 }
 ```
@@ -109,7 +111,7 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJHCX911TZJFYRFDF8B6KW73",
+      "id": "01KJMQ46SPZXRYZ1WV87NP292N",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -119,7 +121,8 @@ curl -s -X GET "http://localhost:6006/products:list?q=mouse" \
     "count": 1,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 1
   }
 }
 ```
@@ -141,17 +144,17 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
 {
   "data": [
     {
-      "id": "01KJHCX911TZJFYRFDF8B6KW73",
+      "id": "01KJMQ46SPZXRYZ1WV87NP292N",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
+      "id": "01KJMQ473FZH1HD427M2BMWEKN",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
+      "id": "01KJMQ47BYZE57GEWTE6C91MZ6",
       "quantity": 20,
       "title": "Monitor 21 inch"
     }
@@ -160,7 +163,8 @@ curl -s -X GET "http://localhost:6006/products:list?fields=quantity,title" \
     "count": 3,
     "limit": 15,
     "next": null,
-    "prev": null
+    "prev": null,
+    "total": 3
   }
 }
 ```
@@ -184,7 +188,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KJHCX911TZJFYRFDF8B6KW73",
+      "id": "01KJMQ46SPZXRYZ1WV87NP292N",
       "price": "29.99",
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -192,7 +196,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
+      "id": "01KJMQ473FZH1HD427M2BMWEKN",
       "price": "19.99",
       "quantity": 55,
       "title": "USB Keyboard"
@@ -201,8 +205,9 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
   "meta": {
     "count": 2,
     "limit": 2,
-    "next": "01KJHCX99Z4WBV5CE1TXS6BZA2",
-    "prev": null
+    "next": "01KJMQ473FZH1HD427M2BMWEKN",
+    "prev": null,
+    "total": 3
   }
 }
 ```
@@ -214,7 +219,7 @@ curl -s -X GET "http://localhost:6006/products:list?limit=2" \
 Response includes `next_cursor` when more results are available. (If `next_cursor` is present, use its value from the response to fetch subsequent pages.)
 
 ```bash
-curl -s -X GET "http://localhost:6006/products:list?after=01KJHCX911TZJFYRFDF8B6KW73&limit=3" \
+curl -s -X GET "http://localhost:6006/products:list?after=01KJMQ473FZH1HD427M2BMWEKN&limit=3" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -224,17 +229,9 @@ curl -s -X GET "http://localhost:6006/products:list?after=01KJHCX911TZJFYRFDF8B6
 {
   "data": [
     {
-      "brand": "Orange",
-      "details": "Gaming keyboard",
-      "id": "01KJHCX99Z4WBV5CE1TXS6BZA2",
-      "price": "19.99",
-      "quantity": 55,
-      "title": "USB Keyboard"
-    },
-    {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KJHCX9GN6X2YKMEYJZG7Y9V8",
+      "id": "01KJMQ47BYZE57GEWTE6C91MZ6",
       "price": "199.99",
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -242,17 +239,26 @@ curl -s -X GET "http://localhost:6006/products:list?after=01KJHCX911TZJFYRFDF8B6
     {
       "brand": "SuperBrand",
       "details": "Mechanical keyboard",
-      "id": "01KJHCXAZ2VH0WTN792CXC92WV",
+      "id": "01KJMQ490T2SNMP317YKDDEEJS",
       "price": "49.99",
       "quantity": 5,
       "title": "Product 1"
+    },
+    {
+      "brand": "SuperBrand",
+      "details": "24-inch FHD monitor",
+      "id": "01KJMQ4910F13Y86V9EFA6QKXX",
+      "price": "199.99",
+      "quantity": 2,
+      "title": "Product 2"
     }
   ],
   "meta": {
     "count": 3,
     "limit": 3,
-    "next": "01KJHCXAZ2VH0WTN792CXC92WV",
-    "prev": null
+    "next": "01KJMQ4910F13Y86V9EFA6QKXX",
+    "prev": null,
+    "total": 8
   }
 }
 ```

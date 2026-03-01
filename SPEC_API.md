@@ -377,6 +377,12 @@ See [Authentication API](./SPEC_API/020-auth.md).
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
+**Query Parameters:**
+
+- `limit` (int): Maximum users per page (default: 15, max: 100)
+- `after` (string): Cursor (ULID) for forward pagination
+- `role` (string): Filter by role: `admin` or `user`
+
 See [Users API](./SPEC_API/030-users.md).
 
 All error handling must follow [Standard Error Response](#standard-error-response)
@@ -432,6 +438,10 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection}:destroy` | POST   | Delete a record                          |
 
 See [Data Access API](./SPEC_API/060-data.md).
+
+See [Data Access API > Batch Operations](./SPEC_API/061-data-batch.md).
+
+See [Data Access API > Pagination](./SPEC_API/062-data-pagination.md).
 
 All error handling must follow [Standard Error Response](#standard-error-response)
 

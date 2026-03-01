@@ -192,6 +192,7 @@ GET /products:list?after=01KHCZKMM0N808MKSHBNWF464F
   - The value of `meta.prev` from the current response,
   - The value of `meta.next` from the current response.
 - When `?after={cursor}` is used, only records that follow the specified id (ULID) are returned; the record matching the cursor is excluded from the results.
+- Moon only supports the `?after={cursor}` parameter; there is no support for a `before` parameter. Use `?after={cursor}` for both forward and backward pagination, for example: `?after={meta.next}` or `?after={meta.prev}`.
 - If an invalid or non-existent cursor is provided, return an error response as specified in the [Standard Error Response](#standard-error-response)
 
 ### `:get` Endpoints
@@ -376,6 +377,12 @@ Supported authentication types:
 | `/users:update`  | POST   | Update user properties or admin actions |
 | `/users:destroy` | POST   | Delete user account                     |
 
+**Query Parameters:**
+
+- `limit` (int): Maximum users per page (default: 15, max: 100)
+- `after` (string): Cursor (ULID) for forward pagination
+- `role` (string): Filter by role: `admin` or `user`
+
 {{ include "030-users.md" }}
 
 All error handling must follow [Standard Error Response](#standard-error-response)
@@ -431,6 +438,10 @@ These endpoints manage records within a specific collection. Replace `{collectio
 | `/{collection}:destroy` | POST   | Delete a record                          |
 
 {{ include "060-data.md" }}
+
+{{ include "061-data-batch.md" }}
+
+{{ include "062-data-pagination.md" }}
 
 All error handling must follow [Standard Error Response](#standard-error-response)
 
