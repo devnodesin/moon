@@ -11,6 +11,7 @@ def perform_login(
     server_url: str,
     username: str,
     password: str,
+    prefix: str = "",
     timeout: int = 10
 ) -> Optional[AuthState]:
     """
@@ -20,12 +21,13 @@ def perform_login(
         server_url: Base server URL
         username: Username for login
         password: Password for login
+        prefix: URL prefix (e.g. "/api")
         timeout: Request timeout in seconds
         
     Returns:
         AuthState with tokens, or None if login failed
     """
-    login_url = f"{server_url}/auth:login"
+    login_url = f"{server_url}{prefix}/auth:login"
     login_data = {
         "username": username,
         "password": password
@@ -171,6 +173,7 @@ def relogin_with_new_password(
     server_url: str,
     username: str,
     new_password: str,
+    prefix: str = "",
     timeout: int = 10
 ) -> Optional[AuthState]:
     """
@@ -180,9 +183,10 @@ def relogin_with_new_password(
         server_url: Base server URL
         username: Username for login
         new_password: New password to use
+        prefix: URL prefix (e.g. "/api")
         timeout: Request timeout in seconds
         
     Returns:
         New AuthState with updated tokens, or None if login failed
     """
-    return perform_login(server_url, username, new_password, timeout)
+    return perform_login(server_url, username, new_password, prefix, timeout)

@@ -119,7 +119,8 @@ def process_test_file(test_file: str, args: argparse.Namespace) -> None:
         auth_state = perform_login(
             test_suite.serverURL,
             test_suite.username,
-            test_suite.password
+            test_suite.password,
+            test_suite.prefix
         )
         if not auth_state or not auth_state.access_token:
             print(f"Login failed for {test_file}")

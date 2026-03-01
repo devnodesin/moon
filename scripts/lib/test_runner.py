@@ -123,7 +123,8 @@ def run_test_suite(
                 new_auth_state = relogin_with_new_password(
                     test_suite.serverURL,
                     auth_state.current_username,
-                    new_password
+                    new_password,
+                    test_suite.prefix
                 )
                 if new_auth_state:
                     # Update credentials and tokens

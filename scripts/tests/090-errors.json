@@ -1,80 +1,80 @@
 {
-"docURL": "http://localhost:6006",
-"serverURL": "https://moon.devnodes.in",
-"prefix": "",
-"username": "admin",
-"password": "moonadmin12#",
-"health": "/health",
-"tests": [
-{
-"name": "HTTP 400: Missing Required Fields",
-"cmd": "POST",
-"endpoint": "/auth:login",
-"details": "**Error:** `400 Bad Request` — Returned when required fields are missing or the request is malformed.",
-"headers": {
-"Content-Type": "application/json"
-},
-"data": {
-"username": "",
-"password": ""
-},
-"expected_status": 400
-},
-{
-"name": "HTTP 400: Validation Error",
-"cmd": "POST",
-"endpoint": "/users:create",
-"details": "**Error:** `400 Bad Request` — Returned when field values fail validation (e.g., invalid email format).",
-"headers": {
-"Authorization": "Bearer $ACCESS_TOKEN",
-"Content-Type": "application/json"
-},
-"data": {
-"data": {
-"username": "baduser",
-"email": "not-a-valid-email",
-"password": "Pass123#",
-"role": "user"
-}
-},
-"expected_status": 400
-},
-{
-"name": "HTTP 401: Authentication Required",
-"cmd": "GET",
-"endpoint": "/auth:me",
-"details": "**Error:** `401 Unauthorized` — Returned when no Authorization header is provided on a protected endpoint.",
-"expected_status": 401
-},
-{
-"name": "HTTP 401: Invalid Token",
-"cmd": "GET",
-"endpoint": "/users:list",
-"details": "**Error:** `401 Unauthorized` — Returned when the provided token is invalid or expired.",
-"headers": {
-"Authorization": "Bearer invalid_token_value"
-},
-"expected_status": 401
-},
-{
-"name": "HTTP 404: User Not Found",
-"cmd": "GET",
-"endpoint": "/users:get?id=01ZZZZZZZZZZZZZZZZZZZZZZZ0",
-"details": "**Error:** `404 Not Found` — Returned when the requested resource does not exist.",
-"headers": {
-"Authorization": "Bearer $ACCESS_TOKEN"
-},
-"expected_status": 404
-},
-{
-"name": "HTTP 404: Collection Not Found",
-"cmd": "GET",
-"endpoint": "/collections:get?name=nonexistentcollection",
-"details": "**Error:** `404 Not Found` — Returned when the requested collection does not exist.",
-"headers": {
-"Authorization": "Bearer $ACCESS_TOKEN"
-},
-"expected_status": 404
-}
-]
+	"docURL": "http://localhost:6006",
+	"serverURL": "https://moon.devnodes.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "HTTP 400: Missing Required Fields",
+			"cmd": "POST",
+			"endpoint": "/auth:login",
+			"details": "**Error:** `400 Bad Request` — Returned when required fields are missing or the request is malformed.",
+			"headers": {
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"username": "",
+				"password": ""
+			},
+			"expected_status": 400
+		},
+		{
+			"name": "HTTP 400: Validation Error",
+			"cmd": "POST",
+			"endpoint": "/users:create",
+			"details": "**Error:** `400 Bad Request` — Returned when field values fail validation (e.g., invalid email format).",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"username": "baduser",
+					"email": "not-a-valid-email",
+					"password": "Pass123#",
+					"role": "user"
+				}
+			},
+			"expected_status": 400
+		},
+		{
+			"name": "HTTP 401: Authentication Required",
+			"cmd": "GET",
+			"endpoint": "/auth:me",
+			"details": "**Error:** `401 Unauthorized` — Returned when no Authorization header is provided on a protected endpoint.",
+			"expected_status": 401
+		},
+		{
+			"name": "HTTP 401: Invalid Token",
+			"cmd": "GET",
+			"endpoint": "/users:list",
+			"details": "**Error:** `401 Unauthorized` — Returned when the provided token is invalid or expired.",
+			"headers": {
+				"Authorization": "Bearer invalid_token_value"
+			},
+			"expected_status": 401
+		},
+		{
+			"name": "HTTP 404: User Not Found",
+			"cmd": "GET",
+			"endpoint": "/users:get?id=01ZZZZZZZZZZZZZZZZZZZZZZZ0",
+			"details": "**Error:** `404 Not Found` — Returned when the requested resource does not exist.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			},
+			"expected_status": 404
+		},
+		{
+			"name": "HTTP 404: Collection Not Found",
+			"cmd": "GET",
+			"endpoint": "/collections:get?name=nonexistentcollection",
+			"details": "**Error:** `404 Not Found` — Returned when the requested collection does not exist.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			},
+			"expected_status": 404
+		}
+	]
 }
