@@ -374,9 +374,12 @@ func (r *UserRepository) List(ctx context.Context, opts ListOptions) ([]*User, e
 	return users, nil
 }
 
+// minCursorID is the zero ULID sentinel for backward pagination to the first page.
+const minCursorID = "00000000000000000000000000"
+
 // FindPrevCursorID finds the cursor ID for backward pagination.
 // It returns the ID that, when used as ?after, returns the previous page.
-// Returns empty string if the current page is the first page.
+// Returns empty string only when the current page is the first page (no cursor was used).
 func (r *UserRepository) FindPrevCursorID(ctx context.Context, firstCurrentID, roleFilter string, limit int) string {
 	var query string
 	var args []any
@@ -430,6 +433,11 @@ func (r *UserRepository) FindPrevCursorID(ctx context.Context, firstCurrentID, r
 
 	if len(ids) > limit {
 		return ids[limit]
+	}
+	// Between 1 and limit results means the previous page is the first page.
+	// Return the minimum ULID so that ?after=<minCursorID> returns page 1.
+	if len(ids) > 0 {
+		return minCursorID
 	}
 	return ""
 }

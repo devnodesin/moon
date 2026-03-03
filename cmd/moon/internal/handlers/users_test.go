@@ -1231,9 +1231,9 @@ func TestUsersHandler_List_BackwardPagination(t *testing.T) {
 	json.NewDecoder(w2.Body).Decode(&resp2)
 	meta2 := resp2["meta"].(map[string]any)
 
-	// Page 2: prev should be null (previous page has no cursor = first page), next should be set
-	if meta2["prev"] != nil {
-		t.Logf("Page 2: prev=%v (null expected - page 1 needs no cursor)", meta2["prev"])
+	// Page 2: prev should be non-null (navigates back to page 1), next should be set
+	if meta2["prev"] == nil {
+		t.Error("Page 2: prev should be non-null (backward pagination to page 1 must be available)")
 	}
 	if meta2["next"] == nil {
 		t.Error("Page 2: next should be non-null")

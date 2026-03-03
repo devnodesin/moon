@@ -1985,10 +1985,15 @@ func getDefaultValue(col registry.Column) any {
 	return nil
 }
 
+// minCursorID is the zero ULID used as a sentinel prev cursor when the previous
+// page is the first page (no natural record cursor exists before it).
+// Passing ?after=minCursorID returns all records from the beginning (page 1).
+const minCursorID = "00000000000000000000000000"
+
 // computePrevCursor determines the prev pagination cursor.
 // It returns the cursor (ULID) that, when passed as ?after, would return the page
 // of records immediately preceding the current page.
-// Returns nil if the current page is the first page or near the beginning.
+// Returns nil only when the current page is the first page (no after cursor).
 func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, firstCurrentID string, baseConditions []query.Condition, limit int) *string {
 	// Build conditions: same base filters + id < firstCurrentID (reversed direction)
 	prevConditions := make([]query.Condition, len(baseConditions)+1)
@@ -2000,8 +2005,9 @@ func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, fir
 	}
 
 	// Query limit+1 records before the current first record in DESC order.
-	// If we get limit+1 results, the last one is the prev cursor.
-	// If we get <= limit results, the prev page is the first page (prev = null).
+	// If we get limit+1 results, the (limit+1)th is the prev cursor.
+	// If we get 1..limit results, the previous page is the first page: return
+	// minCursorID so that ?after=<minCursorID> returns all records from the start.
 	var sqlStr string
 	var args []any
 	b := query.NewBuilder(h.db.Dialect())
@@ -2028,9 +2034,16 @@ func (h *DataHandler) computePrevCursor(ctx context.Context, collectionName, fir
 		return nil
 	}
 
-	// If we got more than limit results, the (limit+1)th is the prev cursor
+	// If we got more than limit results, the (limit+1)th is the prev cursor.
+	// If we got between 1 and limit results, the previous page is the first page.
+	// Return the minimum ULID so that ?after=<minCursor> starts from the very
+	// beginning and returns the first page.
 	if len(ids) > limit {
 		prev := ids[limit]
+		return &prev
+	}
+	if len(ids) > 0 {
+		prev := minCursorID
 		return &prev
 	}
 	return nil
