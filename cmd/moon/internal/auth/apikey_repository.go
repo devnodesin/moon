@@ -299,7 +299,7 @@ func (r *APIKeyRepository) ListPaginated(ctx context.Context, opts APIKeyListOpt
 
 // FindPrevCursorID finds the cursor ID for backward pagination.
 // It returns the ID that, when used as ?after, returns the previous page.
-// Returns empty string if the current page is the first page.
+// Returns empty string only when the current page is the first page (no cursor was used).
 func (r *APIKeyRepository) FindPrevCursorID(ctx context.Context, firstCurrentID string, limit int) string {
 	var query string
 	var args []any
@@ -343,6 +343,11 @@ func (r *APIKeyRepository) FindPrevCursorID(ctx context.Context, firstCurrentID 
 
 	if len(ids) > limit {
 		return ids[limit]
+	}
+	// Between 1 and limit results means the previous page is the first page.
+	// Return the minimum ULID so that ?after=<minCursorID> returns page 1.
+	if len(ids) > 0 {
+		return minCursorID
 	}
 	return ""
 }

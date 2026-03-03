@@ -1963,9 +1963,64 @@ name TEXT NOT NULL
 			}
 		}
 	})
+
+	t.Run("Page 2 prev cursor is non-null (backward pagination bug fix)", func(t *testing.T) {
+		// This test reproduces the bug where page 2 always had prev=null.
+		// With limit=2 and 5 records:
+		//   page1: r1,r2 (prev=null, next=r2)
+		//   page2: r3,r4 (prev=non-null, next=r4)  <-- was broken: prev was null
+		//   page3: r5    (prev=non-null, next=null)
+		var page2Next string
+		{
+			url := "/test_pagination:list?limit=2"
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			w := httptest.NewRecorder()
+			handler.List(w, req, "test_pagination")
+			var r DataListResponse
+			json.NewDecoder(w.Body).Decode(&r)
+			if r.Meta["next"] == nil {
+				t.Fatal("page1: expected next cursor")
+			}
+			page2Next = r.Meta["next"].(string)
+			if r.Meta["prev"] != nil {
+				t.Errorf("page1: prev should be null, got %v", r.Meta["prev"])
+			}
+		}
+		{
+			url := "/test_pagination:list?limit=2&after=" + page2Next
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			w := httptest.NewRecorder()
+			handler.List(w, req, "test_pagination")
+			var r DataListResponse
+			json.NewDecoder(w.Body).Decode(&r)
+			// Page 2 MUST have a non-null prev cursor.
+			if r.Meta["prev"] == nil {
+				t.Error("page2: prev should be non-null to allow backward navigation to page 1")
+			}
+			if r.Meta["next"] == nil {
+				t.Error("page2: next should be non-null (page 3 exists)")
+			}
+			// Using prev on page 2 should yield page 1 content (records before page 2)
+			prevCursor := r.Meta["prev"].(string)
+			reqBack := httptest.NewRequest(http.MethodGet, "/test_pagination:list?limit=2&after="+prevCursor, nil)
+			wBack := httptest.NewRecorder()
+			handler.List(wBack, reqBack, "test_pagination")
+			var rBack DataListResponse
+			json.NewDecoder(wBack.Body).Decode(&rBack)
+			if len(rBack.Data) == 0 {
+				t.Error("navigating backward from page 2 should return records")
+			}
+			// All returned records must come before page 2's first record
+			page2FirstID := r.Data[0]["id"].(string)
+			for _, item := range rBack.Data {
+				if item["id"].(string) >= page2FirstID {
+					t.Errorf("back-nav record %v should be before page2 first %v", item["id"], page2FirstID)
+				}
+			}
+		}
+	})
 }
 
-// TestDataHandler_NoPkidExposure ensures that the internal pkid column is never exposed in API responses
 func TestDataHandler_NoPkidExposure(t *testing.T) {
 	// Create in-memory SQLite database
 	dbConfig := database.Config{
