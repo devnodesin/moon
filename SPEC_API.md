@@ -1,19 +1,75 @@
 # Moon API Specification
 
+## Introduction
+
 This document describes the standard response patterns, query options, and aggregation operations for the Moon API. All endpoints follow consistent conventions for success and error responses.
 
-## 1) Overview
+### Moon Terminology
 
-This document defines a streamlined Moon API contract optimized for clarity, consistency, and low maintenance cost.
+Moon stores data in the format: Collection, Field, and Record.
 
-Design goals:
+In database terminology, these are Tables, Columns, and Rows, respectively.
 
-- Keep the endpoint surface small and predictable.
-- Preserve AIP-136 custom actions (`/data/{resource}:action` format).
-- Keep transport simple (`GET`, `POST`, `OPTIONS` only).
-- Use one shared response and error model across all endpoints.
+For example, consider the table `products` below.
 
-## 2) Core Rules
+```md
+| id      | name           | price | in_stock |
+| ------- | -------------- | ----- | -------- |
+| 01H1... | Wireless Mouse | 29.99 | true     |
+| 01H2... | USB Keyboard   | 19.99 | false    |
+```
+
+- **Collection** `products` (the table)
+- **Field** `id`, `name`, `price`, `in_stock` (the columns)
+- **Record** Each row, e.g., `{ "id": "01H1...", "name": "Wireless Mouse", "price": "29.99", "in_stock": true }`
+
+### What Moon Does NOT Do
+
+Moon is intentionally minimal. It does **not** support:
+
+- **Transactions:** No multi-statement atomicity; each request is independent.
+- **Joins:** No SQL joins; model relationships in your application.
+- **Triggers/Hooks:** No database-level triggers or event hooks.
+- **Background Jobs:** No built-in job queue or async processing.
+- **Foreign Keys:** Relations must be managed manually.
+- **Migrations/Schema Versioning:** No built-in migration or schema versioning system.
+- **Backup/Restore:** No built-in backup or restore; handle externally.
+- **Fine-grained ACLs:** Only `user` and `admin` roles; no per-collection/field ACL.
+- **WebSocket/Realtime:** No realtime or WebSocket support.
+- **File/Binary Storage:** No file uploads or binary/blob storage.
+- **Scheduled Tasks:** No cron or scheduled task support.
+- **Encryption at Rest:** No built-in data encryption at rest.
+- **Admin UI:** API-only; no built-in web UI or dashboard.
+- **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
+- **Public endpoints:** `/health`, `/` (alias for `/health`).
+- No support for API versioning.
+- No WebSocket/Realtime
+
+### Design Constraints
+
+- Collection names: lowercase, snake_case.
+- System collection: `users`, `apikeys`
+- Field names: unique per collection.
+- No joins; handle relations at the application layer.
+
+### Rules: Do's
+
+- Moon is schema-on-demand.
+- Always check or create collections before inserting data.
+- Use API keys for server-side apps; JWT for user-facing auth.
+- Endpoints follow AIP-136 custom actions (colon separator).
+- Rate limits: JWT 100/min/user, API Key 1,000/min/key.
+- User roles: `user` (limited), `admin` (full).
+- Input validation: types and constraints enforced; always sanitize input.
+- **Always use HTTPS in production.** (All curl examples assume HTTPS for production use.)
+- Set explicit allowed origins for CORS.
+
+### Rules: Don'ts
+
+- Don’t use joins, transactions, triggers, or background jobs—handle these in your app.
+- Don’t assume foreign keys; manage relations manually.
+
+## Core Rules
 
 1. **Methods:** `GET` (read), `POST` (write/action), `OPTIONS` (CORS preflight only).  
    Other methods return `405 Method Not Allowed`.
@@ -25,7 +81,7 @@ Design goals:
 5. **Defaults on schema:** Default values are managed internally and **cannot** be set/updated via collection APIs.
 6. **Error body:** Errors always return `{ "message": "..." }` only.
 
-## 3) Data Types
+## Data Types
 
 | Type       | API Representation | Notes                              |
 | ---------- | ------------------ | ---------------------------------- |
@@ -37,9 +93,15 @@ Design goals:
 | `datetime` | string             | RFC3339 timestamp                  |
 | `json`     | object/array       | Arbitrary JSON                     |
 
-## 4) Standard Response Shapes
+## Authentication Types
 
-### 4.1 List Response
+- JWT access token (user flows)
+- API key (service flows)
+- Both use `Authorization: Bearer <token>`
+
+## Standard Response Shapes
+
+### List Response
 
 ```json
 {
@@ -54,7 +116,7 @@ Design goals:
 }
 ```
 
-### 4.2 Single Resource Response
+### Single Resource Response
 
 ```json
 {
@@ -62,7 +124,7 @@ Design goals:
 }
 ```
 
-### 4.3 Mutation Response
+### Mutation Response
 
 ```json
 {
@@ -75,18 +137,18 @@ Design goals:
 }
 ```
 
-## 5) Endpoint Surface (Reduced and Unified)
+## Endpoint Surface (Reduced and Unified)
 
-### 5.1 Public Endpoints (No Auth)
+### Public Endpoints (No Auth)
 
-| Endpoint       | Method | Description                                                      |
-| -------------- | ------ | ---------------------------------------------------------------- |
-| `/`            | GET    | Alias of `/health` (available only when no prefix is configured) |
-| `/health`      | GET    | Service health                                                   |
-| `/doc/`        | GET    | HTML docs                                                        |
-| `/doc/llms.md` | GET    | Markdown docs                                                    |
+| Endpoint       | Method | Description        |
+| -------------- | ------ | ------------------ |
+| `/`            | GET    | Alias of `/health` |
+| `/health`      | GET    | Service health     |
+| `/doc/`        | GET    | HTML docs          |
+| `/doc/llms.md` | GET    | Markdown docs      |
 
-### 5.2 Authentication Endpoints
+### Authentication Endpoints
 
 | Endpoint        | Method | Description                                           |
 | --------------- | ------ | ----------------------------------------------------- |
@@ -94,64 +156,18 @@ Design goals:
 | `/auth:me`      | GET    | Current authenticated user                            |
 | `/auth:me`      | POST   | Update current user profile/password                  |
 
-`POST /auth:session` request shape:
+See [Authentication API](./SPEC/20_auth.md)
 
-```json
-{
-  "op": "login | refresh | logout",
-  "email": "user@example.com",
-  "password": "secret",
-  "refresh_token": "..."
-}
-```
-
-- `login` requires `email`, `password`
-- `refresh` requires `refresh_token`
-- `logout` requires `refresh_token`
-
-**Authentication Types**
-
-- JWT access token (user flows)
-- API key (service flows)
-- Both use `Authorization: Bearer <token>`
-
-### 5.3 Collection Managment Endpoints
+### Collection Managment Endpoints
 
 | Endpoint             | Method | Description                        |
 | -------------------- | ------ | ---------------------------------- |
 | `/collection:query`  | GET    | List, get-one collection           |
 | `/collection:mutate` | POST   | Create, update, destroy collection |
 
-- New collections can be created and managed using `/collection:query` and `/collection:mutate`.
+See [Collection Managment API](./SPEC/30_collection.md)
 
-`/collection:query` lists all available database tables.
-
-```json
-{
-  "data": [
-    { "name": "users", "count": 0 },
-    { "name": "apikeys", "count": 0 },
-    { "name": "products", "count": 0 }
-  ],
-  "meta": {...}
-}
-```
-
-**Collections (`/collections:mutate`):**
-
-- `op=create`: create collection(s) with `name` and `columns`
-- `op=update`: schema changes using:
-  - `add_columns`
-  - `rename_columns`
-  - `modify_columns`
-  - `remove_columns`
-- `op=destroy`: delete collection(s) by `name`
-
-- `/collections` are they strictly for listing, creating and schema management
-- `users` and `apikeys` are system collections. Create, destroy, and update operations are not permitted on these collections.
-- Do no tall batch operation on schema changes (e.g., adding and removing columns in one request)
-
-### 5.3 Unified Resource Endpoints
+### Resource Endpoints
 
 | Endpoint                  | Method | Description                                 |
 | ------------------------- | ------ | ------------------------------------------- |
@@ -159,12 +175,9 @@ Design goals:
 | `/data/{resource}:mutate` | POST   | Create, update, destroy, or resource action |
 | `/data/{resource}:schema` | GET    | Read schema for resources                   |
 
-- System resources: `users`, `apikeys` (accessed via `/data/{resource}` endpoints).
-- New dynamic collections can be accessed via `/data/product:{schema,query,mutate}`.
-- All resources, both system and dynamic, are accessed under `/data/{resource}`.
-- Each collection also has its own top-level endpoints for `:query`, `:mutate`, and `:schema` (not under `/data/`).
+See [Data Access API](./SPEC/40_resource.md)
 
-## 6) `:query` Contract
+### `:query` Contract
 
 `GET /data/{resource}:query` supports three modes:
 
