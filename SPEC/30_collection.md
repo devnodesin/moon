@@ -38,7 +38,7 @@ See [Standard Error Response](10_error.md) for any error handling
   - `remove_columns`
 - `op=destroy`: delete collection(s) by `name`
 - **Important:** All operations are atomic; only one operation is allowed at a time.
-- If `nullable` and `unique` are not specified, the field defaults to `nullable: false` and `unique: true`.
+- If `nullable` and `unique` are not specified, the field defaults to `nullable: false` and `unique: false`.
 
 #### Create Collection `POST /collections:mutate`
 
@@ -97,7 +97,7 @@ Request
     {
       "name": "products",
       "add_columns": [
-        { "name": "description", "type": "text", "nullable": true },
+        { "name": "description", "type": "string", "nullable": true },
         { "name": "sku", "type": "string", "unique": true }
       ]
     }
@@ -127,7 +127,7 @@ Response
         },
         {
           "name": "description",
-          "type": "text",
+          "type": "string",
           "nullable": true,
           "unique": false
         },
@@ -175,7 +175,7 @@ Response
         },
         {
           "name": "description",
-          "type": "text",
+          "type": "string",
           "nullable": true,
           "unique": false
         },
@@ -204,7 +204,7 @@ Request
       "name": "products",
       "modify_columns": [
         { "name": "price", "type": "decimal", "nullable": false },
-        { "name": "description", "type": "text", "nullable": false }
+        { "name": "description", "type": "string", "nullable": false }
       ]
     }
   ]
@@ -228,7 +228,7 @@ Response
         },
         {
           "name": "description",
-          "type": "text",
+          "type": "string",
           "nullable": false,
           "unique": false
         },

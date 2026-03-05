@@ -45,10 +45,10 @@ To request a list query (multiple resources), use the endpoint with optional pag
     "total_pages": 3
   },
   "links": {
-    "first": "/data/products?page=1&per_page=15",
-    "last": "/data/products?page=3&per_page=15",
+    "first": "/data/products:query?page=1&per_page=15",
+    "last": "/data/products:query?page=3&per_page=15",
     "prev": null,
-    "next": "/data/products?page=2&per_page=15"
+    "next": "/data/products:query?page=2&per_page=15"
   }
 }
 ```
@@ -120,7 +120,7 @@ Response
 }
 ```
 
-### `GET /data/{resource}:mutate`
+### `POST /data/{resource}:mutate`
 
 `POST /data/{resource}:mutate` request shape:
 

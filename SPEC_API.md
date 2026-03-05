@@ -43,7 +43,6 @@ Moon is intentionally minimal. It does **not** support:
 - **HTTP Methods:** Only supports `GET`, `POST`, and `OPTIONS` (no `PUT`, `PATCH`, or `DELETE`).
 - **Public endpoints:** `/health`, `/` (alias for `/health`).
 - No support for API versioning.
-- No WebSocket/Realtime
 
 ### Design Constraints
 
@@ -162,14 +161,14 @@ Moon is intentionally minimal. It does **not** support:
 
 See [Authentication API](./SPEC/20_auth.md)
 
-### Collection Managment Endpoints
+### Collection Management Endpoints
 
 | Endpoint             | Method | Description                        |
 | -------------------- | ------ | ---------------------------------- |
-| `/collection:query`  | GET    | List, get-one collection           |
-| `/collection:mutate` | POST   | Create, update, destroy collection |
+| `/collections:query`  | GET    | List, get-one collection           |
+| `/collections:mutate` | POST   | Create, update, destroy collection |
 
-See [Collection Managment API](./SPEC/30_collection.md)
+See [Collection Management API](./SPEC/30_collection.md)
 
 ### Resource Endpoints
 
