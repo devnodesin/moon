@@ -21,8 +21,8 @@ See [Standard Error Response](10_error.md) for any error handling
   ],
   "meta": {
     "total": 3, // total records available for this request
-    "limit": 15, // number of records per page
-    "page": 1, // current page number
+    "per_page": 15, // number of records per page
+    "current_page": 1, // current page number
     "total_pages": 1 // total number of pages available
   }
 }

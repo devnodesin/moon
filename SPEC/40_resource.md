@@ -80,43 +80,45 @@ Response
 ```json
 {
   "message": "Schema retrieved successfully",
-  "data": {
-    "collection": "products",
-    "total": 6,
-    "fields": [
-      {
-        "name": "id",
-        "type": "string",
-        "nullable": false,
-        "readonly": true
-      },
-      {
-        "name": "title",
-        "type": "string",
-        "nullable": false
-      },
-      {
-        "name": "price",
-        "type": "decimal",
-        "nullable": false
-      },
-      {
-        "name": "details",
-        "type": "string",
-        "nullable": true
-      },
-      {
-        "name": "quantity",
-        "type": "integer",
-        "nullable": true
-      },
-      {
-        "name": "brand",
-        "type": "string",
-        "nullable": true
-      }
-    ]
-  }
+  "data": [
+    {
+      "collection": "products",
+      "total": 6,
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "nullable": false,
+          "readonly": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "decimal",
+          "nullable": false
+        },
+        {
+          "name": "details",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "brand",
+          "type": "string",
+          "nullable": true
+        }
+      ]
+    }
+  ]
 }
 ```
 
