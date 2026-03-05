@@ -87,34 +87,40 @@ Response
       "fields": [
         {
           "name": "id",
-          "type": "string",
+          "type": "id",
           "nullable": false,
+          "unique": false,          
           "readonly": true
         },
         {
           "name": "title",
           "type": "string",
-          "nullable": false
+          "nullable": false,
+          "unique": true
         },
         {
           "name": "price",
           "type": "decimal",
-          "nullable": false
+          "nullable": false,
+          "unique": false
         },
         {
           "name": "details",
           "type": "string",
-          "nullable": true
+          "nullable": true,
+          "unique": false
         },
         {
           "name": "quantity",
           "type": "integer",
-          "nullable": true
+          "nullable": true,
+          "unique": false
         },
         {
           "name": "brand",
           "type": "string",
-          "nullable": true
+          "nullable": true,
+          "unique": false
         }
       ]
     }
@@ -341,8 +347,8 @@ Response:
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGW12542T",
-      "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk",
-      "name": "Updated Service Name"
+      "name": "Updated Service Name",
+      "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk"      
     }
   ]
 }

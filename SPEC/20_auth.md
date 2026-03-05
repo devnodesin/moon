@@ -4,7 +4,7 @@
 {
   "op": "login | refresh | logout",
   "data": {
-    "email": "user@example.com",
+    "username": "newuser",
     "password": "secret",
     "refresh_token": "..."
   }

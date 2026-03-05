@@ -3,3 +3,5 @@
 This document outlines the architecture and design for a high-performance, API-first backend built in **Go**. The system allows for real-time, migration-less database management via REST APIs using a **custom-action pattern** and **in-memory schema caching**.
 
 > **📖 API Reference**: For complete API documentation including all endpoints, request/response formats, query options, and error codes, see **[SPEC_API.md](SPEC_API.md)**.
+
+> See **moon.conf** for config refrence 

@@ -189,7 +189,7 @@ See [Data Access API](./SPEC/40_resource.md)
 
 | Parameter | Description                                                 |
 | --------- | ----------------------------------------------------------- |
-| `limit`   | Page size (default `15`, max `200`)                         |
+| `per_page`   | Page size (default `15`, max `200`)                         |
 | `sort`    | Comma-separated sort fields (`-field` for desc)             |
 | `q`       | Full-text search across text fields                         |
 | `fields`  | Comma-separated fields to include (`id` is always included) |
@@ -200,8 +200,8 @@ See [Data Access API](./SPEC/40_resource.md)
 
 **Parameter Examples:**
 
-- `limit`: Restrict page size (default 15, max 200)
-  - Example: `GET /data/products:query?limit=20`
+- `per_page`: Restrict page size (default 15, max 200)
+  - Example: `GET /data/products:query?per_page=20`
 
 - `sort`: Sort by fields (comma-separated, use `-field` for descending)
   - Example: `GET /data/products:query?sort=price,-quantity`

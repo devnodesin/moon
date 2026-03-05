@@ -1,15 +1,15 @@
 The `/collections:{query, mutate}` endpoint is strictly for listing, creating, and managing collection schemas.
 
-- `users` and `apikeys` are system collections. `/collection:mutate` operations are not allowed on these collections.
+- `users` and `apikeys` are system collections. `/collections:mutate` operations are not allowed on these collections.
 - Do not allow batch schema changes in a single request (e.g., adding and removing columns together).
 
-New collections can be created and managed using the `/collection:query` and `/collection:mutate` endpoints.
+New collections can be created and managed using the `/collections:query` and `/collections:mutate` endpoints.
 
 See [Standard Error Response](10_error.md) for any error handling
 
 ### `GET /collections:query`
 
-`/collection:query` lists all available database tables.
+`/collections:query` lists all available database tables.
 
 ```json
 {
@@ -20,7 +20,8 @@ See [Standard Error Response](10_error.md) for any error handling
     { "name": "products", "count": 55 }
   ],
   "meta": {
-    "total": 3, // total records available for this request
+    "total": 3,
+    "count": 3, // total records available for this request
     "per_page": 15, // number of records per page
     "current_page": 1, // current page number
     "total_pages": 1 // total number of pages available
@@ -50,7 +51,7 @@ Request
   "data": [
     {
       "name": "products",
-      "add_columns": [
+      "columns": [
         { "name": "title", "type": "string", "unique": true },
         { "name": "price", "type": "decimal", "nullable": true }
       ]
