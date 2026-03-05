@@ -1,72 +1,85 @@
-# Moon Spec Review
+# Moon Specification Review
 
-**Score: 6.5 / 10**
+## Summary
 
-The spec has a solid conceptual foundation — intentional minimalism, AIP-136 action pattern, clear data model — but contains enough internal contradictions and gaps to cause real implementation confusion. Issues are grouped below by severity.
-
----
-
-## Critical Inconsistencies
-
-### 1. Login field: `email` vs `username`
-- `SPEC_API.md` (20_auth top schema) states login requires `email` and `password`.
-- `SPEC/20_auth.md` login request example sends `username` instead of `email`.
-- **Pick one and use it consistently.**
-
-.
-
-### 4. `data` shape violation — schema endpoint
-- `SPEC_API.md` core rule: "`data` is always an array of objects."
-- `SPEC/40_resource.md` schema response returns `data` as a plain object `{}`, not an array.
-- Either the rule or the example must change.
-
-### 5. Pagination meta field names disagree
-- `SPEC_API.md` list response meta: `per_page`, `current_page`
-- `SPEC/30_collection.md` list response meta: `limit`, `page`
-- Fields must match across all list endpoints.
+`SPEC.md` is now substantially complete and no longer empty. It now documents architecture, schema lifecycle, configuration, security, and operational boundaries aligned to the frozen API documents.  
+This review now keeps only issues that remain outstanding across `SPEC_API.md` and `SPEC/*.md`.
 
 ---
 
-## Minor Issues
+## Critical Contract Inconsistencies
 
+### 1. Login Identifier Conflict (`email` vs `username`)
 
-### 10. Surprising default for `unique`
-- `SPEC/30_collection.md`: "defaults to `nullable: false` and `unique: true`"
-- Having `unique: true` as the default is an unusual and breaking default for most fields. Likely should be `unique: false`. Confirm intent.
+In `SPEC/20_auth.md`, login requirements say `email` + `password`, but the login request example uses `username` + `password`. One canonical login identifier must be defined and used consistently.
 
-### 11. Mutation response shape inconsistency
-- `SPEC_API.md` mutation response shows `data: []` (empty array).
-- `SPEC/40_resource.md` create/update response returns the full record(s) inside `data`.
-- These are contradictory. Full record in response is the better UX — update the spec shape.
+### 2. Standard Response Shape vs Auth Responses
 
-### 12. SPEC.md is almost empty
-- `SPEC.md` is only 6 lines: a title, a one-liner, and a pointer to `SPEC_API.md`.
-- Per `AGENTS.md`, SPEC.md should cover architecture, database design, schema management, and system behavior. It currently has none of that.
+`SPEC_API.md` says `data` is always an array.  
+`SPEC/20_auth.md` login/refresh return `data` as an object, and logout returns no `data` field.  
+Either the standard response rules need explicit auth exceptions, or auth responses need to conform.
+
+### 3. Missing `page` in Query Options Table
+
+`SPEC_API.md` query options include `per_page`, `sort`, `q`, `fields`, `filter`, but not `page`, even though pagination links and examples use `page`.
+
+### 4. `405` Missing from Allowed Error Codes
+
+`SPEC_API.md` says unsupported methods return `405`, but `SPEC/10_error.md` says only listed codes are allowed and does not include `405`.
+
+### 5. `/collections:query` Example Missing `message`
+
+`SPEC_API.md` says `message` is always present, but `SPEC/30_collection.md` list response example omits it.
+
+### 6. Action Mutation Responses Missing `meta`
+
+Mutation response shape includes `meta.success` / `meta.failed`, but `reset_password` and `revoke_sessions` responses in `SPEC/40_resource.md` omit `meta`.
 
 ---
 
-## Strengths
+## Missing Documentation
 
-- **Clear intentional scope.** The "What Moon Does NOT Do" list is excellent — sets honest expectations.
-- **AIP-136 pattern.** Colon-separated actions are consistent and AI-friendly.
-- **Error model.** Simple, strict, human-readable — exactly right.
-- **ULID identifiers.** Good choice; lexicographically sortable, collision-safe.
-- **Unified auth header.** JWT and API keys both use `Authorization: Bearer` — clean.
-- **Atomic schema operations.** One op per request avoids complex rollback logic.
-- **Partial batch success.** `meta.success` / `meta.failed` is a pragmatic pattern.
-- **Rate limit model.** Separate limits for JWT vs API key users is well-considered.
+### 7. `GET /auth:me` Has No Request/Response Contract
+
+Endpoint is listed in `SPEC_API.md` but lacks full request/response details in specs.
+
+### 8. `POST /auth:me` Has No Request/Response Contract
+
+Endpoint is listed in `SPEC_API.md` but lacks payload rules, validation behavior, and response examples.
+
+### 9. API Key Lifecycle Is Incomplete
+
+`SPEC/40_resource.md` documents key rotation only. Missing docs for:
+
+- create API key (`op=create`)
+- list/query API keys
+- destroy API keys (`op=destroy`)
+- canonical API key object fields
+- explicit statement that raw key is only returned on create/rotate
+
+### 10. User Management Lifecycle Is Incomplete
+
+Missing docs for user create/list/get-one patterns and canonical writable/system-managed fields.
+
+### 11. Partial Batch Failure Shape Is Undefined
+
+The spec allows partial success (`meta.success`, `meta.failed`) but does not define how failed items are represented in response `data`.
+
+### 12. Rate Limit Response Semantics Are Undefined
+
+`429` is listed but behavior is unspecified (`Retry-After`, reset window semantics, client backoff guidance).
+
+### 13. `can_write` Semantics Are Not Defined
+
+`can_write` appears in auth responses/JWT examples but no spec defines exact meaning, source of truth, or interaction with role-based authorization.
 
 ---
 
-## Recommended Actions (Priority Order)
+## Additional Findings and Suggestions
 
-1. Fix login field: standardize to `email` or `username` across all files.
-2. Fix `/collection` vs `/collections` — pick one, update all examples.
-3. Fix schema response `data` to be an array.
-4. Align pagination meta field names (`per_page`/`current_page`) everywhere.
-5. Fix links in 40_resource.md to include `:query` suffix.
-6. Correct `GET` → `POST` in the mutate section heading.
-7. Clarify `text` vs `string` type.
-8. Clarify `unique: true` default intent.
-9. Align mutation response — empty array vs full record — and document the winner.
-10. Flesh out `SPEC.md` with architecture and system behavior content.
+- **`revoke_sessions` message wording:** current `"Revoke session successful"` is inconsistent with surrounding response language; prefer `"Sessions revoked successfully"`.
+- **Filter syntax ambiguity:** `?filter=quantity[gt]=5&brand[eq]=Wow` mixes patterns; define one canonical filter encoding.
+- **Top-level resource route scope:** `SPEC/40_resource.md` allows `/products:query` in addition to `/data/products:query`; clarify in `SPEC_API.md` whether this applies to all resources including system collections.
+- **`rotate` response `name` field origin:** rotation request only sends `id`, but response includes `name`; document whether this is always the persisted existing name.
+- **`/auth:me` token type support:** clarify whether endpoint accepts both JWT and API keys, or JWT only.
+
