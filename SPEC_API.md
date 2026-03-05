@@ -51,6 +51,7 @@ Moon is intentionally minimal. It does **not** support:
 - System collection: `users`, `apikeys`
 - Field names: unique per collection.
 - No joins; handle relations at the application layer.
+- Offset-based pagination is used for all list endpoints.
 
 ### Rules: Do's
 
@@ -101,28 +102,33 @@ Moon is intentionally minimal. It does **not** support:
 
 ## Standard Response Shapes
 
-### List Response
+### Response
 
 ```json
 {
-  "data": [],
+  "message": "updated successfully",
+  "data": [
+    // Array of resource objects for the current page
+  ],
   "meta": {
-    "count": 15,
-    "limit": 15,
-    "next": "01KHCZKMM0N808MKSHBNWF464F",
-    "prev": null,
-    "total": 42
+    "total": 42, // Total number of records in database (after filters)
+    "count": 15, // Number of records returned in this response
+    "per_page": 15, // Requested page size (?per_page=15)
+    "current_page": 1, // Current page number (?page=1)
+    "total_pages": 3 // Total pages = ceil(total / per_page)
+  },
+  "links": {
+    "first": "/data/customers?page=1&per_page=15", // First page URL
+    "last": "/data/customers?page=3&per_page=15", // Last page URL
+    "prev": null, // Previous page URL (null if first page)
+    "next": "/data/customers?page=2&per_page=15" // Next page URL (null if last page)
   }
 }
 ```
 
-### Single Resource Response
-
-```json
-{
-  "data": {}
-}
-```
+- `message` is always present.
+- `data` is always an array of objects; depending on the request, it may contain one or multiple objects.
+- `meta` and `links` are present only in list responses.
 
 ### Mutation Response
 
@@ -137,16 +143,14 @@ Moon is intentionally minimal. It does **not** support:
 }
 ```
 
-## Endpoint Surface (Reduced and Unified)
+## API Endpoint
 
 ### Public Endpoints (No Auth)
 
-| Endpoint       | Method | Description        |
-| -------------- | ------ | ------------------ |
-| `/`            | GET    | Alias of `/health` |
-| `/health`      | GET    | Service health     |
-| `/doc/`        | GET    | HTML docs          |
-| `/doc/llms.md` | GET    | Markdown docs      |
+| Endpoint  | Method | Description        |
+| --------- | ------ | ------------------ |
+| `/`       | GET    | Alias of `/health` |
+| `/health` | GET    | Service health     |
 
 ### Authentication Endpoints
 
@@ -177,14 +181,12 @@ See [Collection Managment API](./SPEC/30_collection.md)
 
 See [Data Access API](./SPEC/40_resource.md)
 
-### `:query` Contract
-
 `GET /data/{resource}:query` supports three modes:
 
 1. **List mode (default):** no identifier and no `op`
 2. **Get-one mode:** `?id=...` (or `?name=...` for collections)
 
-### Query Options
+**Query Options:**
 
 | Parameter | Description                                                 |
 | --------- | ----------------------------------------------------------- |
@@ -194,79 +196,23 @@ See [Data Access API](./SPEC/40_resource.md)
 | `fields`  | Comma-separated fields to include (`id` is always included) |
 | `filter`  | Smart Field filters `eq,ne,gt,lt,gte,lte,like,in`           |
 
-- filters are smart, they are supported based on underlty filed data types
+- Filters are type-aware and only supported for fields where the filter operation is valid for the underlying data type.
+- All filters and query options can be combined.
 
-All filters and query options can be combined.
+**Parameter Examples:**
 
-- offset-based pagination
+- `limit`: Restrict page size (default 15, max 200)
+  - Example: `GET /data/products:query?limit=20`
 
-## 7) `:mutate` Contract
+- `sort`: Sort by fields (comma-separated, use `-field` for descending)
+  - Example: `GET /data/products:query?sort=price,-quantity`
 
-`POST /data/{resource}:mutate` request shape:
+- `q`: Full-text search across text fields
+  - Example: `GET /data/products:query?q=wireless+mouse`
 
-```json
-{
-  "op": "create | update | destroy | action",
-  "data": [],
-  "action": "optional-custom-action"
-}
-```
+- `fields`: Select specific fields to include (always includes `id`)
+  - Example: `GET /data/products:query?fields=id,title,price`
 
-Rules:
+- `filter`: Smart field filters using operators `eq,ne,gt,lt,gte,lte,like,in`
+  - Example: `GET /data/products:query?filter=quantity[gt]=5&brand[eq]=Wow`
 
-- `data` is always an array (single or batch).
-- `create`: objects in `data` must not include system `id`.
-- `update`: each object in `data` must include identifier (`id` or `name`).
-- `destroy`: each object in `data` must include identifier only.
-- `action`: use `action` (special action to perform via `action` field which mandatory).
-
-Status behavior:
-
-- `201 Created` when `op=create` and at least one record is created.
-- `200 OK` for `update`, `destroy`, `action` with at least one successful operation.
-- Partial success is allowed for batch writes; report counts via `meta.success` and `meta.failed`.
-
-## 8) Resource-Specific Operations
-
-### 8.2 Users (`/users:mutate`)
-
-- Standard `create`, `update`, `destroy`
-- `op=action` supported actions:
-  - `reset_password`
-  - `revoke_sessions`
-
-### 8.3 API Keys (`/apikeys:mutate`)
-
-- Standard `create`, `update`, `destroy`
-- `op=action` supported action:
-  - `rotate`
-
-`key` values are returned only on creation/rotation response and must not be retrievable later.
-
-### 8.4 Data Records (`/{collection}:mutate`)
-
-- Standard `create`, `update`, `destroy`
-- Optional custom `op=action` for collection-specific server actions
-
-## 9) Error Model
-
-Allowed status codes:
-
-- `200` OK
-- `201` Created
-- `400` Bad Request
-- `401` Unauthorized
-- `404` Not Found
-- `405` Method Not Allowed
-- `429` Too Many Requests
-- `500` Internal Server Error
-
-Error response shape:
-
-```json
-{
-  "message": "human-readable error"
-}
-```
-
-No additional error fields are used.

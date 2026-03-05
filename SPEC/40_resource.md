@@ -1,4 +1,3 @@
-
 These endpoints manage records within a specific collection. Replace `{resource}` with your collection name (e.g., `products`).
 
 The `/data/{resource}:{query, schema, mutate}` endpoints:
@@ -8,11 +7,120 @@ The `/data/{resource}:{query, schema, mutate}` endpoints:
 - All resources, both system and dynamic, are available under `/data/{resource}`.
 - Each collection also provides its own top-level endpoints for `:query`, `:mutate`, and `:schema` (outside of `/data/`).
 
-### `GET /collections:query`
+### `GET /{resource}:query`
 
-### `GET /collections:schema`
+**List Response:**
 
-### `GET /collections:mutate`
+To request a list query (multiple resources), use the endpoint with optional pagination or filter parameters, for example:
+
+`GET /data/products:query`
+`GET /data/products:query?page=1&per_page=15`
+
+```json
+{
+  "message": "Resources retrieved successfully",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "title": "Wireless Mouse",
+      "price": "29.99",
+      "quantity": 10,
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse"
+    },
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5U",
+      "title": "Mechanical Keyboard",
+      "price": "89.99",
+      "quantity": 5,
+      "brand": "KeyPro",
+      "details": "RGB backlit, blue switches"
+    }
+  ],
+  "meta": {
+    "total": 42,
+    "count": 2,
+    "per_page": 15,
+    "current_page": 1,
+    "total_pages": 3
+  },
+  "links": {
+    "first": "/data/products?page=1&per_page=15",
+    "last": "/data/products?page=3&per_page=15",
+    "prev": null,
+    "next": "/data/products?page=2&per_page=15"
+  }
+}
+```
+
+**Single Resource Response:**
+
+`GET /data/products:query?id=01KJMQ3XZF5H1P2DDNGWGVXB5T`
+
+```json
+{
+  "message": "Resource retrieved successfully",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "title": "Wireless Mouse",
+      "price": "29.99",
+      "quantity": 10,
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse"
+    }
+  ]
+}
+```
+
+### `GET /{resource}:schema`
+
+Response
+
+```json
+{
+  "message": "Schema retrieved successfully",
+  "data": {
+    "collection": "products",
+    "total": 6,
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "nullable": false,
+        "readonly": true
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "price",
+        "type": "decimal",
+        "nullable": false
+      },
+      {
+        "name": "details",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "quantity",
+        "type": "integer",
+        "nullable": true
+      },
+      {
+        "name": "brand",
+        "type": "string",
+        "nullable": true
+      }
+    ]
+  }
+}
+```
+
+### `GET /data/{resource}:mutate`
 
 `POST /data/{resource}:mutate` request shape:
 
@@ -26,14 +134,216 @@ The `/data/{resource}:{query, schema, mutate}` endpoints:
 
 Rules:
 
-- `data` is always an array (single or batch).
-- `create`: objects in `data` must not include system `id`.
-- `update`: each object in `data` must include identifier (`id` or `name`).
-- `destroy`: each object in `data` must include identifier only.
-- `action`: use `action` (special action to perform via `action` field which mandatory).
+- `data` must always be an array (single or batch).
+- `op`:
+  - `create`: Each object in `data` must not include the system `id`.
+  - `update`: Each object in `data` must include the identifier `id`.
+  - `destroy`: Each object in `data` must include the `id`; one or more objects may be provided.
+- `action`: Use the `action` field to specify a required custom operation (e.g., password reset, API key rotation).
 
-Status behavior:
+- Create, Update, and Destroy operations support both single-object and batch (multiple objects) in the `data` array.
+
+**Create `POST /data/{resource}:mutate`**
+
+Request: `POST /data/product:mutate`
+
+```json
+{
+  "op": "create",
+  "data": [
+    {
+      "title": "Wireless Mouse",
+      "price": "29.99",
+      "quantity": 10,
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse"
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Product created successfully",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "title": "Wireless Mouse",
+      "price": "29.99",
+      "quantity": 10,
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse"
+    }
+  ],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
+}
+```
+
+**Update `POST /data/{resource}:mutate`**
+
+Request: `POST /data/product:mutate`
+
+```json
+{
+  "op": "update",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "price": "24.99",
+      "quantity": 12
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Product updated successfully",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "title": "Wireless Mouse",
+      "price": "24.99",
+      "quantity": 12,
+      "brand": "Wow",
+      "details": "Ergonomic wireless mouse"
+    }
+  ],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
+}
+```
+
+**Destroy `POST /data/{resource}:mutate`**
+
+Request: `POST /data/product:mutate`
+
+```json
+{
+  "op": "destroy",
+  "data": [{ "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T" }]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Product deleted successfully",
+  "data": [],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
+}
+```
 
 - `201 Created` when `op=create` and at least one record is created.
 - `200 OK` for `update`, `destroy`, `action` with at least one successful operation.
 - Partial success is allowed for batch writes; report counts via `meta.success` and `meta.failed`.
+
+See [Standard Error Response](10_error.md) for any error handling
+
+### Action `POST /data/{resource}:mutate`
+
+**Reset User Password: `POST /data/users:mutate`**
+
+Request:
+
+```json
+{
+  "op": "action",
+  "action": "reset_password",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
+      "password": "NewSecurePassword123#"
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Reset password successful",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
+    }
+  ]
+}
+```
+
+**Revoke User Sessions: `POST /data/users:mutate`**
+
+Request:
+
+```json
+{
+  "op": "action",
+  "action": "revoke_sessions",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Revoke session successful",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
+    }
+  ]
+}
+```
+
+**Rotate API Key: `POST /data/apikeys:mutate`**
+
+Request:
+
+```json
+{
+  "op": "action",
+  "action": "rotate",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGW12542T"
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "message": "API key rotated successfully",
+  "warning": "Store this key securely. The old key is now invalid.",
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGW12542T",
+      "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk",
+      "name": "Updated Service Name"
+    }
+  ]
+}
+```
+
+- `key` values are returned only on creation/rotation response and must not be retrievable later.

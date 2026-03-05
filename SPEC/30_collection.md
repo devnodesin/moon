@@ -5,6 +5,8 @@ The `/collections:{query, mutate}` endpoint is strictly for listing, creating, a
 
 New collections can be created and managed using the `/collection:query` and `/collection:mutate` endpoints.
 
+See [Standard Error Response](10_error.md) for any error handling
+
 ### `GET /collections:query`
 
 `/collection:query` lists all available database tables.
