@@ -313,7 +313,7 @@ Response (200 OK)::
 
 ```json
 {
-  "message": "Revoke session successful",
+  "message": "Sessions revoked successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"

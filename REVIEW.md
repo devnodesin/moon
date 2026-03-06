@@ -63,7 +63,7 @@ The spec allows partial success (`meta.success`, `meta.failed`) but does not def
 
 ## Additional Findings and Suggestions
 
-- **`revoke_sessions` message wording:** current `"Revoke session successful"` is inconsistent with surrounding response language; prefer `"Sessions revoked successfully"`.
+
 - **Filter syntax ambiguity:** `?filter=quantity[gt]=5&brand[eq]=Wow` mixes patterns; define one canonical filter encoding.
 - **Top-level resource route scope:** `SPEC/40_resource.md` allows `/products:query` in addition to `/data/products:query`; clarify in `SPEC_API.md` whether this applies to all resources including system collections.
 - **`rotate` response `name` field origin:** rotation request only sends `id`, but response includes `name`; document whether this is always the persisted existing name.

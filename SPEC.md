@@ -24,12 +24,59 @@ Moon manages data as:
 - **Field** (table column)
 - **Record** (table row)
 
-System collections:
+- System collections: `users`, `apikeys`
+- All other collections are dynamic and managed via collection APIs.
+- Both System collection and dynamic collection can be accessed via data access api.
 
-- `users`
-- `apikeys`
+## Data Flow
 
-All other collections are dynamic and managed via collection APIs.
+User (Client)
+|
+v
+API Transport Layer (HTTP, Middleware: Auth, CORS, etc.)
+|
+v
+Authentication & Authorization Layer
+|
+v
+Collection Schema Layer <----> Resource Layer
+| |
+| v
+|-------------------------> Persistence Layer (DB Adapter)
+|
+v
+Database (SQLite/Postgres/MySQL)
+
+## Startup
+
+- **Load Default Configuration:** Initialize all configuration values from the centralized `config.go` file.
+- **Apply External Configuration Overrides:** If a `moon.conf` file is present, override the relevant default values with those specified in the file.
+- **Validate Configuration:** If any configuration is invalid, load the defaults from `config.go` and continue startup, logging a message.
+- **Initialize Database Adapter:** Connect to the database backend as specified in the configuration (default: SQLite; supports Postgres/MySQL).
+- Verify that required **system collections** (`users`, `apikeys`) exist in the database; create them if missing. If a system collection is corrupted, attempt to repair it. If repair fails, delete and recreate the collection.
+- **Load Schema Metadata:** Load all collection schemas into the in-memory schema cache for fast access and validation.
+- **Start HTTP Server:** Begin serving API requests only after configuration, database, and schema cache are fully initialized.
+
+## Centralized Config
+
+A centralized `config.go` file must define all default configuration values. All other source code must retrieve settings and configuration details exclusively from this file, ensuring a single source of truth for configuration.
+
+At service startup, selected configuration values must be overridable via an external config file (e.g., `moon.conf`), allowing runtime customization without code changes.
+
+## Source Structure
+
+Recommended directory structure for the Moon project:
+
+```
+moon/
+├── cmd/                 # All Go source code (main app, modules, packages)
+├── scripts/             # Utility scripts (test, build, etc.)
+├── moon.conf            # Main configuration file
+├── Dockerfile           # Container build file
+└── ...                  # Other supporting files
+```
+
+> **All Go source code must reside within the `cmd/` directory.** Organize submodules, packages, and main application entry points under `cmd/` to ensure a clear and unified Go codebase boundary. Adjust or extend as needed for Go idioms and project growth. Keep modules single-purpose and boundaries clear.
 
 ## 4. High-Level Architecture
 
@@ -128,14 +175,6 @@ The implementation must keep stable system collections for identity and service 
 Internal security and lifecycle fields are implementation-owned but must support the frozen API flows (login/refresh/logout, password reset, session revocation, API key rotation, and one-time key disclosure on create/rotate).
 
 ## 6. Schema Lifecycle
-
-### 6.1 Startup
-
-1. Load configuration (`moon.conf`).
-2. Initialize database adapter.
-3. Ensure system collections exist.
-4. Load schema metadata into in-memory cache.
-5. Start HTTP server only after cache is ready.
 
 ### 6.2 Runtime Changes
 
