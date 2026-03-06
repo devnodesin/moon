@@ -2,17 +2,11 @@
 
 ## 1. Purpose and Scope
 
-This document defines Moon's top-level architecture and implementation model for a Go-based, API-first backend.
+This document outlines Moon's primary architecture and implementation model for a Go-based, API-first backend.
 
-Moon's HTTP contract is frozen and defined by:
+Moon's HTTP contract is specified in `SPEC_API.md` and the files within `SPEC/*.md`.
 
-- `SPEC_API.md`
-- `SPEC/10_error.md`
-- `SPEC/20_auth.md`
-- `SPEC/30_collection.md`
-- `SPEC/40_resource.md`
-
-This file defines how the system is structured to implement that contract cleanly and maintainably.
+This specification details the system structure required to implement that contract in a clean and maintainable manner.
 
 ## 2. Design Principles
 
@@ -30,7 +24,7 @@ Moon manages data as:
 - **Field** (table column)
 - **Record** (table row)
 
-There are two system collections:
+System collections:
 
 - `users`
 - `apikeys`
@@ -46,7 +40,6 @@ Moon is a single HTTP service with modular internal components.
 Responsibilities:
 
 - Route requests for `GET`, `POST`, and `OPTIONS`
-- Enforce route naming and action style (`resource:action`)
 - Apply shared middleware (auth, rate limiting, CORS, request normalization)
 - Return responses in the standardized envelope defined in API specs
 

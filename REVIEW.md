@@ -9,20 +9,6 @@ This review now keeps only issues that remain outstanding across `SPEC_API.md` a
 
 ## Critical Contract Inconsistencies
 
-### 1. Login Identifier Conflict (`email` vs `username`)
-
-In `SPEC/20_auth.md`, login requirements say `email` + `password`, but the login request example uses `username` + `password`. One canonical login identifier must be defined and used consistently.
-
-### 2. Standard Response Shape vs Auth Responses
-
-`SPEC_API.md` says `data` is always an array.  
-`SPEC/20_auth.md` login/refresh return `data` as an object, and logout returns no `data` field.  
-Either the standard response rules need explicit auth exceptions, or auth responses need to conform.
-
-### 3. Missing `page` in Query Options Table
-
-`SPEC_API.md` query options include `per_page`, `sort`, `q`, `fields`, `filter`, but not `page`, even though pagination links and examples use `page`.
-
 ### 4. `405` Missing from Allowed Error Codes
 
 `SPEC_API.md` says unsupported methods return `405`, but `SPEC/10_error.md` says only listed codes are allowed and does not include `405`.

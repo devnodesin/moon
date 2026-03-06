@@ -72,7 +72,6 @@ Moon is intentionally minimal. It does **not** support:
 ## Core Rules
 
 1. **Methods:** `GET` (read), `POST` (write/action), `OPTIONS` (CORS preflight only).  
-   Other methods return `405 Method Not Allowed`.
 2. **Auth:** All endpoints require `Authorization: Bearer <token>` except public endpoints.
 3. **Naming:** Collection and field names must follow lowercase snake_case constraints defined in `SPEC.md`.
 4. **Identifiers:**
@@ -163,8 +162,8 @@ See [Authentication API](./SPEC/20_auth.md)
 
 ### Collection Management Endpoints
 
-| Endpoint             | Method | Description                        |
-| -------------------- | ------ | ---------------------------------- |
+| Endpoint              | Method | Description                        |
+| --------------------- | ------ | ---------------------------------- |
 | `/collections:query`  | GET    | List, get-one collection           |
 | `/collections:mutate` | POST   | Create, update, destroy collection |
 
@@ -187,31 +186,29 @@ See [Data Access API](./SPEC/40_resource.md)
 
 **Query Options:**
 
-| Parameter | Description                                                 |
-| --------- | ----------------------------------------------------------- |
-| `per_page`   | Page size (default `15`, max `200`)                         |
-| `sort`    | Comma-separated sort fields (`-field` for desc)             |
-| `q`       | Full-text search across text fields                         |
-| `fields`  | Comma-separated fields to include (`id` is always included) |
-| `filter`  | Smart Field filters `eq,ne,gt,lt,gte,lte,like,in`           |
+| Parameter  | Description                                                 |
+| ---------- | ----------------------------------------------------------- |
+| `page`     | Page number (default `1`)                                   |
+| `per_page` | Page size (default `15`, max `200`)                         |
+| `sort`     | Comma-separated sort fields (`-field` for desc)             |
+| `q`        | Full-text search across text fields                         |
+| `fields`   | Comma-separated fields to include (`id` is always included) |
+| `filter`   | Smart Field filters `eq,ne,gt,lt,gte,lte,like,in`           |
 
 - Filters are type-aware and only supported for fields where the filter operation is valid for the underlying data type.
 - All filters and query options can be combined.
 
 **Parameter Examples:**
 
+- `page`: Select page number (default 1)
+  - Example: `GET /data/products:query?page=2`
 - `per_page`: Restrict page size (default 15, max 200)
   - Example: `GET /data/products:query?per_page=20`
-
 - `sort`: Sort by fields (comma-separated, use `-field` for descending)
   - Example: `GET /data/products:query?sort=price,-quantity`
-
 - `q`: Full-text search across text fields
   - Example: `GET /data/products:query?q=wireless+mouse`
-
 - `fields`: Select specific fields to include (always includes `id`)
   - Example: `GET /data/products:query?fields=id,title,price`
-
 - `filter`: Smart field filters using operators `eq,ne,gt,lt,gte,lte,like,in`
   - Example: `GET /data/products:query?filter=quantity[gt]=5&brand[eq]=Wow`
-

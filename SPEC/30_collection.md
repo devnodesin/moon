@@ -5,7 +5,7 @@ The `/collections:{query, mutate}` endpoint is strictly for listing, creating, a
 
 New collections can be created and managed using the `/collections:query` and `/collections:mutate` endpoints.
 
-See [Standard Error Response](10_error.md) for any error handling
+See [Standard Error Response (200 OK):](10_error.md) for any error handling
 
 ### `GET /collections:query`
 
@@ -60,7 +60,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -106,7 +106,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -159,7 +159,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -212,7 +212,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -262,7 +262,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -305,7 +305,7 @@ Request
 }
 ```
 
-Response
+Response (200 OK):
 
 ```json
 {

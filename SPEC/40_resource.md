@@ -9,7 +9,7 @@ The `/data/{resource}:{query, schema, mutate}` endpoints:
 
 ### `GET /{resource}:query`
 
-**List Response:**
+**List Response (200 OK)::**
 
 To request a list query (multiple resources), use the endpoint with optional pagination or filter parameters, for example:
 
@@ -53,7 +53,7 @@ To request a list query (multiple resources), use the endpoint with optional pag
 }
 ```
 
-**Single Resource Response:**
+**Single Resource Response (200 OK)::**
 
 `GET /data/products:query?id=01KJMQ3XZF5H1P2DDNGWGVXB5T`
 
@@ -75,7 +75,7 @@ To request a list query (multiple resources), use the endpoint with optional pag
 
 ### `GET /{resource}:schema`
 
-Response
+Response (200 OK):
 
 ```json
 {
@@ -170,7 +170,7 @@ Request: `POST /data/product:mutate`
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -209,7 +209,7 @@ Request: `POST /data/product:mutate`
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -242,7 +242,7 @@ Request: `POST /data/product:mutate`
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -259,7 +259,7 @@ Response:
 - `200 OK` for `update`, `destroy`, `action` with at least one successful operation.
 - Partial success is allowed for batch writes; report counts via `meta.success` and `meta.failed`.
 
-See [Standard Error Response](10_error.md) for any error handling
+See [Standard Error Response (200 OK):](10_error.md) for any error handling
 
 ### Action `POST /data/{resource}:mutate`
 
@@ -280,7 +280,7 @@ Request:
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -309,7 +309,7 @@ Request:
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -338,7 +338,7 @@ Request:
 }
 ```
 
-Response:
+Response (200 OK)::
 
 ```json
 {
@@ -354,4 +354,4 @@ Response:
 }
 ```
 
-- `key` values are returned only on creation/rotation response and must not be retrievable later.
+- `key` values are returned only on creation/rotation Response (200 OK): and must not be retrievable later.
