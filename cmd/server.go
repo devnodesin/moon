@@ -14,7 +14,7 @@ import (
 
 // NewRouter builds the HTTP mux with all routes registered under the
 // configured server prefix.
-func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig) *http.ServeMux {
+func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, registry ...*SchemaRegistry) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	p := strings.TrimRight(prefix, "/")
@@ -50,8 +50,18 @@ func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:me", p), authMeHandler.UpdateMe)
 
 	// Collection routes
-	mux.HandleFunc(fmt.Sprintf("GET %s/collections:query", p), handleCollectionsQuery)
-	mux.HandleFunc(fmt.Sprintf("POST %s/collections:mutate", p), handleCollectionsMutate)
+	var reg *SchemaRegistry
+	if len(registry) > 0 {
+		reg = registry[0]
+	}
+	if reg != nil && db != nil {
+		ch := NewCollectionHandler(db, reg, cfg)
+		mux.HandleFunc(fmt.Sprintf("GET %s/collections:query", p), ch.HandleQuery)
+		mux.HandleFunc(fmt.Sprintf("POST %s/collections:mutate", p), ch.HandleMutate)
+	} else {
+		mux.HandleFunc(fmt.Sprintf("GET %s/collections:query", p), handleCollectionsQuery)
+		mux.HandleFunc(fmt.Sprintf("POST %s/collections:mutate", p), handleCollectionsMutate)
+	}
 
 	// Resource routes — use a catch-all pattern for /data/ paths
 	mux.HandleFunc(fmt.Sprintf("GET %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
