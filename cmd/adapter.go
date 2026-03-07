@@ -86,6 +86,7 @@ type ColumnInfo struct {
 	Type     string
 	Nullable bool
 	PK       bool
+	Unique   bool // single-column UNIQUE constraint (excludes PK)
 }
 
 // ---------------------------------------------------------------------------

@@ -345,7 +345,67 @@ func (a *SQLiteAdapter) DescribeTable(ctx context.Context, table string) ([]Colu
 	if err := rows.Err(); err != nil {
 		return nil, newAdapterError("DescribeTable", table, "iteration failed", err)
 	}
+
+	uniqueCols := a.detectUniqueColumns(ctx2, table)
+	for i := range columns {
+		if uniqueCols[columns[i].Name] {
+			columns[i].Unique = true
+		}
+	}
+
 	return columns, nil
+}
+
+// detectUniqueColumns returns the set of column names that have a
+// single-column UNIQUE constraint or index, excluding primary keys.
+func (a *SQLiteAdapter) detectUniqueColumns(ctx context.Context, table string) map[string]bool {
+	result := make(map[string]bool)
+
+	query := fmt.Sprintf("PRAGMA index_list(%s)", quoteIdent(table))
+	rows, err := a.db.QueryContext(ctx, query)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+
+	var uniqueIndexNames []string
+	for rows.Next() {
+		var seq int
+		var name string
+		var isUnique int
+		var origin string
+		var partial int
+		if err := rows.Scan(&seq, &name, &isUnique, &origin, &partial); err != nil {
+			return result
+		}
+		if isUnique == 1 && origin != "pk" {
+			uniqueIndexNames = append(uniqueIndexNames, name)
+		}
+	}
+
+	for _, idxName := range uniqueIndexNames {
+		infoQuery := fmt.Sprintf("PRAGMA index_info(%s)", quoteIdent(idxName))
+		infoRows, err := a.db.QueryContext(ctx, infoQuery)
+		if err != nil {
+			continue
+		}
+		var colNames []string
+		for infoRows.Next() {
+			var seqno, cid int
+			var colName string
+			if err := infoRows.Scan(&seqno, &cid, &colName); err != nil {
+				break
+			}
+			colNames = append(colNames, colName)
+		}
+		infoRows.Close()
+
+		if len(colNames) == 1 {
+			result[colNames[0]] = true
+		}
+	}
+
+	return result
 }
 
 // CountRows returns the number of rows in the given table.
