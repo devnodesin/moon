@@ -148,8 +148,8 @@ func TestAuthMeGetRoute(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotImplemented {
-		t.Fatalf("expected 501, got %d", w.Code)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }
 
@@ -160,8 +160,8 @@ func TestAuthMePostRoute(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotImplemented {
-		t.Fatalf("expected 501, got %d", w.Code)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }
 
@@ -307,8 +307,8 @@ func TestPrefixedRoutes(t *testing.T) {
 		{"health", http.MethodGet, "/api/v1/health", http.StatusOK},
 		{"root", http.MethodGet, "/api/v1", http.StatusOK},
 		{"auth session", http.MethodPost, "/api/v1/auth:session", http.StatusBadRequest},
-		{"auth me get", http.MethodGet, "/api/v1/auth:me", http.StatusNotImplemented},
-		{"auth me post", http.MethodPost, "/api/v1/auth:me", http.StatusNotImplemented},
+		{"auth me get", http.MethodGet, "/api/v1/auth:me", http.StatusUnauthorized},
+		{"auth me post", http.MethodPost, "/api/v1/auth:me", http.StatusUnauthorized},
 		{"collections query", http.MethodGet, "/api/v1/collections:query", http.StatusNotImplemented},
 		{"collections mutate", http.MethodPost, "/api/v1/collections:mutate", http.StatusNotImplemented},
 		{"resource query", http.MethodGet, "/api/v1/data/products:query", http.StatusNotImplemented},

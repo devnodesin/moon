@@ -1038,9 +1038,9 @@ func TestIntegration_NoAuthMiddleware_SkipsAuth(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
-	// Should reach the stub handler
-	if w.Code != http.StatusNotImplemented {
-		t.Fatalf("expected 501, got %d", w.Code)
+	// Without auth middleware, the handler still requires JWT identity → 401
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }
 

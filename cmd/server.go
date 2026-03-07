@@ -44,8 +44,10 @@ func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig
 	// Auth routes
 	authHandler := newAuthSessionHandler(db, cfg)
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), authHandler.HandleSession)
-	mux.HandleFunc(fmt.Sprintf("GET %s/auth:me", p), handleAuthMeGet)
-	mux.HandleFunc(fmt.Sprintf("POST %s/auth:me", p), handleAuthMePost)
+
+	authMeHandler := NewAuthMeHandler(db, cfg)
+	mux.HandleFunc(fmt.Sprintf("GET %s/auth:me", p), authMeHandler.GetMe)
+	mux.HandleFunc(fmt.Sprintf("POST %s/auth:me", p), authMeHandler.UpdateMe)
 
 	// Collection routes
 	mux.HandleFunc(fmt.Sprintf("GET %s/collections:query", p), handleCollectionsQuery)

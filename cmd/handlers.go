@@ -14,16 +14,6 @@ func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig) *AuthSessionHandl
 	return &AuthSessionHandler{db: db, cfg: cfg}
 }
 
-// handleAuthMeGet is a stub for GET /auth:me.
-func handleAuthMeGet(w http.ResponseWriter, r *http.Request) {
-	WriteError(w, http.StatusNotImplemented, "Not implemented")
-}
-
-// handleAuthMePost is a stub for POST /auth:me.
-func handleAuthMePost(w http.ResponseWriter, r *http.Request) {
-	WriteError(w, http.StatusNotImplemented, "Not implemented")
-}
-
 // handleCollectionsQuery is a stub for GET /collections:query.
 func handleCollectionsQuery(w http.ResponseWriter, r *http.Request) {
 	WriteError(w, http.StatusNotImplemented, "Not implemented")
