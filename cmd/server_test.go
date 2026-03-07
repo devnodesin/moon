@@ -25,7 +25,7 @@ func defaultTestConfig() *AppConfig {
 func buildTestServer(t *testing.T, cfg *AppConfig) http.Handler {
 	t.Helper()
 	logger := NewTestLogger(&bytes.Buffer{})
-	mux := NewRouter(cfg.Server.Prefix, logger)
+	mux := NewRouter(cfg.Server.Prefix, logger, nil, cfg)
 	return BuildHandler(mux, cfg, logger)
 }
 
@@ -136,8 +136,8 @@ func TestAuthSessionRoute(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotImplemented {
-		t.Fatalf("expected 501, got %d", w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
 
@@ -306,7 +306,7 @@ func TestPrefixedRoutes(t *testing.T) {
 	}{
 		{"health", http.MethodGet, "/api/v1/health", http.StatusOK},
 		{"root", http.MethodGet, "/api/v1", http.StatusOK},
-		{"auth session", http.MethodPost, "/api/v1/auth:session", http.StatusNotImplemented},
+		{"auth session", http.MethodPost, "/api/v1/auth:session", http.StatusBadRequest},
 		{"auth me get", http.MethodGet, "/api/v1/auth:me", http.StatusNotImplemented},
 		{"auth me post", http.MethodPost, "/api/v1/auth:me", http.StatusNotImplemented},
 		{"collections query", http.MethodGet, "/api/v1/collections:query", http.StatusNotImplemented},

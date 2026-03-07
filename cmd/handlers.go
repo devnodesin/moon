@@ -9,9 +9,9 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"message": "OK"})
 }
 
-// handleAuthSession is a stub for POST /auth:session (login, refresh, logout).
-func handleAuthSession(w http.ResponseWriter, r *http.Request) {
-	WriteError(w, http.StatusNotImplemented, "Not implemented")
+// newAuthSessionHandler creates the AuthSessionHandler with its dependencies.
+func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig) *AuthSessionHandler {
+	return &AuthSessionHandler{db: db, cfg: cfg}
 }
 
 // handleAuthMeGet is a stub for GET /auth:me.

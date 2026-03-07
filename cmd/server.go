@@ -14,7 +14,7 @@ import (
 
 // NewRouter builds the HTTP mux with all routes registered under the
 // configured server prefix.
-func NewRouter(prefix string, logger *Logger) *http.ServeMux {
+func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	p := strings.TrimRight(prefix, "/")
@@ -42,7 +42,8 @@ func NewRouter(prefix string, logger *Logger) *http.ServeMux {
 	}
 
 	// Auth routes
-	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), handleAuthSession)
+	authHandler := newAuthSessionHandler(db, cfg)
+	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), authHandler.HandleSession)
 	mux.HandleFunc(fmt.Sprintf("GET %s/auth:me", p), handleAuthMeGet)
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:me", p), handleAuthMePost)
 
@@ -121,8 +122,12 @@ func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger) http.Handl
 
 // StartServer creates and starts the HTTP server with graceful shutdown.
 // It blocks until the server shuts down.
-func StartServer(cfg *AppConfig, logger *Logger) error {
-	mux := NewRouter(cfg.Server.Prefix, logger)
+func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
+	var adapter DatabaseAdapter
+	if len(db) > 0 {
+		adapter = db[0]
+	}
+	mux := NewRouter(cfg.Server.Prefix, logger, adapter, cfg)
 	handler := BuildHandler(mux, cfg, logger)
 
 	addr := net.JoinHostPort(cfg.Server.Host, fmt.Sprintf("%d", cfg.Server.Port))
