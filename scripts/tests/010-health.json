@@ -1,6 +1,6 @@
 {
   "docURL": "http://localhost:6000",
-  "serverURL": "http://localhost:6000",
+  "serverURL": "https://moon.devnodes.in",
   "prefix": "",
   "tests": [
     {
