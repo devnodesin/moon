@@ -1,84 +1,79 @@
 {
-	"docURL": "http://localhost:6006",
-	"serverURL":  "https://moon.devnodes.in",
-	"prefix": "",
-	"username": "newuser",
-	"password": "UserPass123#",
-	"health": "/health",
-	"tests": [
-		{
-			"name": "Login",
-			"cmd": "POST",
-			"endpoint": "/auth:login",
-			"details": "Authenticate user and retrieve access and refresh tokens.",
-			"headers": {
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"username": "newuser",
-				"password": "UserPass123#"
-			}
-		},
-		{
-			"name": "Get Current User",
-			"cmd": "GET",
-			"endpoint": "/auth:me",
-			"details": "Fetch details of the currently authenticated user.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Update Current User (Change email)",
-			"cmd": "POST",
-			"endpoint": "/auth:me",
-			"details": "Change email for current user.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"email": "newemail@example.com"
-			}
-		},
-		{
-			"name": "Update Current User (Change Password)",
-			"cmd": "POST",
-			"endpoint": "/auth:me",
-			"details": "Change password for current user.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"old_password": "UserPass123#",
-				"password": "NewSecurePass456"
-			}
-		},
-		{
-			"name": "Refresh Token",
-			"cmd": "POST",
-			"endpoint": "/auth:refresh",
-			"details": "Generate new access token using refresh token.",
-			"headers": {
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"refresh_token": "$REFRESH_TOKEN"
-			}
-		},
-		{
-			"name": "Logout",
-			"cmd": "POST",
-			"endpoint": "/auth:logout",
-			"details": "Invalidate current session and refresh token.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"refresh_token": "$REFRESH_TOKEN"
-			}
-		}
-	]
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
+  "prefix": "",
+  "username": "admin",
+  "password": "MoonAdmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "Login",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "Authenticate user and retrieve access and refresh tokens.",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "login",
+        "data": {
+          "username": "admin",
+          "password": "MoonAdmin12#"
+        }
+      }
+    },
+    {
+      "name": "Get Current User",
+      "cmd": "GET",
+      "endpoint": "/auth:me",
+      "details": "Fetch details of the currently authenticated user.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Update Current User (Change Email)",
+      "cmd": "POST",
+      "endpoint": "/auth:me",
+      "details": "Update email address for the current user.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "email": "admin_updated@example.com"
+      }
+    },
+    {
+      "name": "Refresh Token",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "Generate a new access token using the refresh token.",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "refresh",
+        "data": {
+          "refresh_token": "$REFRESH_TOKEN"
+        }
+      }
+    },
+    {
+      "name": "Logout",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "Invalidate the current session and revoke the refresh token.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "logout",
+        "data": {
+          "refresh_token": "$REFRESH_TOKEN"
+        }
+      }
+    }
+  ]
 }

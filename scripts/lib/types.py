@@ -24,7 +24,7 @@ class TestSuite:
     serverURL: str
     prefix: str = ""
     username: str = "admin"
-    password: str = "moonadmin12#"
+    password: str = "MoonAdmin12#"
     health: str = "/health"
     tests: List[TestDefinition] = field(default_factory=list)
 

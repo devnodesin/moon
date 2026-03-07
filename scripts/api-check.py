@@ -67,7 +67,7 @@ def load_test_suite(test_file: str) -> TestSuite:
         serverURL=data["serverURL"],
         prefix=data.get("prefix", ""),
         username=data.get("username", "admin"),
-        password=data.get("password", "moonadmin12#"),
+        password=data.get("password", "MoonAdmin12#"),
         health=data.get("health", "/health"),
         tests=tests
     )

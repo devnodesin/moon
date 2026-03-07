@@ -1,125 +1,96 @@
 {
-  "docURL": "http://localhost:6006",
-  "serverURL": "https://moon.devnodes.in",
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
   "prefix": "",
   "username": "admin",
-  "password": "moonadmin12#",
+  "password": "MoonAdmin12#",
   "health": "/health",
   "tests": [
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:create",
+      "endpoint": "/collections:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "name": "products",
-          "columns": [
-            {
-              "name": "title",
-              "type": "string",
-              "nullable": false
-            },
-            {
-              "name": "quantity",
-              "type": "integer",
-              "nullable": true
-            }
-          ]
-        }
+        "op": "create",
+        "data": [
+          {
+            "name": "products",
+            "columns": [
+              {"name": "title",    "type": "string",  "nullable": false},
+              {"name": "quantity", "type": "integer", "nullable": true}
+            ]
+          }
+        ]
       }
     },
     {
       "name": "Create Records (Batch)",
       "cmd": "POST",
-      "endpoint": "/products:create",
+      "endpoint": "/data/products:mutate",
+      "details": "Create multiple records in a single request.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "create",
         "data": [
-          {
-            "title": "Product 1",
-            "quantity": 5
-          },
-          {
-            "title": "Product 2",
-            "quantity": 10
-          },
-          {
-            "title": "Product 3",
-            "quantity": 20
-          },
-          {
-            "title": "Product 4",
-            "quantity": 55
-          },
-          {
-            "title": "Product 5",
-            "quantity": 56
-          },
-          {
-            "title": "Product 6",
-            "quantity": 5
-          },
-          {
-            "title": "Product 7",
-            "quantity": 12
-          }
+          {"title": "Product 1", "quantity": 5},
+          {"title": "Product 2", "quantity": 10},
+          {"title": "Product 3", "quantity": 20},
+          {"title": "Product 4", "quantity": 55},
+          {"title": "Product 5", "quantity": 56},
+          {"title": "Product 6", "quantity": 5},
+          {"title": "Product 7", "quantity": 12}
         ]
       }
     },
     {
       "name": "Update Records (Batch)",
       "cmd": "POST",
-      "endpoint": "/products:update",
+      "endpoint": "/data/products:mutate",
+      "details": "Update multiple records in a single request using numbered ULID placeholders.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "update",
         "data": [
-          {
-            "id": "$ULID1",
-            "quantity": 1200,
-            "title": "Updated Product 1"
-          },
-          {
-            "id": "$ULID2",
-            "title": "Updated Product 2"
-          }
+          {"id": "$ULID1", "quantity": 1200, "title": "Updated Product 1"},
+          {"id": "$ULID2", "title": "Updated Product 2"}
         ]
       }
     },
     {
       "name": "Destroy Records (Batch)",
       "cmd": "POST",
-      "endpoint": "/products:destroy",
+      "endpoint": "/data/products:mutate",
+      "details": "Delete multiple records in a single request.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": [
-          "$ULID1",
-          "$ULID2",
-          "$ULID3",
-          "$ULID4",
-          "$ULID5",
-          "$ULID6"
-        ]
+        "op": "destroy",
+        "data": ["$ULID1", "$ULID2", "$ULID3", "$ULID4", "$ULID5", "$ULID6"]
       }
     },
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:destroy?name=products",
+      "endpoint": "/collections:mutate",
       "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "products"}]
       }
     }
   ]

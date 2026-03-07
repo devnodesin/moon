@@ -1,68 +1,30 @@
 {
-  "docURL": "http://localhost:6006",
-  "serverURL": "https://moon.devnodes.in",
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
   "prefix": "",
   "username": "admin",
-  "password": "moonadmin12#",
+  "password": "MoonAdmin12#",
   "health": "/health",
   "tests": [
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:create",
+      "endpoint": "/collections:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "name": "products",
-          "columns": [
-            {
-              "name": "title",
-              "type": "string",
-              "nullable": false
-            },
-            {
-              "name": "price",
-              "type": "decimal",
-              "nullable": false
-            },
-            {
-              "name": "details",
-              "type": "string",
-              "nullable": true
-            },
-            {
-              "name": "quantity",
-              "type": "integer",
-              "nullable": true
-            },
-            {
-              "name": "brand",
-              "type": "string",
-              "nullable": true
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "",
-      "cmd": "POST",
-      "endpoint": "/products:create",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
+        "op": "create",
         "data": [
           {
-            "title": "Wireless Mouse",
-            "price": "29.99",
-            "details": "Ergonomic wireless mouse",
-            "quantity": 10,
-            "brand": "Wow"
+            "name": "products",
+            "columns": [
+              {"name": "title",    "type": "string",  "nullable": false},
+              {"name": "price",    "type": "integer", "nullable": false},
+              {"name": "quantity", "type": "integer", "nullable": true},
+              {"name": "brand",    "type": "string",  "nullable": true}
+            ]
           }
         ]
       }
@@ -70,79 +32,43 @@
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/products:create",
+      "endpoint": "/data/products:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "create",
         "data": [
-          {
-            "title": "USB Keyboard",
-            "price": "19.99",
-            "details": "Gaming keyboard",
-            "quantity": 55,
-            "brand": "Orange"
-          }
+          {"title": "Wireless Mouse",  "price": 29,  "quantity": 10, "brand": "Wow"},
+          {"title": "USB Keyboard",    "price": 19,  "quantity": 55, "brand": "Orange"},
+          {"title": "Monitor 21 inch", "price": 199, "quantity": 20, "brand": "Wow"}
         ]
       }
     },
     {
-      "name": "",
-      "cmd": "POST",
-      "endpoint": "/products:create",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
-        "data": [
-          {
-            "title": "Monitor 21 inch",
-            "price": "199.99",
-            "details": "Full HD monitor",
-            "quantity": 20,
-            "brand": "Wow"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Count Records",
+      "name": "List with Filters",
       "cmd": "GET",
-      "endpoint": "/products:count",
+      "endpoint": "/data/products:query?brand[eq]=Wow",
+      "details": "Filter records where `brand` equals `Wow`.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
-      "name": "Sum Numeric Field",
+      "name": "List with Sort",
       "cmd": "GET",
-      "endpoint": "/products:sum?field=quantity",
+      "endpoint": "/data/products:query?sort=-quantity",
+      "details": "Sort records by `quantity` in descending order.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
-      "name": "Average Numeric Field",
+      "name": "List All Records",
       "cmd": "GET",
-      "endpoint": "/products:avg?field=quantity",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Minimum Value",
-      "cmd": "GET",
-      "endpoint": "/products:min?field=quantity",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Maximum Value",
-      "cmd": "GET",
-      "endpoint": "/products:max?field=quantity",
+      "endpoint": "/data/products:query",
+      "details": "Retrieve all records from the collection.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
@@ -150,9 +76,14 @@
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:destroy?name=products",
+      "endpoint": "/collections:mutate",
       "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "products"}]
       }
     }
   ]

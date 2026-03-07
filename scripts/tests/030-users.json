@@ -1,129 +1,83 @@
 {
-	"docURL": "http://localhost:6006",
-	"serverURL":  "https://moon.devnodes.in",
-	"prefix": "",
-	"username": "admin",
-	"password": "moonadmin12#",
-	"health": "/health",
-	"tests": [
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/users:destroy?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Create New User",
-			"cmd": "POST",
-			"endpoint": "/users:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"username": "moonuser",
-					"email": "moonuser@example.com",
-					"password": "UserPass123#",
-					"role": "user"
-				}
-			}
-		},
-		{
-			"name": "List All Users",
-			"cmd": "GET",
-			"endpoint": "/users:list",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Get Specific User by ID",
-			"cmd": "GET",
-			"endpoint": "/users:get?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Update User",
-			"cmd": "POST",
-			"endpoint": "/users:update?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"email": "updateduser@example.com",
-				"role": "admin"
-			}
-		},
-		{
-			"name": "Reset User Password",
-			"cmd": "POST",
-			"endpoint": "/users:update?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"action": "reset_password",
-				"new_password": "NewSecurePassword123#"
-			}
-		},
-		{
-			"name": "Revoke User Sessions",
-			"cmd": "POST",
-			"endpoint": "/users:update?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"action": "revoke_sessions"
-			}
-		},
-		{
-			"name": "List Users with Role Filter (admin)",
-			"cmd": "GET",
-			"endpoint": "/users:list?role=admin",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "List All Users",
-			"cmd": "GET",
-			"endpoint": "/users:list",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "List Users with After ID Pagination",
-			"cmd": "GET",
-			"endpoint": "/users:list?limit=1",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "List Users with After ID Pagination",
-			"cmd": "GET",
-			"endpoint": "/users:list?after=$NEXT_CURSOR&limit=1",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Delete User Account",
-			"cmd": "POST",
-			"endpoint": "/users:destroy?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		}
-	]
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
+  "prefix": "",
+  "username": "admin",
+  "password": "MoonAdmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "Create User",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "Create a new user account.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "username": "moonuser",
+            "email": "moonuser@example.com",
+            "password": "UserPass123#",
+            "role": "user",
+            "can_write": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "List All Users",
+      "cmd": "GET",
+      "endpoint": "/data/users:query",
+      "details": "Retrieve all users.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Get User by ID",
+      "cmd": "GET",
+      "endpoint": "/data/users:query?id=$ULID",
+      "details": "Retrieve a specific user by their ULID.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Update User",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "Update an existing user's fields.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "update",
+        "data": [
+          {
+            "id": "$ULID",
+            "email": "moonuser_updated@example.com"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Delete User",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "Delete a user account.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": ["$ULID"]
+      }
+    }
+  ]
 }

@@ -1,68 +1,31 @@
 {
-  "docURL": "http://localhost:6006",
-  "serverURL": "https://moon.devnodes.in",
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
   "prefix": "",
   "username": "admin",
-  "password": "moonadmin12#",
+  "password": "MoonAdmin12#",
   "health": "/health",
   "tests": [
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:create",
+      "endpoint": "/collections:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "name": "products",
-          "columns": [
-            {
-              "name": "title",
-              "type": "string",
-              "nullable": false
-            },
-            {
-              "name": "price",
-              "type": "decimal",
-              "nullable": false
-            },
-            {
-              "name": "details",
-              "type": "string",
-              "nullable": true
-            },
-            {
-              "name": "quantity",
-              "type": "integer",
-              "nullable": true
-            },
-            {
-              "name": "brand",
-              "type": "string",
-              "nullable": true
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "",
-      "cmd": "POST",
-      "endpoint": "/products:create",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
+        "op": "create",
         "data": [
           {
-            "title": "Wireless Mouse",
-            "price": "29.99",
-            "details": "Ergonomic wireless mouse",
-            "quantity": 10,
-            "brand": "Wow"
+            "name": "products",
+            "columns": [
+              {"name": "title",    "type": "string",  "nullable": false},
+              {"name": "price",    "type": "integer", "nullable": false},
+              {"name": "details",  "type": "string",  "nullable": true},
+              {"name": "quantity", "type": "integer", "nullable": true},
+              {"name": "brand",    "type": "string",  "nullable": true}
+            ]
           }
         ]
       }
@@ -70,49 +33,27 @@
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/products:create",
+      "endpoint": "/data/products:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "create",
         "data": [
-          {
-            "title": "USB Keyboard",
-            "price": "19.99",
-            "details": "Gaming keyboard",
-            "quantity": 55,
-            "brand": "Orange"
-          }
-        ]
-      }
-    },
-    {
-      "name": "",
-      "cmd": "POST",
-      "endpoint": "/products:create",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
-        "data": [
-          {
-            "title": "Monitor 21 inch",
-            "price": "199.99",
-            "details": "Full HD monitor",
-            "quantity": 20,
-            "brand": "Wow"
-          }
+          {"title": "Wireless Mouse",  "price": 29,  "details": "Ergonomic wireless mouse", "quantity": 10, "brand": "Wow"},
+          {"title": "USB Keyboard",    "price": 19,  "details": "Gaming keyboard",          "quantity": 55, "brand": "Orange"},
+          {"title": "Monitor 21 inch", "price": 199, "details": "Full HD monitor",          "quantity": 20, "brand": "Wow"},
+          {"title": "Laptop Stand",    "price": 49,  "details": "Adjustable laptop stand",  "quantity":  8, "brand": "Wow"},
+          {"title": "Webcam HD",       "price": 79,  "details": "1080p webcam",             "quantity":  3, "brand": "Orange"}
         ]
       }
     },
     {
       "name": "Filtering",
       "cmd": "GET",
-      "details": "Filter results by column value using the syntax `?{column_name}[operator]=value`. You can combine multiple filters in a single request.",
-      "notes": "Supported filter operators: `eq` (equal to), `ne` (not equal to), `gt` (greater than), `lt` (less than), `gte` (greater than or equal to), `lte` (less than or equal to), `like` (pattern match, `%` is wildcard, e.g. `brand[like]=Wo%`), `in` (matches any value in a comma-separated list, e.g. `brand[in]=Wow,Orange`)",
-      "endpoint": "/products:list?quantity[gt]=5&brand[eq]=Wow",
+      "details": "Filter results using `?{field}[op]=value`. Supported operators: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `in`.",
+      "endpoint": "/data/products:query?quantity[gt]=5&brand[eq]=Wow",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
@@ -120,9 +61,8 @@
     {
       "name": "Sorting",
       "cmd": "GET",
-      "details": "Use `?sort={field1,-field2,...}` to sort by one or more fields. Prefix a field name with `-` for descending order. Separate multiple fields with commas.",
-      "notes": "Sort by `field` (ascending) or `-field` (descending). Below sorts by `quantity` descending, then by `title` ascending.",
-      "endpoint": "/products:list?sort=-quantity,title",
+      "details": "Use `?sort={field1,-field2}` to sort. Prefix with `-` for descending. Multiple fields are comma-separated.",
+      "endpoint": "/data/products:query?sort=-quantity,title",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
@@ -130,9 +70,8 @@
     {
       "name": "Full-Text Search",
       "cmd": "GET",
-      "details": "**Query Option:** `?q={search_term}` (across all text columns)",
-      "notes": "Searches across all string/text fields in the collection.",
-      "endpoint": "/products:list?q=mouse",
+      "details": "Use `?q={term}` to search across all string fields.",
+      "endpoint": "/data/products:query?q=mouse",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
@@ -140,77 +79,26 @@
     {
       "name": "Field Selection",
       "cmd": "GET",
-      "details": "**Query Option:** `?fields={field1,field2}`",
-      "notes": "Returns only the specified fields (plus `id` which is always included).",
-      "endpoint": "/products:list?fields=quantity,title",
+      "details": "Use `?fields={field1,field2}` to return only the specified columns (`id` is always included).",
+      "endpoint": "/data/products:query?fields=quantity,title",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "Limit",
-      "cmd": "GET",
-      "details": "**Query Option:** `?limit={limit}`",
-      "notes": "Use the query option `?limit={number}` to set the number of records returned per page. The default is 15; the maximum is 200.",
-      "endpoint": "/products:list?limit=2",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
-      "name": "",
-      "cmd": "POST",
-      "endpoint": "/products:create",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN",
-        "Content-Type": "application/json"
-      },
-      "data": {
-        "data": [
-          {
-            "title": "Product 1",
-            "price": "49.99",
-            "details": "Mechanical keyboard",
-            "quantity": 5,
-            "brand": "SuperBrand"
-          },
-          {
-            "title": "Product 2",
-            "price": "199.99",
-            "details": "24-inch FHD monitor",
-            "quantity": 2,
-            "brand": "SuperBrand"
-          },
-          {
-            "title": "Product 3",
-            "price": "199.99",
-            "details": "24-inch FHD monitor",
-            "quantity": 2,
-            "brand": "SuperBrand"
-          },
-          {
-            "title": "Product 4",
-            "price": "199.99",
-            "details": "24-inch FHD monitor",
-            "quantity": 2,
-            "brand": "Wow"
-          },
-          {
-            "title": "Product 5",
-            "price": "199.99",
-            "details": "24-inch FHD monitor",
-            "quantity": 2,
-            "brand": "Wow"
-          }
-        ]
       }
     },
     {
       "name": "Pagination",
       "cmd": "GET",
-      "details": "**Query Option:** `?after={cursor}`",
-      "notes": "Response includes `next_cursor` when more results are available. (If `next_cursor` is present, use its value from the response to fetch subsequent pages.)",
-      "endpoint": "/products:list?after=$NEXT_CURSOR&limit=3",
+      "details": "Use `?per_page={n}&page={p}` to paginate. Default `per_page` is 15; maximum is 200.",
+      "endpoint": "/data/products:query?per_page=2&page=1",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Combined Query Options",
+      "cmd": "GET",
+      "details": "Combine filtering, sorting, field selection, and pagination in one request.",
+      "endpoint": "/data/products:query?brand[eq]=Wow&sort=-price&fields=title,price,quantity&per_page=10&page=1",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
@@ -218,9 +106,14 @@
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:destroy?name=products",
+      "endpoint": "/collections:mutate",
       "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "products"}]
       }
     }
   ]
