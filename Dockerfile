@@ -17,7 +17,7 @@ COPY . .
 
 # Build the binary
 # Using CGO_ENABLED=0 for a fully static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o moon ./cmd/moon
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o moon ./cmd
 
 # Stage 2: Runtime - using scratch for minimal image
 FROM scratch
