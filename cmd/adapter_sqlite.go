@@ -437,6 +437,7 @@ func quoteIdent(name string) string {
 // filterOpSQL maps filter operator names to SQL operators.
 var filterOpSQL = map[string]string{
 	"eq":   "=",
+	"ne":   "!=",
 	"neq":  "!=",
 	"gt":   ">",
 	"gte":  ">=",
@@ -453,6 +454,20 @@ func buildWhereClause(opts QueryOptions) (string, []any) {
 	var args []any
 
 	for _, f := range opts.Filters {
+		if f.Op == "in" {
+			values, ok := f.Value.([]string)
+			if !ok || len(values) == 0 {
+				continue
+			}
+			placeholders := make([]string, len(values))
+			for i, v := range values {
+				placeholders[i] = "?"
+				args = append(args, v)
+			}
+			conditions = append(conditions,
+				fmt.Sprintf("%s IN (%s)", quoteIdent(f.Field), strings.Join(placeholders, ", ")))
+			continue
+		}
 		sqlOp, ok := filterOpSQL[f.Op]
 		if !ok {
 			continue

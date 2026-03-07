@@ -64,19 +64,29 @@ func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig
 	}
 
 	// Resource routes — use a catch-all pattern for /data/ paths
+	rqh := newResourceQueryHandlerOrNil(db, reg, cfg)
 	mux.HandleFunc(fmt.Sprintf("GET %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodGet)
+		routeDataRequest(w, r, p, http.MethodGet, rqh)
 	})
 	mux.HandleFunc(fmt.Sprintf("POST %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodPost)
+		routeDataRequest(w, r, p, http.MethodPost, rqh)
 	})
 
 	return mux
 }
 
+// newResourceQueryHandlerOrNil creates a ResourceQueryHandler if dependencies
+// are available, otherwise returns nil.
+func newResourceQueryHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig) *ResourceQueryHandler {
+	if db == nil || reg == nil || cfg == nil {
+		return nil
+	}
+	return NewResourceQueryHandler(db, reg, cfg)
+}
+
 // routeDataRequest dispatches /data/{resource}:{action} paths to the
 // appropriate handler based on the action suffix.
-func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string) {
+func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string, rqh *ResourceQueryHandler) {
 	path := r.URL.Path
 	dataPrefix := prefix + "/data/"
 	if !strings.HasPrefix(path, dataPrefix) {
@@ -107,7 +117,11 @@ func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method str
 
 	switch {
 	case method == http.MethodGet && action == "query":
-		handleResourceQuery(w, r)
+		if rqh != nil {
+			rqh.HandleQuery(w, r)
+		} else {
+			handleResourceQuery(w, r)
+		}
 	case method == http.MethodPost && action == "mutate":
 		handleResourceMutate(w, r)
 	case method == http.MethodGet && action == "schema":

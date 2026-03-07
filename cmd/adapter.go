@@ -54,7 +54,7 @@ type DatabaseAdapter interface {
 // Filter represents a single column filter.
 type Filter struct {
 	Field string
-	Op    string // "eq", "neq", "gt", "gte", "lt", "lte", "like"
+	Op    string // "eq", "ne", "gt", "gte", "lt", "lte", "like", "in"
 	Value any
 }
 
