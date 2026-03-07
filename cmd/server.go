@@ -107,17 +107,41 @@ func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method str
 
 // BuildHandler wraps the router with the full middleware chain in the order
 // specified by SPEC.md §6.2.
-func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger) http.Handler {
+func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger, opts ...BuildHandlerOption) http.Handler {
+	var bo buildHandlerOptions
+	for _, o := range opts {
+		o(&bo)
+	}
+
 	var handler http.Handler = mux
 
 	// Middleware wraps from inside out, so we apply in reverse order.
-	// Final order: method validation → CORS → panic recovery → audit context → handler
+	// Final order: method validation → CORS → panic recovery → audit context → auth → authz → handler
+	if bo.authMiddleware != nil {
+		handler = Authorize(cfg.Server.Prefix, handler)
+		handler = bo.authMiddleware.Authenticate(handler)
+	}
 	handler = auditContextMiddleware(logger, handler)
 	handler = panicRecoveryMiddleware(logger, handler)
 	handler = corsMiddleware(cfg.CORS, handler)
 	handler = methodValidationMiddleware(handler)
 
 	return handler
+}
+
+// buildHandlerOptions holds optional dependencies for BuildHandler.
+type buildHandlerOptions struct {
+	authMiddleware *AuthMiddleware
+}
+
+// BuildHandlerOption configures optional BuildHandler dependencies.
+type BuildHandlerOption func(*buildHandlerOptions)
+
+// WithAuthMiddleware adds authentication and authorization middleware.
+func WithAuthMiddleware(am *AuthMiddleware) BuildHandlerOption {
+	return func(o *buildHandlerOptions) {
+		o.authMiddleware = am
+	}
 }
 
 // StartServer creates and starts the HTTP server with graceful shutdown.
@@ -128,7 +152,14 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 		adapter = db[0]
 	}
 	mux := NewRouter(cfg.Server.Prefix, logger, adapter, cfg)
-	handler := BuildHandler(mux, cfg, logger)
+
+	var handlerOpts []BuildHandlerOption
+	if adapter != nil && cfg.JWTSecret != "" {
+		jtiStore := NewJTIRevocationStore()
+		am := NewAuthMiddleware(adapter, cfg.JWTSecret, cfg.Server.Prefix, jtiStore)
+		handlerOpts = append(handlerOpts, WithAuthMiddleware(am))
+	}
+	handler := BuildHandler(mux, cfg, logger, handlerOpts...)
 
 	addr := net.JoinHostPort(cfg.Server.Host, fmt.Sprintf("%d", cfg.Server.Port))
 	srv := &http.Server{

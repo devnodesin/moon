@@ -123,3 +123,34 @@ const (
 	MinJWTSecretLength = 32
 	MinPasswordLength  = 8
 )
+
+// ---------------------------------------------------------------------------
+// API key constants
+// ---------------------------------------------------------------------------
+
+const (
+	APIKeyPrefix   = "moon_live_"
+	APIKeyTotalLen = 74
+)
+
+// ---------------------------------------------------------------------------
+// Credential type identifiers
+// ---------------------------------------------------------------------------
+
+const (
+	CredentialTypeJWT    = "jwt"
+	CredentialTypeAPIKey = "apikey"
+)
+
+// ---------------------------------------------------------------------------
+// Rate limiting constants
+// ---------------------------------------------------------------------------
+
+const (
+	RateLoginFailureLimit   = 5
+	RateLoginFailureWindow  = 900 // 15 minutes in seconds
+	RateJWTRequestLimit     = 100
+	RateJWTRequestWindow    = 60 // 1 minute
+	RateAPIKeyRequestLimit  = 1000
+	RateAPIKeyRequestWindow = 60 // 1 minute
+)
