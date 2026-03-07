@@ -1,0 +1,92 @@
+{
+	"docURL": "http://localhost:6006",
+	"serverURL": "https://moon.devnodes.in",
+	"prefix": "",
+	"username": "admin",
+	"password": "moonadmin12#",
+	"health": "/health",
+	"tests": [
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/collections:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": {
+					"name": "products",
+					"columns": [
+						{"name": "title",    "type": "string",  "nullable": false},
+						{"name": "quantity", "type": "integer", "nullable": true}
+					]
+				}
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/products:create",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN",
+				"Content-Type": "application/json"
+			},
+			"data": {
+				"data": [
+					{"title": "Product 1", "quantity": 1},
+					{"title": "Product 2", "quantity": 2},
+					{"title": "Product 3", "quantity": 3},
+					{"title": "Product 4", "quantity": 4},
+					{"title": "Product 5", "quantity": 5},
+					{"title": "Product 6", "quantity": 6},
+					{"title": "Product 7", "quantity": 7}
+				]
+			}
+		},
+		{
+			"name": "First Page",
+			"cmd": "GET",
+			"endpoint": "/products:list?limit=3",
+			"details": "First page of results (no cursor). `meta.next` is captured as `$NEXT_CURSOR` and `meta.prev` as `$PREV_CURSOR` for subsequent requests.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Next Page (Forward)",
+			"cmd": "GET",
+			"endpoint": "/products:list?after=$NEXT_CURSOR&limit=3",
+			"details": "Navigate forward using `$NEXT_CURSOR` (from `meta.next` of the previous response). Cursors are updated after each list response.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Last Page (Forward)",
+			"cmd": "GET",
+			"endpoint": "/products:list?after=$NEXT_CURSOR&limit=3",
+			"details": "Navigate to the last page using the updated `$NEXT_CURSOR`. On the last page `meta.next` is `null`; `$PREV_CURSOR` is available for backward navigation.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "Previous Page (Backward)",
+			"cmd": "GET",
+			"endpoint": "/products:list?after=$PREV_CURSOR&limit=3",
+			"details": "Navigate backward using `$PREV_CURSOR` (from `meta.prev` of the last page), returning to the previous page of results.",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		},
+		{
+			"name": "",
+			"cmd": "POST",
+			"endpoint": "/collections:destroy?name=products",
+			"headers": {
+				"Authorization": "Bearer $ACCESS_TOKEN"
+			}
+		}
+	]
+}
