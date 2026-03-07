@@ -15,12 +15,12 @@ import (
 // NewRouter builds the HTTP mux with all routes registered under the
 // configured server prefix.
 func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, registry ...*SchemaRegistry) *http.ServeMux {
-	return NewRouterWithJTI(prefix, logger, db, cfg, nil, registry...)
+	return NewRouterWithJTI(prefix, logger, db, cfg, nil, nil, registry...)
 }
 
 // NewRouterWithJTI builds the HTTP mux like NewRouter but also accepts
-// a JTI revocation store for use by the mutate handler.
-func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, jtiStore *JTIRevocationStore, registry ...*SchemaRegistry) *http.ServeMux {
+// a JTI revocation store and an optional RateLimiter for use by the auth handler.
+func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, jtiStore *JTIRevocationStore, rl *RateLimiter, registry ...*SchemaRegistry) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	p := strings.TrimRight(prefix, "/")
@@ -48,7 +48,7 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 	}
 
 	// Auth routes
-	authHandler := newAuthSessionHandler(db, cfg)
+	authHandler := newAuthSessionHandler(db, cfg, logger, rl)
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), authHandler.HandleSession)
 
 	authMeHandler := NewAuthMeHandler(db, cfg)
@@ -176,9 +176,13 @@ func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger, opts ...Bu
 	var handler http.Handler = mux
 
 	// Middleware wraps from inside out, so we apply in reverse order.
-	// Final order: method validation → CORS → panic recovery → audit context → auth → authz → handler
+	// Final request order:
+	//   method validation → CORS → panic recovery → audit context → auth → rate limit → authz → handler
 	if bo.authMiddleware != nil {
 		handler = Authorize(cfg.Server.Prefix, handler)
+		if bo.rateLimiter != nil {
+			handler = rateLimitMiddleware(bo.rateLimiter, logger, handler)
+		}
 		handler = bo.authMiddleware.Authenticate(handler)
 	}
 	handler = auditContextMiddleware(logger, handler)
@@ -192,6 +196,7 @@ func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger, opts ...Bu
 // buildHandlerOptions holds optional dependencies for BuildHandler.
 type buildHandlerOptions struct {
 	authMiddleware *AuthMiddleware
+	rateLimiter    *RateLimiter
 }
 
 // BuildHandlerOption configures optional BuildHandler dependencies.
@@ -201,6 +206,13 @@ type BuildHandlerOption func(*buildHandlerOptions)
 func WithAuthMiddleware(am *AuthMiddleware) BuildHandlerOption {
 	return func(o *buildHandlerOptions) {
 		o.authMiddleware = am
+	}
+}
+
+// WithRateLimiter adds rate limiting middleware for authenticated requests.
+func WithRateLimiter(rl *RateLimiter) BuildHandlerOption {
+	return func(o *buildHandlerOptions) {
+		o.rateLimiter = rl
 	}
 }
 
@@ -214,13 +226,16 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 
 	var handlerOpts []BuildHandlerOption
 	var jtiStore *JTIRevocationStore
+	var rl *RateLimiter
 	if adapter != nil && cfg.JWTSecret != "" {
 		jtiStore = NewJTIRevocationStore()
+		rl = NewRateLimiter()
 		am := NewAuthMiddleware(adapter, cfg.JWTSecret, cfg.Server.Prefix, jtiStore)
 		handlerOpts = append(handlerOpts, WithAuthMiddleware(am))
+		handlerOpts = append(handlerOpts, WithRateLimiter(rl))
 	}
 
-	mux := NewRouterWithJTI(cfg.Server.Prefix, logger, adapter, cfg, jtiStore)
+	mux := NewRouterWithJTI(cfg.Server.Prefix, logger, adapter, cfg, jtiStore, rl)
 	handler := BuildHandler(mux, cfg, logger, handlerOpts...)
 
 	addr := net.JoinHostPort(cfg.Server.Host, fmt.Sprintf("%d", cfg.Server.Port))

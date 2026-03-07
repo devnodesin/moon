@@ -10,8 +10,9 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // newAuthSessionHandler creates the AuthSessionHandler with its dependencies.
-func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig) *AuthSessionHandler {
-	return &AuthSessionHandler{db: db, cfg: cfg}
+// logger and rl may be nil; rate limiting is skipped when rl is nil.
+func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig, logger *Logger, rl *RateLimiter) *AuthSessionHandler {
+	return &AuthSessionHandler{db: db, cfg: cfg, logger: logger, rateLimiter: rl}
 }
 
 // handleCollectionsQuery is a stub for GET /collections:query.

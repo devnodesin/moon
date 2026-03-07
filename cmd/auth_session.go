@@ -13,8 +13,10 @@ import (
 
 // AuthSessionHandler implements POST /auth:session with login, refresh, and logout operations.
 type AuthSessionHandler struct {
-	db  DatabaseAdapter
-	cfg *AppConfig
+	db          DatabaseAdapter
+	cfg         *AppConfig
+	logger      *Logger
+	rateLimiter *RateLimiter
 }
 
 type authSessionRequest struct {
@@ -97,6 +99,20 @@ func (h *AuthSessionHandler) handleLogin(w http.ResponseWriter, r *http.Request,
 	ctx := r.Context()
 	username = strings.ToLower(username)
 
+	// Check login failure rate limit before attempting authentication.
+	ip := clientIP(r)
+	if h.rateLimiter != nil && h.rateLimiter.LoginFailureExceeded(ip, username) {
+		if h.logger != nil {
+			h.logger.AuditEvent(AuditRateLimitViolation,
+				"limit_type", "login_failure",
+				"actor", loginFailureKey(ip, username),
+				"timestamp", time.Now().UTC().Format(time.RFC3339),
+			)
+		}
+		WriteError(w, http.StatusTooManyRequests, "Too many requests")
+		return
+	}
+
 	rows, _, err := h.db.QueryRows(ctx, "users", QueryOptions{
 		Filters: []Filter{{Field: "username", Op: "eq", Value: username}},
 		Page:    1,
@@ -107,6 +123,9 @@ func (h *AuthSessionHandler) handleLogin(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if len(rows) == 0 {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordLoginFailure(ip, username)
+		}
 		WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -114,8 +133,16 @@ func (h *AuthSessionHandler) handleLogin(w http.ResponseWriter, r *http.Request,
 	user := rows[0]
 	storedHash, _ := user["password_hash"].(string)
 	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)); err != nil {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordLoginFailure(ip, username)
+		}
 		WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
+	}
+
+	// Successful login: reset the failure counter.
+	if h.rateLimiter != nil {
+		h.rateLimiter.ResetLoginFailures(ip, username)
 	}
 
 	userID, _ := user["id"].(string)
