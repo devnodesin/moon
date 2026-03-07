@@ -1,24 +1,6 @@
-## Standard Error Response
+### Standard Error Response
 
-The API uses a simple, consistent error handling approach and strictly follows standard HTTP semantics.
-
-- `200`: OK – Successful GET request |
-- `201`: Created – Successful POST request creating resource |
-- `400`: Invalid request (validation error, invalid parameter, malformed request)
-- `401`: Authentication required
-- `403`: Forbidden
-- `404`: Resource not found
-- `429`: Too Many Requests
-- `500`: Server error
-- Only the codes listed above are permitted; do not use any others.
-
-- Errors are indicated by standard HTTP status codes (for machines).
-- Each error response includes only a single `message` field (for humans), intended for direct display to users.
-- No internal error codes or additional error metadata are used.
-- The HTTP status code is the only machine-readable error signal.
-- Clients are not expected to parse or branch on error types.
-
-When an error occurs, the API responds with the appropriate HTTP status code and a JSON body:
+Moon uses a single error body shape across all endpoints:
 
 ```json
 {
@@ -26,67 +8,67 @@ When an error occurs, the API responds with the appropriate HTTP status code and
 }
 ```
 
+Rules:
 
-### HTTP 400: Missing Required Fields
+- Error bodies contain only `message`.
+- No error codes, validation maps, or extra metadata are allowed.
+- The HTTP status code is the only machine-readable error signal.
+- Clients must not expect structured error codes or error metadata.
 
-**Error:** `400 Bad Request` — Returned when required fields are missing or the request is malformed.
+Rate-limit rule:
 
-```bash
-curl -s -X POST "http://localhost:6006/auth:login" \
-    -H "Content-Type: application/json" \
-    -d '
-      {
-        "username": "",
-        "password": ""
-      }
-    ' | jq .
-```
+- `429` guarantees only the standard error body.
+- No rate-limit response headers are guaranteed unless a future specification adds them.
 
-**Response (400 Bad Request):**
+### Error Status Codes
 
-```json
-{
-  "message": "username and password are required"
-}
-```
+Moon uses only these error statuses for API errors:
 
-### HTTP 400: Validation Error
+| Status | Meaning |
+| ------ | ------- |
+| `400 Bad Request` | The request is malformed or fails validation |
+| `401 Unauthorized` | Authentication is missing, invalid, expired, or revoked |
+| `403 Forbidden` | Authentication succeeded but the caller is not allowed to perform the operation |
+| `404 Not Found` | The requested endpoint target, collection, or record does not exist |
+| `405 Method Not Allowed` | The HTTP method is not supported for the route |
+| `429 Too Many Requests` | The caller exceeded a rate limit |
+| `500 Internal Server Error` | The server failed to complete a valid request |
 
-**Error:** `400 Bad Request` — Returned when field values fail validation (e.g., invalid email format).
+### Error Examples
 
-```bash
-curl -s -X POST "http://localhost:6006/users:create" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '
-      {
-        "data": {
-          "username": "baduser",
-          "email": "not-a-valid-email",
-          "password": "Pass123#",
-          "role": "user"
-        }
-      }
-    ' | jq .
-```
+#### 400 Bad Request
 
-**Response (400 Bad Request):**
+Example request:
+
+`POST /auth:session`
 
 ```json
 {
-  "message": "invalid email format"
+  "op": "signin",
+  "data": {
+    "username": "newuser",
+    "password": "UserPass123"
+  }
 }
 ```
 
-### HTTP 401: Authentication Required
+Example response:
 
-**Error:** `401 Unauthorized` — Returned when no Authorization header is provided on a protected endpoint.
-
-```bash
-curl -s -X GET "http://localhost:6006/auth:me" | jq .
+```json
+{
+  "message": "invalid session operation"
+}
 ```
 
-**Response (401 Unauthorized):**
+#### 401 Unauthorized
+
+Example request:
+
+`GET /auth:me`
+
+No `Authorization` header.
+
+Example response:
 
 ```json
 {
@@ -94,53 +76,103 @@ curl -s -X GET "http://localhost:6006/auth:me" | jq .
 }
 ```
 
-### HTTP 401: Invalid Token
+#### 403 Forbidden
 
-**Error:** `401 Unauthorized` — Returned when the provided token is invalid or expired.
+Example request:
 
-```bash
-curl -s -X GET "http://localhost:6006/users:list" \
-    -H "Authorization: Bearer invalid_token_value" | jq .
-```
-
-**Response (401 Unauthorized):**
+`POST /collections:mutate`
 
 ```json
 {
-  "message": "invalid token format"
+  "op": "create",
+  "data": [
+    {
+      "name": "products",
+      "columns": [
+        { "name": "title", "type": "string" }
+      ]
+    }
+  ]
 }
 ```
 
-### HTTP 404: User Not Found
+Authenticated as a non-admin user.
 
-**Error:** `404 Not Found` — Returned when the requested resource does not exist.
-
-```bash
-curl -s -X GET "http://localhost:6006/users:get?id=01ZZZZZZZZZZZZZZZZZZZZZZZ0" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
-
-**Response (404 Not Found):**
+Example response:
 
 ```json
 {
-  "message": "user with id '01ZZZZZZZZZZZZZZZZZZZZZZZ0' not found"
+  "message": "forbidden"
 }
 ```
 
-### HTTP 404: Collection Not Found
+#### 404 Not Found
 
-**Error:** `404 Not Found` — Returned when the requested collection does not exist.
+Example request:
 
-```bash
-curl -s -X GET "http://localhost:6006/collections:get?name=nonexistentcollection" \
-    -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
-```
+`GET /collections:query?name=missing_collection`
 
-**Response (404 Not Found):**
+Example response:
 
 ```json
 {
-  "message": "collection 'nonexistentcollection' not found"
+  "message": "collection 'missing_collection' not found"
 }
 ```
+
+Example request:
+
+`GET /data/products:query?id=01ZZZZZZZZZZZZZZZZZZZZZZZ0`
+
+Example response:
+
+```json
+{
+  "message": "record with id '01ZZZZZZZZZZZZZZZZZZZZZZZ0' not found"
+}
+```
+
+#### 405 Method Not Allowed
+
+Example request:
+
+`DELETE /data/products:query`
+
+Example response:
+
+```json
+{
+  "message": "method not allowed"
+}
+```
+
+#### 429 Too Many Requests
+
+Example response:
+
+```json
+{
+  "message": "too many requests"
+}
+```
+
+Rate-limit note:
+
+- `429` guarantees only the standard error body.
+- No rate-limit response headers are guaranteed unless they are defined in a future specification.
+
+#### 500 Internal Server Error
+
+Example response:
+
+```json
+{
+  "message": "internal server error"
+}
+```
+
+### Message Rules
+
+- Messages must be concise and human-readable.
+- Messages must not expose secrets or internal implementation details.
+- Authentication errors must not reveal sensitive credential state beyond what is necessary for client handling.

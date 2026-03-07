@@ -1,49 +1,114 @@
-The `/collections:{query, mutate}` endpoint is strictly for listing, creating, and managing collection schemas.
+# Collection Management API
 
-- `users` and `apikeys` are system collections. `/collections:mutate` operations are not allowed on these collections.
-- Do not allow batch schema changes in a single request (e.g., adding and removing columns together).
+The collection endpoints manage API-visible collection schemas.
 
-New collections can be created and managed using the `/collections:query` and `/collections:mutate` endpoints.
+Rules:
 
-See [Standard Error Response (200 OK):](10_error.md) for any error handling
+- `/collections:query` lists only API-visible collections.
+- Internal `moon_*` tables must never be returned.
+- `users` and `apikeys` are API-visible system collections.
+- `users` and `apikeys` must not be created, renamed, modified, or destroyed through `/collections:mutate`.
+- Dynamic collections must not use the reserved `moon_` prefix.
+- Collection schema changes must follow single-intent rules.
 
-### `GET /collections:query`
+## `GET /collections:query`
 
-`/collections:query` lists all available database tables.
+### Modes
+
+`GET /collections:query` supports:
+
+1. **List mode**: no `name`
+2. **Get-one mode**: `?name=...`
+
+In list mode, the endpoint returns only API-visible collections. Internal `moon_*` tables are excluded.
+
+### List Response
+
+Response `200 OK`:
 
 ```json
 {
+  "message": "Collections retrieved successfully",
   "data": [
-    // Mandatory, always an array
     { "name": "users", "count": 5 },
     { "name": "apikeys", "count": 2 },
     { "name": "products", "count": 55 }
   ],
   "meta": {
     "total": 3,
-    "count": 3, // total records available for this request
-    "per_page": 15, // number of records per page
-    "current_page": 1, // current page number
-    "total_pages": 1 // total number of pages available
+    "count": 3,
+    "per_page": 15,
+    "current_page": 1,
+    "total_pages": 1
+  },
+  "links": {
+    "first": "/collections:query?page=1&per_page=15",
+    "last": "/collections:query?page=1&per_page=15",
+    "prev": null,
+    "next": null
   }
 }
 ```
 
-### `POST /collections:mutate`
+### Get-One Response
 
-- `op=create`: create collection(s) with `name` and `columns`
-- `op=update`: schema changes using:
-  - `add_columns`
-  - `rename_columns`
-  - `modify_columns`
-  - `remove_columns`
-- `op=destroy`: delete collection(s) by `name`
-- **Important:** All operations are atomic; only one operation is allowed at a time.
-- If `nullable` and `unique` are not specified, the field defaults to `nullable: false` and `unique: false`.
+Request:
 
-#### Create Collection `POST /collections:mutate`
+`GET /collections:query?name=products`
 
-Request
+Response `200 OK`:
+
+```json
+{
+  "message": "Collection retrieved successfully",
+  "data": [
+    { "name": "products", "count": 55 }
+  ]
+}
+```
+
+Validation rules:
+
+- `name` selects get-one mode.
+- If the named collection does not exist, return `404 Not Found`.
+- Requests for `moon_*` tables must not succeed through this endpoint.
+
+## `POST /collections:mutate`
+
+### Request Shape
+
+```json
+{
+  "op": "create | update | destroy",
+  "data": []
+}
+```
+
+Rules:
+
+- `op` is required.
+- `data` is required and must be an array.
+- `users` and `apikeys` must be rejected on `create`, `update`, and `destroy`.
+- Internal `moon_*` names must be rejected.
+- Nullable and unique default to `false` when omitted.
+- The server manages the implicit `id` field for every collection. Clients must not declare, rename, modify, or remove it through this API.
+
+### Single-Intent Rules
+
+Each request must contain exactly one top-level mutation intent.
+
+For `op=update`, each collection item must define exactly one schema sub-operation set:
+
+- `add_columns`
+- `rename_columns`
+- `modify_columns`
+- `remove_columns`
+
+Mixing these sub-operation sets in the same collection item is invalid.
+
+## Create Collection
+
+### Request
 
 ```json
 {
@@ -60,36 +125,34 @@ Request
 }
 ```
 
-Response (200 OK):
+### Response
+
+Response `201 Created`:
 
 ```json
 {
+  "message": "Collection created successfully",
   "data": [
     {
       "name": "products",
       "columns": [
-        {
-          "name": "title",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": true,
-          "unique": false
-        }
+        { "name": "title", "type": "string", "nullable": false, "unique": true },
+        { "name": "price", "type": "decimal", "nullable": true, "unique": false }
       ]
     }
   ],
-  "message": "Collection 'products' created successfully"
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
 
-#### Add Columns `POST /collections:mutate`
+## Update Collection
 
-Request
+### Supported Update Payloads
+
+#### Add Columns
 
 ```json
 {
@@ -106,43 +169,7 @@ Request
 }
 ```
 
-Response (200 OK):
-
-```json
-{
-  "data": [
-    {
-      "name": "products",
-      "columns": [
-        {
-          "name": "title",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": true,
-          "unique": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "nullable": true,
-          "unique": false
-        },
-        { "name": "sku", "type": "string", "nullable": false, "unique": true }
-      ]
-    }
-  ],
-  "message": "Columns added to collection 'products' successfully"
-}
-```
-
-#### Rename Columns `POST /collections:mutate`
-
-Request
+#### Rename Columns
 
 ```json
 {
@@ -151,51 +178,14 @@ Request
     {
       "name": "products",
       "rename_columns": [
-        { "old_name": "title", "new_name": "name" },
-        { "old_name": "sku", "new_name": "product_code" }
+        { "old_name": "title", "new_name": "name" }
       ]
     }
   ]
 }
 ```
 
-Response (200 OK):
-
-```json
-{
-  "data": [
-    {
-      "name": "products",
-      "columns": [
-        { "name": "name", "type": "string", "nullable": false, "unique": true },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": true,
-          "unique": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "nullable": true,
-          "unique": false
-        },
-        {
-          "name": "product_code",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        }
-      ]
-    }
-  ],
-  "message": "Columns renamed in collection 'products' successfully"
-}
-```
-
-#### Modify Columns `POST /collections:mutate`
-
-Request
+#### Modify Columns
 
 ```json
 {
@@ -204,51 +194,14 @@ Request
     {
       "name": "products",
       "modify_columns": [
-        { "name": "price", "type": "decimal", "nullable": false },
-        { "name": "description", "type": "string", "nullable": false }
+        { "name": "price", "type": "decimal", "nullable": false }
       ]
     }
   ]
 }
 ```
 
-Response (200 OK):
-
-```json
-{
-  "data": [
-    {
-      "name": "products",
-      "columns": [
-        { "name": "name", "type": "string", "nullable": false, "unique": true },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": false,
-          "unique": false
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "nullable": false,
-          "unique": false
-        },
-        {
-          "name": "product_code",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        }
-      ]
-    }
-  ],
-  "message": "Columns modified in collection 'products' successfully"
-}
-```
-
-#### Remove Columns `POST /collections:mutate`
-
-Request
+#### Remove Columns
 
 ```json
 {
@@ -262,37 +215,33 @@ Request
 }
 ```
 
-Response (200 OK):
+### Response
+
+Response `200 OK`:
 
 ```json
 {
+  "message": "Collection updated successfully",
   "data": [
     {
       "name": "products",
       "columns": [
-        { "name": "name", "type": "string", "nullable": false, "unique": true },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": false,
-          "unique": false
-        },
-        {
-          "name": "product_code",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        }
+        { "name": "title", "type": "string", "nullable": false, "unique": true },
+        { "name": "price", "type": "decimal", "nullable": false, "unique": false },
+        { "name": "sku", "type": "string", "nullable": false, "unique": true }
       ]
     }
   ],
-  "message": "Columns removed from collection 'products' successfully"
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
 
-#### Destroy Collection `POST /collections:mutate`
+## Destroy Collection
 
-Request
+### Request
 
 ```json
 {
@@ -305,15 +254,25 @@ Request
 }
 ```
 
-Response (200 OK):
+### Response
+
+Response `200 OK`:
 
 ```json
 {
+  "message": "Collection destroyed successfully",
   "data": [
     {
       "name": "products"
     }
   ],
-  "message": "Collection 'products' destroyed successfully"
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
+
+See `SPEC/10_error.md` for error handling.
+
+---

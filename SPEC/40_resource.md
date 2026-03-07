@@ -1,20 +1,44 @@
-These endpoints manage records within a specific collection. Replace `{resource}` with your collection name (e.g., `products`).
+# Resource API
 
-The `/data/{resource}:{query, schema, mutate}` endpoints:
+The resource API manages records for one API-visible collection at a time.
 
-- System resources include `users` and `apikeys`, accessible via `/data/users` and `/data/apikeys`.
-- New dynamic collections are accessible via `/data/product:{schema,query,mutate}`.
-- All resources, both system and dynamic, are available under `/data/{resource}`.
-- Each collection also provides its own top-level endpoints for `:query`, `:mutate`, and `:schema` (outside of `/data/`).
+Canonical routes:
 
-### `GET /{resource}:query`
+- `/data/{resource}:query`
+- `/data/{resource}:mutate`
+- `/data/{resource}:schema`
 
-**List Response (200 OK)::**
+Rules:
 
-To request a list query (multiple resources), use the endpoint with optional pagination or filter parameters, for example:
+- These are the only canonical resource routes defined by this specification.
+- `users` and `apikeys` are valid system resources on this surface.
+- Internal `moon_*` tables must never be exposed on this surface.
+- Additional top-level `/{resource}:...` aliases are not part of this specification.
 
-`GET /data/products:query`
+## Resource Visibility
+
+- Dynamic collections and API-visible system collections are addressable through `/data/{resource}:...`.
+- `users` and `apikeys` must return only API-visible fields.
+- System-resource schemas must not expose implementation-only fields such as `password_hash` or `key_hash`.
+- Query responses must never expose raw API key material.
+- Internal `moon_*` tables are never queryable, mutable, or schema-visible.
+
+## `GET /data/{resource}:query`
+
+### Modes
+
+`GET /data/{resource}:query` supports:
+
+1. **List mode**: no `id`
+2. **Get-one mode**: `?id=...`
+
+### List Response
+
+Request:
+
 `GET /data/products:query?page=1&per_page=15`
+
+Response `200 OK`:
 
 ```json
 {
@@ -53,9 +77,13 @@ To request a list query (multiple resources), use the endpoint with optional pag
 }
 ```
 
-**Single Resource Response (200 OK)::**
+### Get-One Response
+
+Request:
 
 `GET /data/products:query?id=01KJMQ3XZF5H1P2DDNGWGVXB5T`
+
+Response `200 OK`:
 
 ```json
 {
@@ -73,87 +101,114 @@ To request a list query (multiple resources), use the endpoint with optional pag
 }
 ```
 
-### `GET /{resource}:schema`
+Validation rules:
 
-Response (200 OK):
+- The target resource must exist and be API-visible.
+- Unknown query fields or invalid query values must be rejected.
+- Unknown records must return `404 Not Found`.
+
+## `GET /data/{resource}:schema`
+
+Returns the schema for one API-visible resource.
+
+Response `200 OK`:
 
 ```json
 {
   "message": "Schema retrieved successfully",
   "data": [
     {
-      "collection": "products",
-      "total": 6,
+      "name": "products",
       "fields": [
-        {
-          "name": "id",
-          "type": "id",
-          "nullable": false,
-          "unique": false,          
-          "readonly": true
-        },
-        {
-          "name": "title",
-          "type": "string",
-          "nullable": false,
-          "unique": true
-        },
-        {
-          "name": "price",
-          "type": "decimal",
-          "nullable": false,
-          "unique": false
-        },
-        {
-          "name": "details",
-          "type": "string",
-          "nullable": true,
-          "unique": false
-        },
-        {
-          "name": "quantity",
-          "type": "integer",
-          "nullable": true,
-          "unique": false
-        },
-        {
-          "name": "brand",
-          "type": "string",
-          "nullable": true,
-          "unique": false
-        }
+        { "name": "id", "type": "id", "nullable": false, "unique": false, "readonly": true },
+        { "name": "title", "type": "string", "nullable": false, "unique": true, "readonly": false },
+        { "name": "price", "type": "decimal", "nullable": false, "unique": false, "readonly": false },
+        { "name": "details", "type": "string", "nullable": true, "unique": false, "readonly": false },
+        { "name": "quantity", "type": "integer", "nullable": true, "unique": false, "readonly": false },
+        { "name": "brand", "type": "string", "nullable": true, "unique": false, "readonly": false }
       ]
     }
   ]
 }
 ```
 
-### `POST /data/{resource}:mutate`
+System-resource rule:
 
-`POST /data/{resource}:mutate` request shape:
+- `/data/users:schema` and `/data/apikeys:schema` must include only API-visible fields.
+- Fields such as `password_hash` and `key_hash` must not appear.
+
+## `POST /data/{resource}:mutate`
+
+### Request Shape
 
 ```json
 {
   "op": "create | update | destroy | action",
   "data": [],
-  "action": "optional-custom-action"
+  "action": "required only when op=action"
 }
 ```
 
 Rules:
 
-- `data` must always be an array (single or batch).
-- `op`:
-  - `create`: Each object in `data` must not include the system `id`.
-  - `update`: Each object in `data` must include the identifier `id`.
-  - `destroy`: Each object in `data` must include the `id`; one or more objects may be provided.
-- `action`: Use the `action` field to specify a required custom operation (e.g., password reset, API key rotation).
+- `op` is required.
+- `data` is required and must always be an array.
+- `action` is required only when `op=action`.
+- The target resource must exist and be API-visible.
+- `moon_*` resources must be rejected.
 
-- Create, Update, and Destroy operations support both single-object and batch (multiple objects) in the `data` array.
+### Operation Rules
 
-**Create `POST /data/{resource}:mutate`**
+#### `op=create`
 
-Request: `POST /data/product:mutate`
+- Each item in `data` must omit `id`.
+- Client writes to read-only or server-owned fields must be rejected.
+- Successful responses use `201 Created` when at least one record is created.
+
+#### `op=update`
+
+- Each item in `data` must include `id`.
+- Client writes to read-only or server-owned fields must be rejected.
+
+#### `op=destroy`
+
+- Each item in `data` must include `id`.
+
+#### `op=action`
+
+- `action` is required.
+- Each item in `data` must satisfy the documented payload requirements for that action.
+- Action responses use the same mutation envelope and must include `meta.success` and `meta.failed`.
+
+## Batch Semantics
+
+Batch create, update, destroy, and action operations are supported.
+
+Successful mutation responses follow these rules:
+
+- `data` contains only successful items.
+- Successful items remain in request order relative to other successful items.
+- Failed items are omitted from `data`.
+- `meta.success` and `meta.failed` summarize the result.
+
+Example successful mutation envelope:
+
+```json
+{
+  "message": "Mutation completed successfully",
+  "data": [],
+  "meta": {
+    "success": 2,
+    "failed": 1
+  }
+}
+```
+
+This contract does not add per-item error payloads to successful mutation responses.
+
+## Create Example
+
+Request:
 
 ```json
 {
@@ -170,11 +225,11 @@ Request: `POST /data/product:mutate`
 }
 ```
 
-Response (200 OK)::
+Response `201 Created`:
 
 ```json
 {
-  "message": "Product created successfully",
+  "message": "Resource created successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
@@ -192,9 +247,9 @@ Response (200 OK)::
 }
 ```
 
-**Update `POST /data/{resource}:mutate`**
+## Update Example
 
-Request: `POST /data/product:mutate`
+Request:
 
 ```json
 {
@@ -209,11 +264,11 @@ Request: `POST /data/product:mutate`
 }
 ```
 
-Response (200 OK)::
+Response `200 OK`:
 
 ```json
 {
-  "message": "Product updated successfully",
+  "message": "Resource updated successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
@@ -231,22 +286,26 @@ Response (200 OK)::
 }
 ```
 
-**Destroy `POST /data/{resource}:mutate`**
+## Destroy Example
 
-Request: `POST /data/product:mutate`
+Request:
 
 ```json
 {
   "op": "destroy",
-  "data": [{ "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T" }]
+  "data": [
+    {
+      "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
+    }
+  ]
 }
 ```
 
-Response (200 OK)::
+Response `200 OK`:
 
 ```json
 {
-  "message": "Product deleted successfully",
+  "message": "Resource destroyed successfully",
   "data": [],
   "meta": {
     "success": 1,
@@ -255,15 +314,9 @@ Response (200 OK)::
 }
 ```
 
-- `201 Created` when `op=create` and at least one record is created.
-- `200 OK` for `update`, `destroy`, `action` with at least one successful operation.
-- Partial success is allowed for batch writes; report counts via `meta.success` and `meta.failed`.
+## Action Examples
 
-See [Standard Error Response (200 OK):](10_error.md) for any error handling
-
-### Action `POST /data/{resource}:mutate`
-
-**Reset User Password: `POST /data/users:mutate`**
+### Reset User Password
 
 Request:
 
@@ -274,26 +327,30 @@ Request:
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T",
-      "password": "NewSecurePassword123#"
+      "password": "NewSecurePassword123"
     }
   ]
 }
 ```
 
-Response (200 OK)::
+Response `200 OK`:
 
 ```json
 {
-  "message": "Reset password successful",
+  "message": "Action completed successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
     }
-  ]
+  ],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
 
-**Revoke User Sessions: `POST /data/users:mutate`**
+### Revoke User Sessions
 
 Request:
 
@@ -309,20 +366,24 @@ Request:
 }
 ```
 
-Response (200 OK)::
+Response `200 OK`:
 
 ```json
 {
-  "message": "Sessions revoked successfully",
+  "message": "Action completed successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGWGVXB5T"
     }
-  ]
+  ],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
 
-**Rotate API Key: `POST /data/apikeys:mutate`**
+### Rotate API Key
 
 Request:
 
@@ -338,20 +399,32 @@ Request:
 }
 ```
 
-Response (200 OK)::
+Response `200 OK`:
 
 ```json
 {
-  "message": "API key rotated successfully",
-  "warning": "Store this key securely. The old key is now invalid.",
+  "message": "Action completed successfully",
   "data": [
     {
       "id": "01KJMQ3XZF5H1P2DDNGW12542T",
       "name": "Updated Service Name",
-      "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk"      
+      "role": "user",
+      "can_write": true,
+      "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk"
     }
-  ]
+  ],
+  "meta": {
+    "success": 1,
+    "failed": 0
+  }
 }
 ```
 
-- `key` values are returned only on creation/rotation Response (200 OK): and must not be retrievable later.
+API key rule:
+
+- Raw `key` material is returned only when an API key is created or rotated.
+- Raw `key` material is never returned by query or schema endpoints.
+
+See `SPEC/10_error.md` for error handling.
+
+---

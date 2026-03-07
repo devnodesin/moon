@@ -1,109 +1,189 @@
-`POST /auth:session` request shape:
+# Authentication API
+
+Moon exposes two authentication surfaces:
+
+- `/auth:session` for login, refresh, and logout
+- `/auth:me` for the current authenticated user
+
+## Authentication Rules by Endpoint
+
+| Endpoint | Method | Bearer Token Required | Accepted Bearer Type |
+| -------- | ------ | --------------------- | -------------------- |
+| `/auth:session` | `POST` | No | None |
+| `/auth:me` | `GET` | Yes | JWT only |
+| `/auth:me` | `POST` | Yes | JWT only |
+
+Additional rules:
+
+- `/auth:session` uses credentials in the request body, not bearer authentication.
+- API keys must not be accepted on `/auth:me`.
+- Access-token revocation is checked using JWT `jti`.
+- Refresh-session state lives in `moon_auth_refresh_tokens` and must never be exposed through public APIs.
+- JWT revocation state is implementation-private and must never be exposed through public APIs.
+
+## `POST /auth:session`
+
+`POST /auth:session` is the credential-exchange endpoint.
+
+### Request Shape
 
 ```json
 {
   "op": "login | refresh | logout",
-  "data": {
+  "data": {}
+}
+```
+
+Rules:
+
+- `op` is required.
+- `op` must be exactly one of `login`, `refresh`, or `logout`.
+- `data` is required and must be an object.
+
+### Validation by Operation
+
+#### `op=login`
+
+Required fields in `data`:
+
+- `username`
+- `password`
+
+#### `op=refresh`
+
+Required fields in `data`:
+
+- `refresh_token`
+
+#### `op=logout`
+
+Required fields in `data`:
+
+- `refresh_token`
+
+### Session Response Payload
+
+Successful `login` and `refresh` responses return one session payload inside `data`:
+
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "base64-or-similar-token",
+  "expires_at": "2026-02-28T06:52:38Z",
+  "token_type": "Bearer",
+  "user": {
+    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
     "username": "newuser",
-    "password": "secret",
-    "refresh_token": "..."
+    "email": "newuser@example.com",
+    "role": "user",
+    "can_write": true,
+    "created_at": "2026-02-01T10:00:00Z",
+    "updated_at": "2026-02-28T06:52:38Z",
+    "last_login_at": "2026-02-28T06:52:38Z"
   }
 }
 ```
 
-The required fields in the `data` object depend on the value of `op`:
+Rules:
 
-- For `login`: `username`, `password`
-- For `refresh`: `refresh_token`
-- For `logout`: `refresh_token`
+- `access_token` is a JWT access token.
+- The JWT must include a unique `jti` claim.
+- `refresh_token` is a stateful refresh credential.
+- `user` contains the API-visible user fields only.
 
-### Login `POST /auth:session`
+### Login Example
 
-Request
+Request:
 
 ```json
 {
   "op": "login",
   "data": {
     "username": "newuser",
-    "password": "UserPass123#"
+    "password": "UserPass123"
   }
 }
 ```
 
-Response (200 OK):
+Response `200 OK`:
 
 ```json
 {
+  "message": "Login successful",
   "data": [
     {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJleHAiOjE3NzIyNjE1NTgsIm5iZiI6MTc3MjI1NzkyOCwiaWF0IjoxNzcyMjU3OTU4fQ.lZ8oFckKcKAKLkWAAQ-CibKrNCKN55cUrDr1zbxadAI",
+      "access_token": "eyJhbGciOi...",
       "refresh_token": "SEb54NKdpecktQN0s2qjSziWlhdWM8r-Ts6TzQ-jOT4=",
-      "expires_at": "2026-02-28T06:52:38.69599201Z",
+      "expires_at": "2026-02-28T06:52:38Z",
       "token_type": "Bearer",
       "user": {
         "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
         "username": "newuser",
-        "email": "newuser@example.com", // email is for contact only
+        "email": "newuser@example.com",
         "role": "user",
-        "can_write": true
+        "can_write": true,
+        "created_at": "2026-02-01T10:00:00Z",
+        "updated_at": "2026-02-28T06:52:38Z",
+        "last_login_at": "2026-02-28T06:52:38Z"
       }
     }
-  ],
-  "message": "Login successful"
+  ]
 }
 ```
 
-### Refresh `POST /auth:session`
+### Refresh Example
 
-Request
+Request:
 
 ```json
 {
   "op": "refresh",
   "data": {
-    "refresh_token": "$REFRESH_TOKEN"
+    "refresh_token": "SEb54NKdpecktQN0s2qjSziWlhdWM8r-Ts6TzQ-jOT4="
   }
 }
 ```
 
-Response (200 OK):
+Response `200 OK`:
 
 ```json
 {
+  "message": "Token refreshed successfully",
   "data": [
     {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoidXNlciIsImNhbl93cml0ZSI6dHJ1ZSwic3ViIjoiMDFLSkhDV05ESjNRTjJaM0NSM1k5SDM2QTYiLCJleHAiOjE3NzIyNjE1NjAsIm5iZiI6MTc3MjI1NzkzMCwiaWF0IjoxNzcyMjU3OTYwfQ.b3miIPvXZGt-7-58mayTA3Zy79q53S1MOnx0beT59mg",
+      "access_token": "eyJhbGciOi...",
       "refresh_token": "aDSM1M5z61WgwHfEHcgTZxqhMgjC0PbrCtg1iaKU7bw=",
-      "expires_at": "2026-02-28T06:52:40.914567576Z",
+      "expires_at": "2026-02-28T07:52:40Z",
       "token_type": "Bearer",
       "user": {
         "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
         "username": "newuser",
-        "email": "newemail@example.com", // email is for contact only
+        "email": "newuser@example.com",
         "role": "user",
-        "can_write": true
+        "can_write": true,
+        "created_at": "2026-02-01T10:00:00Z",
+        "updated_at": "2026-02-28T07:52:40Z",
+        "last_login_at": "2026-02-28T06:52:38Z"
       }
     }
-  ],
-  "message": "Token refreshed successfully"
+  ]
 }
 ```
 
-### Logout `POST /auth:session`
+### Logout Example
 
-Request
+Request:
 
 ```json
 {
   "op": "logout",
   "data": {
-    "refresh_token": "$REFRESH_TOKEN"
+    "refresh_token": "aDSM1M5z61WgwHfEHcgTZxqhMgjC0PbrCtg1iaKU7bw="
   }
 }
 ```
 
-Response (200 OK):
+Response `200 OK`:
 
 ```json
 {
@@ -111,79 +191,139 @@ Response (200 OK):
 }
 ```
 
-### Get Current User `GET  /auth:me`
+## `GET /auth:me`
 
-Request `GET  /auth:me`
+Returns the current authenticated user.
 
-Response (200 OK):
+Rules:
+
+- Requires `Authorization: Bearer <jwt>`.
+- API keys must be rejected.
+- The response returns one user object inside `data`.
+
+Response `200 OK`:
 
 ```json
 {
-  "data": {
-    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
-    "username": "newuser",
-    "email": "newuser@example.com", // email is for contact only
-    "role": "user",
-    "can_write": true
-  }
+  "message": "Current user retrieved successfully",
+  "data": [
+    {
+      "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
+      "username": "newuser",
+      "email": "newuser@example.com",
+      "role": "user",
+      "can_write": true,
+      "created_at": "2026-02-01T10:00:00Z",
+      "updated_at": "2026-02-28T07:52:40Z",
+      "last_login_at": "2026-02-28T06:52:38Z"
+    }
+  ]
 }
 ```
 
-### Update Current User `POST /auth:me`
+## `POST /auth:me`
 
-**Change email for current user**
+Updates the current authenticated user.
 
-Request
+### Request Shape
 
 ```json
 {
-  "op": "logout",
+  "data": {}
+}
+```
+
+Rules:
+
+- Requires `Authorization: Bearer <jwt>`.
+- API keys must be rejected.
+- No `op` field is used on this endpoint.
+- `data` is required and must be an object.
+- At least one supported updatable field must be present.
+
+### Supported Updatable Fields
+
+- `email`
+- `password`
+- `old_password`
+
+Validation rules:
+
+- At least one of `email` or `password` must be provided.
+- If `email` is provided, it must be a valid and unique email address.
+- If `password` is provided, `old_password` is required and must match the current password.
+- Password changes must satisfy the password policy defined in `SPEC.md`.
+- Fields such as `id`, `username`, `role`, `can_write`, `created_at`, `updated_at`, and `last_login_at` are not writable through `/auth:me`.
+
+### Change Email Example
+
+Request:
+
+```json
+{
   "data": {
     "email": "newemail@example.com"
   }
 }
 ```
 
-Response (200 OK):
+Response `200 OK`:
 
 ```json
 {
-  "data": {
-    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
-    "username": "newuser",
-    "email": "newemail@example.com", // email is for contact only
-    "role": "user",
-    "can_write": true
-  },
-  "message": "User updated successfully"
+  "message": "Current user updated successfully",
+  "data": [
+    {
+      "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
+      "username": "newuser",
+      "email": "newemail@example.com",
+      "role": "user",
+      "can_write": true,
+      "created_at": "2026-02-01T10:00:00Z",
+      "updated_at": "2026-02-28T08:10:00Z",
+      "last_login_at": "2026-02-28T06:52:38Z"
+    }
+  ]
 }
 ```
 
-**Update Current User (Change Password)**
+### Change Password Example
 
-Request
+Request:
 
 ```json
 {
-  "op": "logout",
   "data": {
-    "old_password": "UserPass123#",
+    "old_password": "UserPass123",
     "password": "NewSecurePass456"
   }
 }
 ```
 
-Response (200 OK):
+Response `200 OK`:
 
 ```json
 {
-  "data": {
-    "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
-    "username": "newuser",
-    "email": "newemail@example.com", // email is for contact only
-    "role": "user",
-    "can_write": true
-  },
-  "message": "Password updated successfully. Please login again."
+  "message": "Password updated successfully. Sign in again.",
+  "data": [
+    {
+      "id": "01KJHCWNDJ3QN2Z3CR3Y9H36A6",
+      "username": "newuser",
+      "email": "newemail@example.com",
+      "role": "user",
+      "can_write": true,
+      "created_at": "2026-02-01T10:00:00Z",
+      "updated_at": "2026-02-28T08:20:00Z",
+      "last_login_at": "2026-02-28T06:52:38Z"
+    }
+  ]
 }
 ```
+
+Additional rule:
+
+- Successful password changes must invalidate affected sessions immediately.
+
+See `SPEC/10_error.md` for error handling.
+
+---

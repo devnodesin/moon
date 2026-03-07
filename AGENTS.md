@@ -11,7 +11,7 @@
   - Follow its architecture, configuration, and operational details exactly.
   - For API request/response formats, endpoints, and error codes, see **SPEC_API.md**.
 - Do not invent patterns or workflows not present in SPEC.md or SPEC_API.md.
-- Never use or reference content from `docs/` or `example/` for production.
+- Never use or reference content from `temp`, `prd`, `docs/` or `example/` for production.
 - Flag missing information and unsupported assumptions.
 - Be skeptical by default; state uncertainty clearly.
 - Consider unconventional options, risks, and patterns when useful.
@@ -20,9 +20,7 @@
 - Design for human limits: keep components small and independent.
 - Use only the Go standard library unless a third-party dependency is absolutely essential.
 - **AIP-136 Custom Actions:** APIs use a colon separator (`:`) to distinguish between the resource and the action, providing a predictable and AI-friendly interface.
-- Never reference any file in `prd/` unless explicitly provided by the user.
-  - When a `prd/` file is given, use only that file for the specific implementation requested.
-  - Do not use `prd/` files for cross-reference, documentation, or any other purpose unless instructed.
+- Never reference any file in `prd/` unless explicitly provided by the user; use it only for the requested implementation and not for cross-reference or documentation.
 
 ## Documentation Compliance
 
