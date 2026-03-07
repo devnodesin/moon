@@ -15,6 +15,12 @@ import (
 // NewRouter builds the HTTP mux with all routes registered under the
 // configured server prefix.
 func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, registry ...*SchemaRegistry) *http.ServeMux {
+	return NewRouterWithJTI(prefix, logger, db, cfg, nil, registry...)
+}
+
+// NewRouterWithJTI builds the HTTP mux like NewRouter but also accepts
+// a JTI revocation store for use by the mutate handler.
+func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig, jtiStore *JTIRevocationStore, registry ...*SchemaRegistry) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	p := strings.TrimRight(prefix, "/")
@@ -65,11 +71,12 @@ func NewRouter(prefix string, logger *Logger, db DatabaseAdapter, cfg *AppConfig
 
 	// Resource routes — use a catch-all pattern for /data/ paths
 	rqh := newResourceQueryHandlerOrNil(db, reg, cfg)
+	rmh := newResourceMutateHandlerOrNil(db, reg, cfg, jtiStore)
 	mux.HandleFunc(fmt.Sprintf("GET %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodGet, rqh)
+		routeDataRequest(w, r, p, http.MethodGet, rqh, rmh)
 	})
 	mux.HandleFunc(fmt.Sprintf("POST %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodPost, rqh)
+		routeDataRequest(w, r, p, http.MethodPost, rqh, rmh)
 	})
 
 	return mux
@@ -84,9 +91,18 @@ func newResourceQueryHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *
 	return NewResourceQueryHandler(db, reg, cfg)
 }
 
+// newResourceMutateHandlerOrNil creates a ResourceMutateHandler if dependencies
+// are available, otherwise returns nil.
+func newResourceMutateHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig, jtiStore *JTIRevocationStore) *ResourceMutateHandler {
+	if db == nil || reg == nil || cfg == nil {
+		return nil
+	}
+	return NewResourceMutateHandler(db, reg, cfg, jtiStore)
+}
+
 // routeDataRequest dispatches /data/{resource}:{action} paths to the
 // appropriate handler based on the action suffix.
-func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string, rqh *ResourceQueryHandler) {
+func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string, rqh *ResourceQueryHandler, rmh *ResourceMutateHandler) {
 	path := r.URL.Path
 	dataPrefix := prefix + "/data/"
 	if !strings.HasPrefix(path, dataPrefix) {
@@ -123,7 +139,11 @@ func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method str
 			handleResourceQuery(w, r)
 		}
 	case method == http.MethodPost && action == "mutate":
-		handleResourceMutate(w, r)
+		if rmh != nil {
+			rmh.HandleMutate(w, r)
+		} else {
+			handleResourceMutate(w, r)
+		}
 	case method == http.MethodGet && action == "schema":
 		handleResourceSchema(w, r)
 	default:
@@ -177,14 +197,16 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 	if len(db) > 0 {
 		adapter = db[0]
 	}
-	mux := NewRouter(cfg.Server.Prefix, logger, adapter, cfg)
 
 	var handlerOpts []BuildHandlerOption
+	var jtiStore *JTIRevocationStore
 	if adapter != nil && cfg.JWTSecret != "" {
-		jtiStore := NewJTIRevocationStore()
+		jtiStore = NewJTIRevocationStore()
 		am := NewAuthMiddleware(adapter, cfg.JWTSecret, cfg.Server.Prefix, jtiStore)
 		handlerOpts = append(handlerOpts, WithAuthMiddleware(am))
 	}
+
+	mux := NewRouterWithJTI(cfg.Server.Prefix, logger, adapter, cfg, jtiStore)
 	handler := BuildHandler(mux, cfg, logger, handlerOpts...)
 
 	addr := net.JoinHostPort(cfg.Server.Host, fmt.Sprintf("%d", cfg.Server.Port))
