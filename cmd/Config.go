@@ -63,6 +63,46 @@ const (
 )
 
 // ---------------------------------------------------------------------------
+// Logging and redaction
+// ---------------------------------------------------------------------------
+
+const (
+	RedactedPlaceholder = "[REDACTED]"
+)
+
+// SensitiveKeys lists configuration and header keys whose values must never
+// appear in log output. All comparisons are case-insensitive.
+var SensitiveKeys = []string{
+	"password",
+	"authorization",
+	"jwt_secret",
+	"refresh_token",
+	"api_key",
+	"token",
+}
+
+// ---------------------------------------------------------------------------
+// Audit event names
+// ---------------------------------------------------------------------------
+
+const (
+	AuditStartupSuccess      = "startup.success"
+	AuditStartupFailure      = "startup.failure"
+	AuditConfigValidation    = "config.validation_failure"
+	AuditAuthSuccess         = "auth.success"
+	AuditAuthFailure         = "auth.failure"
+	AuditLogout              = "auth.logout"
+	AuditTokenRefresh        = "auth.token_refresh"
+	AuditRateLimitViolation  = "rate_limit.violation"
+	AuditSchemaMutation      = "schema.mutation"
+	AuditPrivilegedMutation  = "privileged.mutation"
+	AuditAPIKeyCreate        = "api_key.create"
+	AuditAPIKeyRotation      = "api_key.rotation"
+	AuditAdminUserManagement = "admin.user_management"
+	AuditShutdown            = "shutdown"
+)
+
+// ---------------------------------------------------------------------------
 // Fixed limits
 // ---------------------------------------------------------------------------
 
