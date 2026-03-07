@@ -72,11 +72,12 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 	// Resource routes — use a catch-all pattern for /data/ paths
 	rqh := newResourceQueryHandlerOrNil(db, reg, cfg)
 	rmh := newResourceMutateHandlerOrNil(db, reg, cfg, jtiStore)
+	rsh := newResourceSchemaHandlerOrNil(reg, p)
 	mux.HandleFunc(fmt.Sprintf("GET %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodGet, rqh, rmh)
+		routeDataRequest(w, r, p, http.MethodGet, rqh, rmh, rsh)
 	})
 	mux.HandleFunc(fmt.Sprintf("POST %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
-		routeDataRequest(w, r, p, http.MethodPost, rqh, rmh)
+		routeDataRequest(w, r, p, http.MethodPost, rqh, rmh, rsh)
 	})
 
 	return mux
@@ -100,9 +101,18 @@ func newResourceMutateHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg 
 	return NewResourceMutateHandler(db, reg, cfg, jtiStore)
 }
 
+// newResourceSchemaHandlerOrNil creates a ResourceSchemaHandler if the
+// registry is available, otherwise returns nil.
+func newResourceSchemaHandlerOrNil(reg *SchemaRegistry, prefix string) *ResourceSchemaHandler {
+	if reg == nil {
+		return nil
+	}
+	return NewResourceSchemaHandler(reg, prefix)
+}
+
 // routeDataRequest dispatches /data/{resource}:{action} paths to the
 // appropriate handler based on the action suffix.
-func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string, rqh *ResourceQueryHandler, rmh *ResourceMutateHandler) {
+func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method string, rqh *ResourceQueryHandler, rmh *ResourceMutateHandler, rsh *ResourceSchemaHandler) {
 	path := r.URL.Path
 	dataPrefix := prefix + "/data/"
 	if !strings.HasPrefix(path, dataPrefix) {
@@ -145,7 +155,11 @@ func routeDataRequest(w http.ResponseWriter, r *http.Request, prefix, method str
 			handleResourceMutate(w, r)
 		}
 	case method == http.MethodGet && action == "schema":
-		handleResourceSchema(w, r)
+		if rsh != nil {
+			rsh.HandleSchema(w, r)
+		} else {
+			handleResourceSchema(w, r)
+		}
 	default:
 		WriteError(w, http.StatusNotFound, "Not found")
 	}
