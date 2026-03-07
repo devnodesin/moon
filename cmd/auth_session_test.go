@@ -371,3 +371,68 @@ func TestLogout_MissingToken(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
+
+// --- Rate limiting tests ---
+
+// setupAuthTestWithRateLimiter creates a handler with a real RateLimiter attached.
+func setupAuthTestWithRateLimiter(t *testing.T) *AuthSessionHandler {
+	t.Helper()
+	handler, _ := setupAuthTest(t)
+	handler.rateLimiter = NewRateLimiter()
+	handler.logger = middlewareTestLogger()
+	return handler
+}
+
+func TestLogin_RateLimit_BlocksAfterLimit(t *testing.T) {
+	handler := setupAuthTestWithRateLimiter(t)
+
+	// Make RateLoginFailureLimit failed attempts (each returns 401).
+	for i := range RateLoginFailureLimit {
+		w := doAuthRequest(t, handler, map[string]any{
+			"op":   "login",
+			"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+		})
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: expected 401, got %d", i+1, w.Code)
+		}
+	}
+
+	// The next attempt must be rate-limited (429).
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "login",
+		"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+	})
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 after %d failures, got %d", RateLoginFailureLimit, w.Code)
+	}
+}
+
+func TestLogin_RateLimit_ResetOnSuccess(t *testing.T) {
+	handler := setupAuthTestWithRateLimiter(t)
+
+	// Exhaust failures (one less than the limit so the correct password still works).
+	for range RateLoginFailureLimit - 1 {
+		doAuthRequest(t, handler, map[string]any{
+			"op":   "login",
+			"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+		})
+	}
+
+	// Successful login must reset the counter.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "login",
+		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("successful login failed: %d %s", w.Code, w.Body.String())
+	}
+
+	// Another failed attempt should be allowed (counter was reset).
+	w = doAuthRequest(t, handler, map[string]any{
+		"op":   "login",
+		"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 after reset, got %d", w.Code)
+	}
+}

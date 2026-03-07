@@ -1,35 +1,19 @@
 {
-	"docURL": "http://localhost:6006",
-	"serverURL":  "https://moon.devnodes.in",
-	"prefix": "",
-	"tests": [
-		{
-			"name": "Check Health",
-			"cmd": "GET",
-			"endpoint": "/health"
-		},
-		{
-			"name": "Get Root",
-			"cmd": "GET",
-			"endpoint": "/",
-			"details": "`/` is alias for `/health`"
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/users:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"username": "newuser",
-					"email": "newuser@example.com",
-					"password": "UserPass123#",
-					"role": "user"
-				}
-			}
-		}
-	]
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
+  "prefix": "",
+  "tests": [
+    {
+      "name": "Health Check",
+      "cmd": "GET",
+      "endpoint": "/health",
+      "details": "Returns server health status. No authentication required."
+    },
+    {
+      "name": "Root Endpoint",
+      "cmd": "GET",
+      "endpoint": "/",
+      "details": "`/` is an alias for `/health`."
+    }
+  ]
 }

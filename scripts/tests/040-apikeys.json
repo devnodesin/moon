@@ -1,108 +1,97 @@
 {
-	"docURL": "http://localhost:6006",
-	"serverURL":  "https://moon.devnodes.in",
-	"prefix": "",
-	"username": "admin",
-	"password": "moonadmin12#",
-	"health": "/health",
-	"tests": [
-		{
-			"name": "Create API Key",
-			"cmd": "POST",
-			"endpoint": "/apikeys:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"name": "Integration Service",
-					"description": "Key for integration",
-					"role": "user",
-					"can_write": false
-				}
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/apikeys:create",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"name": "Another Service",
-					"description": "Another key for testing",
-					"role": "user",
-					"can_write": false
-				}
-			}
-		},
-		{
-			"name": "List API Keys",
-			"cmd": "GET",
-			"endpoint": "/apikeys:list",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Get API Key",
-			"cmd": "GET",
-			"endpoint": "/apikeys:get?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "Update API Key Metadata",
-			"cmd": "POST",
-			"endpoint": "/apikeys:update?id=$ULID",
-			"details": "***Note:*** Update metadata fields (name, description, can_write) without changing the API key itself. The key remains valid. To generate a new key, use the rotation action.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"name": "Updated Service Name",
-					"description": "Updated description",
-					"can_write": true
-				}
-			}
-		},
-		{
-			"name": "Rotate API Key",
-			"cmd": "POST",
-			"endpoint": "/apikeys:update?id=$ULID",
-			"details": "Use `rotate` to securely generate a new API key and invalidate the old one in a single step, minimizing overlap between valid keys.",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN",
-				"Content-Type": "application/json"
-			},
-			"data": {
-				"data": {
-					"action": "rotate"
-				}
-			}
-		},
-		{
-			"name": "Delete API Key",
-			"cmd": "POST",
-			"endpoint": "/apikeys:destroy?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		},
-		{
-			"name": "",
-			"cmd": "POST",
-			"endpoint": "/apikeys:destroy?id=$ULID",
-			"headers": {
-				"Authorization": "Bearer $ACCESS_TOKEN"
-			}
-		}
-	]
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
+  "prefix": "",
+  "username": "admin",
+  "password": "MoonAdmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "Create API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Create a new API key.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "Integration Service",
+            "description": "Key for integration testing",
+            "role": "user",
+            "can_write": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "List API Keys",
+      "cmd": "GET",
+      "endpoint": "/data/apikeys:query",
+      "details": "Retrieve all API keys.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Get API Key by ID",
+      "cmd": "GET",
+      "endpoint": "/data/apikeys:query?id=$ULID",
+      "details": "Retrieve a specific API key by its ULID.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Update API Key Metadata",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Update API key metadata (name, description) without changing the key itself.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "update",
+        "data": [
+          {
+            "id": "$ULID",
+            "name": "Updated Integration Service",
+            "description": "Updated description"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rotate API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Generate a new key value and invalidate the old one in a single step.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "rotate",
+        "data": ["$ULID"]
+      }
+    },
+    {
+      "name": "Delete API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Permanently delete an API key.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": ["$ULID"]
+      }
+    }
+  ]
 }

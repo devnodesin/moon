@@ -1,73 +1,59 @@
 {
-  "docURL": "http://localhost:6006",
-  "serverURL": "https://moon.devnodes.in",
+  "docURL": "http://localhost:6000",
+  "serverURL": "http://localhost:6000",
   "prefix": "",
   "username": "admin",
-  "password": "moonadmin12#",
+  "password": "MoonAdmin12#",
   "health": "/health",
   "tests": [
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:create",
+      "endpoint": "/collections:mutate",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": {
-          "name": "products",
-          "columns": [
-            {
-              "name": "title",
-              "type": "string",
-              "nullable": false
-            },
-            {
-              "name": "price",
-              "type": "decimal",
-              "nullable": false
-            },
-            {
-              "name": "details",
-              "type": "string",
-              "nullable": true
-            },
-            {
-              "name": "quantity",
-              "type": "integer",
-              "nullable": true
-            },
-            {
-              "name": "brand",
-              "type": "string",
-              "nullable": true
-            }
-          ]
-        }
+        "op": "create",
+        "data": [
+          {
+            "name": "products",
+            "columns": [
+              {"name": "title",    "type": "string",  "nullable": false},
+              {"name": "price",    "type": "integer", "nullable": false},
+              {"name": "details",  "type": "string",  "nullable": true},
+              {"name": "quantity", "type": "integer", "nullable": true},
+              {"name": "brand",    "type": "string",  "nullable": true}
+            ]
+          }
+        ]
       }
     },
     {
       "name": "Get Schema",
       "cmd": "GET",
-      "endpoint": "/products:schema",
+      "endpoint": "/data/products:schema",
+      "details": "Retrieve the field schema for the `products` collection.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
-      "name": "Create Record (Single)",
+      "name": "Create Record",
       "cmd": "POST",
-      "endpoint": "/products:create",
+      "endpoint": "/data/products:mutate",
+      "details": "Create a single record in the `products` collection.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "create",
         "data": [
           {
             "title": "Wireless Mouse",
-            "price": "29.99",
+            "price": 29,
             "details": "Ergonomic wireless mouse",
             "quantity": 10,
             "brand": "Wow"
@@ -76,34 +62,38 @@
       }
     },
     {
-      "name": "Get All Records",
+      "name": "List Records",
       "cmd": "GET",
-      "endpoint": "/products:list",
+      "endpoint": "/data/products:query",
+      "details": "Retrieve all records from the `products` collection.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
-      "name": "Get Single Record",
+      "name": "Get Record by ID",
       "cmd": "GET",
-      "endpoint": "/products:get?id=$ULID",
+      "endpoint": "/data/products:query?id=$ULID",
+      "details": "Retrieve a single record by its ULID.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
       }
     },
     {
-      "name": "Update Existing Record (Single)",
+      "name": "Update Record",
       "cmd": "POST",
-      "endpoint": "/products:update",
+      "endpoint": "/data/products:mutate",
+      "details": "Update fields of an existing record.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
+        "op": "update",
         "data": [
           {
             "id": "$ULID",
-            "price": "6000.00"
+            "price": 6000
           }
         ]
       }
@@ -111,23 +101,28 @@
     {
       "name": "Delete Record",
       "cmd": "POST",
-      "endpoint": "/products:destroy",
+      "endpoint": "/data/products:mutate",
+      "details": "Delete a record by its ULID.",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
       "data": {
-        "data": [
-          "$ULID"
-        ]
+        "op": "destroy",
+        "data": ["$ULID"]
       }
     },
     {
       "name": "",
       "cmd": "POST",
-      "endpoint": "/collections:destroy?name=products",
+      "endpoint": "/collections:mutate",
       "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "products"}]
       }
     }
   ]

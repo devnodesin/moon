@@ -268,37 +268,34 @@ def fetch_record_id_from_collection(
     timeout: int = 10
 ) -> Optional[str]:
     """
-    Fetch the first record ID from a collection by calling /{collection}:list.
-    
+    Fetch the first record ID from a collection via GET /data/{collection}:query.
+
     Args:
         base_url: Base server URL
         prefix: URL prefix
         collection_name: Name of the collection
         headers: Request headers
         timeout: Request timeout in seconds
-        
+
     Returns:
         First record ID or None
     """
     try:
-        list_endpoint = f"/{collection_name}:list"
-        url = f"{base_url}{prefix}{list_endpoint}"
+        url = f"{base_url}{prefix}/data/{collection_name}:query"
         resp = requests.get(url, headers=headers, timeout=timeout)
-        
+
         if resp.status_code == 200:
             data = resp.json()
-            # Try to find records in common response structures
             for array_key in ["data", "records", "items"]:
                 records = data.get(array_key, [])
                 if records and len(records) > 0:
-                    # Try common ID field names
                     first_record = records[0]
                     for id_field in ["id", "_id", "ulid"]:
                         if id_field in first_record:
                             return first_record[id_field]
     except Exception:
         pass
-    
+
     return None
 
 

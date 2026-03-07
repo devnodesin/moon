@@ -104,7 +104,44 @@ func panicRecoveryMiddleware(logger *Logger, next http.Handler) http.Handler {
 	})
 }
 
-// resourceValidationMiddleware extracts the resource name from /data/{path...}
+// rateLimitMiddleware enforces per-caller rate limits for authenticated JWT and
+// API key requests. It must run after the authentication middleware so that the
+// caller identity is available in the request context.
+func rateLimitMiddleware(rl *RateLimiter, logger *Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := GetAuthIdentity(r.Context())
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		switch identity.CredentialType {
+		case CredentialTypeJWT:
+			if !rl.AllowJWT(identity.CallerID) {
+				logger.AuditEvent(AuditRateLimitViolation,
+					"limit_type", "jwt_traffic",
+					"actor", identity.CallerID,
+					"timestamp", time.Now().UTC().Format(time.RFC3339),
+				)
+				WriteError(w, http.StatusTooManyRequests, "Too many requests")
+				return
+			}
+		case CredentialTypeAPIKey:
+			if !rl.AllowAPIKey(identity.CallerID) {
+				logger.AuditEvent(AuditRateLimitViolation,
+					"limit_type", "apikey_traffic",
+					"actor", identity.CallerID,
+					"timestamp", time.Now().UTC().Format(time.RFC3339),
+				)
+				WriteError(w, http.StatusTooManyRequests, "Too many requests")
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // routes and rejects names starting with "moon_".
 func resourceValidationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

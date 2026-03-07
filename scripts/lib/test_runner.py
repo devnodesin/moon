@@ -138,15 +138,17 @@ def run_test_suite(
                     if new_auth_state.refresh_token:
                         auth_state.update_refresh_token(new_auth_state.refresh_token)
         
-        # Try to capture single record ID from successful create/list responses
+        # Try to capture single record ID from successful responses.
+        # For query endpoints (:query) also update pagination cursors.
         if is_successful and response.response_obj:
             endpoint = test_copy.endpoint.split('?')[0]
-            # Always refresh pagination cursors from list responses
-            if ":list" in endpoint:
+            # Refresh pagination cursors from list (query) responses.
+            if ":query" in endpoint:
                 next_cur, prev_cur = extract_cursors_from_response(response.response_obj)
                 placeholder_context.update_cursors(next_cur, prev_cur)
-            # Capture the first available record ID (once set, never overwritten)
-            if ":create" in endpoint or ":list" in endpoint:
+            # Capture the first available record ID (once set, never overwritten).
+            # Try on any successful response that may carry records (:query or :mutate).
+            if ":query" in endpoint or ":mutate" in endpoint:
                 if not placeholder_context.captured_record_id:
                     record_id = extract_record_id_from_response(response.response_obj)
                     if record_id:
@@ -218,25 +220,29 @@ def _test_needs_numbered_placeholders(test: TestDefinition) -> bool:
 
 def _extract_collection_name_from_test(test: TestDefinition) -> Optional[str]:
     """
-    Extract collection name from a test endpoint.
-    E.g., "/products:destroy" -> "products"
-    
+    Extract the user-defined collection name from a test endpoint.
+
+    Handles Moon API paths:
+      /data/{collection}:mutate  → collection
+      /data/{collection}:query   → collection
+
     Args:
         test: Test definition
-        
+
     Returns:
         Collection name or None
     """
     if not test.endpoint:
         return None
-    
+
     endpoint = test.endpoint.split('?')[0]  # Remove query params
-    parts = endpoint.split('/')
-    
-    for part in parts:
-        if ':' in part:
-            return part.split(':')[0]
-    
+
+    # Moon API: /data/{collection}:{action}
+    if '/data/' in endpoint:
+        rest = endpoint.split('/data/', 1)[1]
+        if ':' in rest:
+            return rest.split(':')[0]
+
     return None
 
 
@@ -248,38 +254,35 @@ def _fetch_fresh_record_ids(
     max_count: int = 10
 ) -> List[str]:
     """
-    Fetch fresh record IDs from a collection by calling /{collection}:list.
-    
+    Fetch fresh record IDs from a collection via GET /data/{collection}:query.
+
     Args:
         base_url: Base server URL
         prefix: URL prefix
         collection_name: Name of the collection
         headers: Request headers (may contain auth token)
         max_count: Maximum number of IDs to fetch
-        
+
     Returns:
         List of fresh record IDs (may be empty)
     """
     import requests
-    
+
     try:
-        list_endpoint = f"/{collection_name}:list"
-        url = f"{base_url}{prefix}{list_endpoint}"
-        
-        # Make request with timeout
+        url = f"{base_url}{prefix}/data/{collection_name}:query"
+
         resp = requests.get(url, headers=headers, timeout=10)
-        
+
         if resp.status_code == 200:
             data = resp.json()
-            
-            # Try to find records in common response structures
+
+            # Moon API returns records in the "data" array.
             for array_key in ["data", "records", "items"]:
                 records = data.get(array_key, [])
                 if records and isinstance(records, list):
                     record_ids = []
                     for record in records[:max_count]:
                         if isinstance(record, dict):
-                            # Try common ID field names
                             for id_field in ["id", "_id", "ulid", "uuid"]:
                                 if id_field in record:
                                     record_ids.append(record[id_field])
@@ -289,7 +292,7 @@ def _fetch_fresh_record_ids(
                     return record_ids
     except Exception:
         pass
-    
+
     return []
 
 
