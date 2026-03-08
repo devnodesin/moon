@@ -160,6 +160,22 @@ Documented error statuses: See [Standard Error Response](./SPEC/10_error.md)
 
 This document does not standardize public health response bodies beyond normal HTTP success semantics.
 
+**Check Health: `GET /auth:me`**
+
+Response `200 OK`:
+
+```json
+{
+  "data": {
+    "moon": "1.99",
+    "timestamp": "2026-03-01T12:48:49Z"
+  }
+}
+```
+
+- The response will include `moon: {version}`, where the version is loaded from Config.go.
+- The response will also include `timestamp: {current UTC time in RFC3339 timestamp}`.
+
 ### Authentication Endpoints
 
 | Endpoint        | Method | Description                                           |
@@ -168,16 +184,16 @@ This document does not standardize public health response bodies beyond normal H
 | `/auth:me`      | GET    | Get the current authenticated user                    |
 | `/auth:me`      | POST   | Update the current authenticated user                 |
 
-See `SPEC/20_auth.md`.
+See [Authentication API](./SPEC/20_auth.md)
 
-### Collection Endpoints
+### Collection Managment Endpoints
 
 | Endpoint              | Method | Description                            |
 | --------------------- | ------ | -------------------------------------- |
 | `/collections:query`  | GET    | List collections or get one by `name`  |
 | `/collections:mutate` | POST   | Create, update, or destroy collections |
 
-See `SPEC/30_collection.md`.
+See [Collection Managment API](./SPEC/30_collection.md)
 
 ### Resource Endpoints
 
@@ -188,6 +204,8 @@ See `SPEC/30_collection.md`.
 | `/data/{resource}:schema` | GET    | Read the resource schema                  |
 
 See `SPEC/40_resource.md`.
+
+See [Resource API](./SPEC/40_resource.md)
 
 ## Query Modes
 
