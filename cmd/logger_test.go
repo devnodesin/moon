@@ -508,3 +508,56 @@ func TestRedactingHandler_GroupedAttrs(t *testing.T) {
 		t.Error("safe value 'admin' missing in grouped attrs")
 	}
 }
+
+// TestRedactingHandler_WithAttrs verifies that WithAttrs propagates and
+// redacts sensitive attributes.
+func TestRedactingHandler_WithAttrs(t *testing.T) {
+	var buf bytes.Buffer
+	base := slog.NewJSONHandler(&buf, nil)
+	rh := NewRedactingHandler(base)
+
+	// WithAttrs returns a new handler that pre-redacts the given attributes.
+	child := rh.WithAttrs([]slog.Attr{
+		slog.String("password", "s3cret"),
+		slog.String("user", "alice"),
+	})
+	childLogger := slog.New(child)
+	childLogger.Info("child msg")
+
+	content := buf.String()
+	if strings.Contains(content, "s3cret") {
+		t.Error("password value leaked through WithAttrs")
+	}
+	if !strings.Contains(content, "alice") {
+		t.Error("safe 'user' value missing through WithAttrs")
+	}
+}
+
+// TestRedactingHandler_WithGroup verifies that WithGroup returns a valid handler.
+func TestRedactingHandler_WithGroup(t *testing.T) {
+	var buf bytes.Buffer
+	handler := slog.NewJSONHandler(&buf, nil)
+	rh := NewRedactingHandler(handler)
+
+	grouped := rh.WithGroup("request")
+	groupLogger := slog.New(grouped)
+	groupLogger.Info("grouped", "password", "secret123", "path", "/api/v1")
+
+	content := buf.String()
+	if strings.Contains(content, "secret123") {
+		t.Error("password leaked through WithGroup")
+	}
+	if !strings.Contains(content, "/api/v1") {
+		t.Error("safe value missing through WithGroup")
+	}
+}
+
+// TestNewTestLogger_Close verifies that Close on a non-file logger returns nil.
+func TestNewTestLogger_Close(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
+	// No file handle; Close should return nil without panicking.
+	if err := logger.Close(); err != nil {
+		t.Errorf("Close on non-file logger returned error: %v", err)
+	}
+}

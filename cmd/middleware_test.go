@@ -235,3 +235,34 @@ func TestMatchOrigin(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceValidationMiddleware_RejectsReservedPrefix(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := resourceValidationMiddleware(inner)
+
+	tests := []struct {
+		name       string
+		path       string
+		wantStatus int
+	}{
+		{"reserved moon_ prefix blocked", "/data/moon_internal:query", http.StatusBadRequest},
+		{"reserved moon_ prefix mutate blocked", "/data/moon_system:mutate", http.StatusBadRequest},
+		{"normal resource allowed", "/data/products:query", http.StatusOK},
+		{"health route allowed", "/health", http.StatusOK},
+		{"no data segment allowed", "/api/v1/status", http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Fatalf("path %s: expected status %d, got %d", tt.path, tt.wantStatus, w.Code)
+			}
+		})
+	}
+}

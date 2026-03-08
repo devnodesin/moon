@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -40,18 +42,45 @@ type SQLiteAdapter struct {
 }
 
 // NewSQLiteAdapter opens a SQLite database at the path specified in
-// cfg.Database. WAL journal mode is enabled immediately.
+// cfg.Database. The parent directory is created if it does not exist.
+// WAL journal mode is enabled immediately for concurrent read access.
+// For in-memory databases (":memory:"), WAL mode is skipped since it is
+// not supported by SQLite for in-memory connections.
 func NewSQLiteAdapter(cfg DatabaseConfig, logger *Logger) (*SQLiteAdapter, error) {
+	isMemory := cfg.Database == ":memory:"
+
+	// Ensure the parent directory exists so SQLite can create the database file.
+	if !isMemory {
+		if dir := filepath.Dir(cfg.Database); dir != "" && dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, newAdapterError("NewSQLiteAdapter", "", "failed to create database directory", err)
+			}
+		}
+	}
+
 	dsn := cfg.Database + "?_journal_mode=WAL&_busy_timeout=5000"
+	if isMemory {
+		// In-memory databases do not support WAL; use the plain DSN.
+		dsn = cfg.Database
+	}
+
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, newAdapterError("NewSQLiteAdapter", "", "failed to open database", err)
 	}
 
-	// Enable WAL mode explicitly.
-	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		db.Close()
-		return nil, newAdapterError("NewSQLiteAdapter", "", "failed to set WAL mode", err)
+	// Enable WAL mode explicitly and verify it was accepted by the filesystem.
+	// Skip for in-memory databases which use the "memory" journal mode.
+	if !isMemory {
+		var mode string
+		if err := db.QueryRow("PRAGMA journal_mode=WAL").Scan(&mode); err != nil {
+			db.Close()
+			return nil, newAdapterError("NewSQLiteAdapter", "", "failed to set WAL mode", err)
+		}
+		if mode != "wal" {
+			db.Close()
+			return nil, newAdapterError("NewSQLiteAdapter", "", fmt.Sprintf("WAL mode not supported by filesystem (got %q); ensure the database path is on a local filesystem (not NFS/network mount) and the directory is writable", mode), nil)
+		}
 	}
 
 	return &SQLiteAdapter{

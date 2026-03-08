@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 // ---------------------------------------------------------------------------
@@ -868,6 +870,80 @@ func TestSQLiteAdapter_ContextTimeout(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// NewSQLiteAdapter – directory creation
+// ---------------------------------------------------------------------------
+
+// TestNewSQLiteAdapter_CreatesParentDirectory verifies that the adapter
+// creates the database parent directory when it does not exist.
+func TestNewSQLiteAdapter_CreatesParentDirectory(t *testing.T) {
+	base := t.TempDir()
+	// Use a nested path that does not yet exist.
+	dbPath := filepath.Join(base, "subdir", "nested", "test.db")
+
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           dbPath,
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter with missing directory: %v", err)
+	}
+	defer adapter.Close()
+
+	// Verify the database file was created.
+	if _, err := os.Stat(dbPath); err != nil {
+		t.Fatalf("database file not created at %s: %v", dbPath, err)
+	}
+
+	// Verify the adapter is functional.
+	if err := adapter.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping after directory creation: %v", err)
+	}
+}
+
+// TestNewSQLiteAdapter_InMemory verifies that the adapter works correctly
+// with an in-memory database (WAL mode is skipped for in-memory).
+func TestNewSQLiteAdapter_InMemory(t *testing.T) {
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           ":memory:",
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter in-memory: %v", err)
+	}
+	defer adapter.Close()
+
+	if err := adapter.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping in-memory: %v", err)
+	}
+}
+
+// TestNewSQLiteAdapter_DirectoryAlreadyExists verifies that the adapter
+// succeeds when the parent directory already exists.
+func TestNewSQLiteAdapter_DirectoryAlreadyExists(t *testing.T) {
+	dir := t.TempDir() // already exists
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           filepath.Join(dir, "already.db"),
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter with existing directory: %v", err)
+	}
+	defer adapter.Close()
+}
+
+// ---------------------------------------------------------------------------
 // DBConnection constants
 // ---------------------------------------------------------------------------
 
@@ -880,5 +956,31 @@ func TestDBConnectionConstants(t *testing.T) {
 	}
 	if DBConnectionMySQL != "mysql" {
 		t.Fatalf("expected mysql, got %q", DBConnectionMySQL)
+	}
+}
+
+// TestLogSlowQuery_BelowThreshold verifies that no warning is logged for fast queries.
+func TestLogSlowQuery_BelowThreshold(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
+
+	start := time.Now().Add(-10 * time.Millisecond) // 10ms elapsed
+	logSlowQuery(logger, "products", "select", start, 500)
+
+	if buf.Len() > 0 {
+		t.Errorf("expected no log output for fast query, got: %s", buf.String())
+	}
+}
+
+// TestLogSlowQuery_AboveThreshold verifies that a warning is logged for slow queries.
+func TestLogSlowQuery_AboveThreshold(t *testing.T) {
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
+
+	start := time.Now().Add(-1 * time.Second) // 1s elapsed
+	logSlowQuery(logger, "products", "select", start, 500)
+
+	if !strings.Contains(buf.String(), "slow query") {
+		t.Errorf("expected slow query warning, got: %s", buf.String())
 	}
 }

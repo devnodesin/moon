@@ -2,8 +2,8 @@
 # Stage 1: Builder
 FROM golang:1.24-alpine AS builder
 
-# Install CA certificates for go mod download
-RUN apk add --no-cache ca-certificates
+# Install build tools: gcc and musl-dev are required for CGO (go-sqlite3)
+RUN apk add --no-cache ca-certificates gcc musl-dev
 
 # Set working directory
 WORKDIR /build
@@ -15,15 +15,24 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary
-# Using CGO_ENABLED=0 for a fully static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o moon ./cmd
+# Create the default data directory in the builder stage so it can be
+# copied to the final scratch image (directories do not auto-transfer).
+RUN mkdir -p /opt/moon
+
+# Build a fully static binary using musl's static libc so the scratch image works.
+# CGO must be enabled for go-sqlite3.
+RUN CGO_ENABLED=1 GOOS=linux go build -a \
+    -ldflags="-w -s -extldflags '-static'" \
+    -o moon ./cmd
 
 # Stage 2: Runtime - using scratch for minimal image
 FROM scratch
 
 # Copy CA certificates from builder (needed for HTTPS if any)
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy the pre-created data directory so SQLite can create the database file
+COPY --from=builder /opt/moon /opt/moon
 
 # Copy binary from builder
 COPY --from=builder /build/moon /usr/local/bin/moon

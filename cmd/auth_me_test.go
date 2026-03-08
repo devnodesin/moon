@@ -550,3 +550,101 @@ func TestUpdateMe_NoEmailOrPassword(t *testing.T) {
 		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Additional edge case tests for UpdateMe coverage
+// ---------------------------------------------------------------------------
+
+func TestUpdateMe_PasswordInvalidType(t *testing.T) {
+	handler, _, _ := setupAuthMeTest(t)
+
+	body, _ := json.Marshal(map[string]any{
+		"data": map[string]any{
+			"password":     12345,
+			"old_password": "TestPass1",
+		},
+	})
+	req := reqWithJWT("POST", "/auth:me", body, "01TESTUSER000000000000001", "admin", true)
+	w := httptest.NewRecorder()
+	handler.UpdateMe(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestUpdateMe_OldPasswordInvalidType(t *testing.T) {
+	handler, _, _ := setupAuthMeTest(t)
+
+	body, _ := json.Marshal(map[string]any{
+		"data": map[string]any{
+			"password":     "NewValidPass1",
+			"old_password": 12345,
+		},
+	})
+	req := reqWithJWT("POST", "/auth:me", body, "01TESTUSER000000000000001", "admin", true)
+	w := httptest.NewRecorder()
+	handler.UpdateMe(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestRefresh_InvalidTokenType(t *testing.T) {
+	handler, _ := setupAuthTest(t)
+	// Send refresh_token as a non-string
+	body := map[string]any{
+		"op":   "refresh",
+		"data": map[string]any{"refresh_token": 12345},
+	}
+	w := doAuthRequest(t, handler, body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// revokeAllRefreshTokens: already-revoked token path coverage
+// ---------------------------------------------------------------------------
+
+func TestUpdateMe_PasswordRevokesRefreshTokens_AlreadyRevoked(t *testing.T) {
+	handler, _, db := setupAuthMeTest(t)
+
+	ctx := context.Background()
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Insert a pre-revoked token
+	_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
+		"id":                 GenerateULID(),
+		"user_id":            "01TESTUSER000000000000001",
+		"refresh_token_hash": "pre-revoked-hash-xyz",
+		"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+		"created_at":         now,
+		"revoked_at":         now, // already revoked
+		"revocation_reason":  "expired",
+	})
+
+	// Also insert an active token that should get revoked
+	_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
+		"id":                 GenerateULID(),
+		"user_id":            "01TESTUSER000000000000001",
+		"refresh_token_hash": "active-hash-xyz",
+		"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+		"created_at":         now,
+	})
+
+	body, _ := json.Marshal(map[string]any{
+		"data": map[string]any{
+			"old_password": "TestPass1",
+			"password":     "NewPass456",
+		},
+	})
+	req := reqWithJWT("POST", "/auth:me", body, "01TESTUSER000000000000001", "admin", true)
+	w := httptest.NewRecorder()
+	handler.UpdateMe(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
