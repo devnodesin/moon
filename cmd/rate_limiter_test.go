@@ -289,3 +289,81 @@ func TestRateLimitMiddleware_NoIdentity(t *testing.T) {
 		t.Fatal("inner handler should have been called for unauthenticated request")
 	}
 }
+
+// TestRateLimitMiddleware_APIKey verifies that API key rate limiting works.
+func TestRateLimitMiddleware_APIKey(t *testing.T) {
+rl := NewRateLimiter()
+logger := middlewareTestLogger()
+
+// Exhaust the API key limit.
+apiKeyID := "01APIKEY000000000000001"
+for range RateAPIKeyRequestLimit {
+rl.AllowAPIKey(apiKeyID)
+}
+
+req := httptest.NewRequest("GET", "/data/test:query", nil)
+identity := &AuthIdentity{CredentialType: CredentialTypeAPIKey, CallerID: apiKeyID}
+req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+
+calls := 0
+w := httptest.NewRecorder()
+handler := rateLimitMiddleware(rl, logger, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+calls++
+rw.WriteHeader(200)
+}))
+
+handler.ServeHTTP(w, req)
+
+if w.Code != http.StatusTooManyRequests {
+t.Fatalf("expected 429, got %d", w.Code)
+}
+if calls != 0 {
+t.Fatal("inner handler should not have been called")
+}
+}
+
+// TestRateLimitMiddleware_JWT_Allowed verifies that JWT requests pass through when below limit.
+func TestRateLimitMiddleware_JWT_Allowed(t *testing.T) {
+rl := NewRateLimiter()
+logger := middlewareTestLogger()
+
+req := httptest.NewRequest("GET", "/data/test:query", nil)
+identity := &AuthIdentity{CredentialType: CredentialTypeJWT, CallerID: "user-allowed"}
+req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+
+called := false
+handler := rateLimitMiddleware(rl, logger, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+called = true
+rw.WriteHeader(200)
+}))
+
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if !called {
+t.Fatal("expected inner handler to be called")
+}
+}
+
+// TestRateLimitMiddleware_APIKey_Allowed verifies that API key requests pass through when below limit.
+func TestRateLimitMiddleware_APIKey_Allowed(t *testing.T) {
+rl := NewRateLimiter()
+logger := middlewareTestLogger()
+
+req := httptest.NewRequest("GET", "/data/test:query", nil)
+identity := &AuthIdentity{CredentialType: CredentialTypeAPIKey, CallerID: "apikey-allowed"}
+req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+
+called := false
+handler := rateLimitMiddleware(rl, logger, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+called = true
+rw.WriteHeader(200)
+}))
+
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if !called {
+t.Fatal("expected inner handler to be called")
+}
+}

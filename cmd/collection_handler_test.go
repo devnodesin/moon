@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -1433,5 +1434,136 @@ func TestDefaultForType(t *testing.T) {
 				t.Errorf("defaultForType(%q) = %q, want %q", tt.fieldType, got, tt.want)
 			}
 		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional collection handler coverage tests
+// ---------------------------------------------------------------------------
+
+func TestCollectionMutate_Create_MalformedDataItem(t *testing.T) {
+handler, _, _ := buildAuthenticatedCollectionHandler(t)
+
+// Send a non-object in the data array (malformed item)
+req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+strings.NewReader(`{"op":"create","data":[true]}`))
+req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+req.Header.Set("Content-Type", "application/json")
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestCollectionMutate_Destroy_MalformedDataItem(t *testing.T) {
+handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+ctx := context.Background()
+if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+t.Fatalf("create: %v", err)
+}
+if err := registry.Refresh(); err != nil {
+t.Fatalf("refresh: %v", err)
+}
+
+// Send a non-object in the data array
+req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+strings.NewReader(`{"op":"destroy","data":["not-an-object"]}`))
+req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+req.Header.Set("Content-Type", "application/json")
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestCollectionMutate_Update_MalformedDataItem(t *testing.T) {
+handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+ctx := context.Background()
+if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+t.Fatalf("create: %v", err)
+}
+if err := registry.Refresh(); err != nil {
+t.Fatalf("refresh: %v", err)
+}
+
+// Send a non-object in the data array
+req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+strings.NewReader(`{"op":"update","data":[123]}`))
+req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+req.Header.Set("Content-Type", "application/json")
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestCollectionMutate_Create_NullableColumn(t *testing.T) {
+handler, _, _ := buildAuthenticatedCollectionHandler(t)
+
+nullable := true
+unique := true
+body := map[string]any{
+"op": "create",
+"data": []any{
+map[string]any{
+"name": "orders",
+"columns": []any{
+map[string]any{"name": "note", "type": "string", "nullable": nullable, "unique": unique},
+},
+},
+},
+}
+b, _ := json.Marshal(body)
+req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+req.Header.Set("Content-Type", "application/json")
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+
+if w.Code != http.StatusCreated {
+t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestCollectionMutate_Update_AddNullableColumn(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE items (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	nullable := true
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "items",
+				"add_columns": []any{
+					map[string]any{"name": "description", "type": "string", "nullable": nullable},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }

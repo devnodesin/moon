@@ -1497,3 +1497,58 @@ t.Errorf("toString(%v) = %q, want %q", tt.input, got, tt.want)
 })
 }
 }
+
+// ---------------------------------------------------------------------------
+// formatRecord tests
+// ---------------------------------------------------------------------------
+
+func TestFormatRecord_UnknownField(t *testing.T) {
+// Build a minimal collection with one known field
+col := &Collection{
+Fields: []Field{
+{Name: "title", Type: MoonFieldTypeString},
+},
+}
+
+// Row contains a field not in the schema (e.g., "extra_col" from DB)
+row := map[string]any{
+"title":     "Hello",
+"extra_col": "some-value",
+}
+
+result := formatRecord(row, col)
+
+if result["title"] != "Hello" {
+t.Errorf("expected title=Hello, got %v", result["title"])
+}
+if result["extra_col"] != "some-value" {
+t.Errorf("expected extra_col=some-value, got %v", result["extra_col"])
+}
+}
+
+func TestConvertToMoonType_AllTypes(t *testing.T) {
+tests := []struct {
+name      string
+value     any
+fieldType string
+}{
+{"boolean", int64(1), MoonFieldTypeBoolean},
+{"integer", int64(5), MoonFieldTypeInteger},
+{"decimal", float64(1.5), MoonFieldTypeDecimal},
+{"json", `{"a":1}`, MoonFieldTypeJSON},
+{"datetime", "2024-01-01T00:00:00Z", MoonFieldTypeDatetime},
+{"id", "01ABCDEF", MoonFieldTypeID},
+{"string", "text", MoonFieldTypeString},
+{"default", "x", "unknown_type"},
+{"nil", nil, MoonFieldTypeString},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+// just verify it doesn't panic
+result := convertToMoonType(tt.value, tt.fieldType)
+if tt.value == nil && result != nil {
+t.Errorf("expected nil for nil input, got %v", result)
+}
+})
+}
+}

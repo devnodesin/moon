@@ -464,3 +464,31 @@ func TestCreateBootstrapAdmin_SkipsWhenNonAdminUserExists(t *testing.T) {
 		t.Fatalf("users count = %d; want 2 (regular + admin)", count)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Additional HashPassword and EnsureSystemTables tests
+// ---------------------------------------------------------------------------
+
+func TestHashPassword_Success(t *testing.T) {
+hash, err := HashPassword("ValidPass123")
+if err != nil {
+t.Fatalf("HashPassword: %v", err)
+}
+if hash == "" {
+t.Fatal("expected non-empty hash")
+}
+if hash == "ValidPass123" {
+t.Fatal("expected hash to differ from input")
+}
+}
+
+func TestHashPassword_Empty(t *testing.T) {
+// bcrypt allows empty passwords; this verifies the function works for them
+hash, err := HashPassword("")
+if err != nil {
+t.Fatalf("HashPassword empty: %v", err)
+}
+if hash == "" {
+t.Fatal("expected non-empty hash for empty password")
+}
+}

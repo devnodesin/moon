@@ -472,3 +472,52 @@ t.Errorf("toBool(%v) = %v, want %v", tt.input, got, tt.want)
 })
 }
 }
+
+// ---------------------------------------------------------------------------
+// Additional auth_session tests for uncovered paths
+// ---------------------------------------------------------------------------
+
+func TestLogin_InvalidUsernameType(t *testing.T) {
+handler, _ := setupAuthTest(t)
+w := doAuthRequest(t, handler, map[string]any{
+"op":   "login",
+"data": map[string]any{"username": 12345, "password": "TestPass1"},
+})
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestLogin_InvalidPasswordType(t *testing.T) {
+handler, _ := setupAuthTest(t)
+w := doAuthRequest(t, handler, map[string]any{
+"op":   "login",
+"data": map[string]any{"username": "testuser", "password": true},
+})
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestLogin_Expired_Refresh(t *testing.T) {
+handler, adapter := setupAuthTest(t)
+
+// Insert an expired refresh token
+expiredAt := "2020-01-01T00:00:00Z"
+hash := HashRefreshToken("test-expired-token")
+_ = adapter.InsertRow(context.Background(), "moon_auth_refresh_tokens", map[string]any{
+"id":                 GenerateULID(),
+"user_id":            "01TESTUSER000000000000001",
+"refresh_token_hash": hash,
+"expires_at":         expiredAt,
+"created_at":         expiredAt,
+})
+
+w := doAuthRequest(t, handler, map[string]any{
+"op":   "refresh",
+"data": map[string]any{"refresh_token": "test-expired-token"},
+})
+if w.Code != http.StatusUnauthorized {
+t.Fatalf("expected 401 for expired token, got %d", w.Code)
+}
+}
