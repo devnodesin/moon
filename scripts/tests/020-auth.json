@@ -7,6 +7,44 @@
   "health": "/health",
   "tests": [
     {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "SETUP: Create test user",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "username": "moonuser",
+            "email": "moonuser@example.com",
+            "password": "UserPass123#",
+            "role": "user",
+            "can_write": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "SETUP: Create test user admin user",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "logout",
+        "data": {
+          "refresh_token": "$REFRESH_TOKEN"
+        }
+      }
+    },
+    {
       "name": "Login",
       "cmd": "POST",
       "endpoint": "/auth:session",
@@ -17,8 +55,8 @@
       "data": {
         "op": "login",
         "data": {
-          "username": "admin",
-          "password": "MoonAdmin12#"
+          "username": "moonuser",
+          "password": "UserPass123#"
         }
       }
     },
@@ -43,6 +81,38 @@
       "data": {
         "data": {
           "email": "admin_updated@example.com"
+        }
+      }
+    },
+    {
+      "name": "Update Current User (Change Password)",
+      "cmd": "POST",
+      "endpoint": "/auth:me",
+      "details": "Change password for the current user. Should require old_password and new password, and invalidate session on success.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "data": {
+          "old_password": "UserPass123#",
+          "password": "UserPass456#"
+        }
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "SETUP: relogin with new password",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "login",
+        "data": {
+          "username": "moonuser",
+          "password": "UserPass456#"
         }
       }
     },
@@ -75,6 +145,36 @@
         "data": {
           "refresh_token": "$REFRESH_TOKEN"
         }
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/auth:session",
+      "details": "SETUP: Login as admin user",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "login",
+        "data": {
+          "username": "admin",
+          "password": "MoonAdmin12#"
+        }
+      }
+    },    
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "SETUP: Delete test user account.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"id": "$ULID"}]
       }
     }
   ]

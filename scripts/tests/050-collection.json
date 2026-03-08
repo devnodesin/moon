@@ -49,15 +49,6 @@
       }
     },
     {
-      "name": "Get Schema",
-      "cmd": "GET",
-      "endpoint": "/data/products:schema",
-      "details": "Retrieve the field schema for the `products` collection.",
-      "headers": {
-        "Authorization": "Bearer $ACCESS_TOKEN"
-      }
-    },
-    {
       "name": "Update Collection — Add Column",
       "cmd": "POST",
       "endpoint": "/collections:mutate",
