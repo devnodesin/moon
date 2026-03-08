@@ -436,3 +436,39 @@ func TestLogin_RateLimit_ResetOnSuccess(t *testing.T) {
 		t.Fatalf("expected 401 after reset, got %d", w.Code)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// toBool helper tests
+// ---------------------------------------------------------------------------
+
+func TestToBool(t *testing.T) {
+tests := []struct {
+name  string
+input any
+want  bool
+}{
+{"bool true", true, true},
+{"bool false", false, false},
+{"int64 nonzero", int64(1), true},
+{"int64 zero", int64(0), false},
+{"float64 nonzero", float64(1.5), true},
+{"float64 zero", float64(0), false},
+{"int nonzero", int(3), true},
+{"int zero", int(0), false},
+{"string 1", "1", true},
+{"string true", "true", true},
+{"string 0", "0", false},
+{"string false", "false", false},
+{"string other", "yes", false},
+{"nil", nil, false},
+{"struct", struct{}{}, false},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := toBool(tt.input)
+if got != tt.want {
+t.Errorf("toBool(%v) = %v, want %v", tt.input, got, tt.want)
+}
+})
+}
+}

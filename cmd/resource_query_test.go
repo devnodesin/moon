@@ -1354,3 +1354,146 @@ func TestResourceQuery_CombinedQueryParams(t *testing.T) {
 
 // Suppress unused import warnings
 var _ = fmt.Sprintf
+
+// ---------------------------------------------------------------------------
+// Type conversion functions coverage
+// ---------------------------------------------------------------------------
+
+func TestToInteger(t *testing.T) {
+tests := []struct {
+name  string
+input any
+want  any
+}{
+{"int64", int64(42), int64(42)},
+{"float64", float64(10), int64(10)},
+{"int", int(7), int64(7)},
+{"string valid", "99", int64(99)},
+{"string invalid", "abc", "abc"},
+{"bytes valid", []byte("55"), int64(55)},
+{"bytes invalid", []byte("xyz"), "xyz"},
+{"nil", nil, nil},
+{"bool", true, true},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := toInteger(tt.input)
+if got != tt.want {
+t.Errorf("toInteger(%v) = %v (%T), want %v (%T)", tt.input, got, got, tt.want, tt.want)
+}
+})
+}
+}
+
+func TestToDecimalString(t *testing.T) {
+tests := []struct {
+name  string
+input any
+want  string
+}{
+{"float64", float64(3.14), "3.14"},
+{"int64", int64(100), "100"},
+{"int", int(5), "5"},
+{"string passthrough", "2.718", "2.718"},
+{"bytes", []byte("1.23"), "1.23"},
+{"bool default fmt", true, "true"},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := toDecimalString(tt.input)
+if got != tt.want {
+t.Errorf("toDecimalString(%v) = %q, want %q", tt.input, got, tt.want)
+}
+})
+}
+}
+
+func TestToJSONValue(t *testing.T) {
+tests := []struct {
+name  string
+input any
+check func(t *testing.T, got any)
+}{
+{
+"string valid JSON object",
+`{"key":"val"}`,
+func(t *testing.T, got any) {
+m, ok := got.(map[string]any)
+if !ok {
+t.Fatalf("expected map, got %T", got)
+}
+if m["key"] != "val" {
+t.Errorf("expected val, got %v", m["key"])
+}
+},
+},
+{
+"string invalid JSON passthrough",
+"not json",
+func(t *testing.T, got any) {
+if got != "not json" {
+t.Errorf("expected passthrough, got %v", got)
+}
+},
+},
+{
+"bytes valid JSON array",
+[]byte(`[1,2,3]`),
+func(t *testing.T, got any) {
+arr, ok := got.([]any)
+if !ok {
+t.Fatalf("expected array, got %T", got)
+}
+if len(arr) != 3 {
+t.Errorf("expected 3 elements, got %d", len(arr))
+}
+},
+},
+{
+"bytes invalid JSON passthrough",
+[]byte("not json"),
+func(t *testing.T, got any) {
+if got != "not json" {
+t.Errorf("expected passthrough string, got %v", got)
+}
+},
+},
+{
+"int64 passthrough",
+int64(42),
+func(t *testing.T, got any) {
+if got != int64(42) {
+t.Errorf("expected int64(42), got %v", got)
+}
+},
+},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := toJSONValue(tt.input)
+tt.check(t, got)
+})
+}
+}
+
+func TestToString(t *testing.T) {
+tests := []struct {
+name  string
+input any
+want  string
+}{
+{"string passthrough", "hello", "hello"},
+{"bytes", []byte("world"), "world"},
+{"int default fmt", 42, "42"},
+{"bool default fmt", true, "true"},
+{"nil", nil, "<nil>"},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := toString(tt.input)
+if got != tt.want {
+t.Errorf("toString(%v) = %q, want %q", tt.input, got, tt.want)
+}
+})
+}
+}

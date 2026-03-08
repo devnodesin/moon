@@ -1408,3 +1408,30 @@ func TestCollectionMutate_Update_ModifyColumns_IDRejected(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Helper function coverage
+// ---------------------------------------------------------------------------
+
+func TestDefaultForType(t *testing.T) {
+	tests := []struct {
+		fieldType string
+		want      string
+	}{
+		{MoonFieldTypeInteger, "0"},
+		{MoonFieldTypeDecimal, "0"},
+		{MoonFieldTypeBoolean, "0"},
+		{MoonFieldTypeString, "''"},
+		{MoonFieldTypeDatetime, "''"},
+		{MoonFieldTypeJSON, "''"},
+		{"unknown_type", "''"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.fieldType, func(t *testing.T) {
+			got := defaultForType(tt.fieldType)
+			if got != tt.want {
+				t.Errorf("defaultForType(%q) = %q, want %q", tt.fieldType, got, tt.want)
+			}
+		})
+	}
+}

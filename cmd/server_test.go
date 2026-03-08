@@ -396,3 +396,97 @@ func TestResourceMissingName(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
+
+// --- WithRateLimiter option ---
+
+func TestWithRateLimiter_SetsOption(t *testing.T) {
+rl := NewRateLimiter()
+opt := WithRateLimiter(rl)
+
+opts := &buildHandlerOptions{}
+opt(opts)
+
+if opts.rateLimiter != rl {
+t.Fatal("WithRateLimiter did not set rateLimiter option")
+}
+}
+
+// --- handlers.go stub function tests ---
+
+func TestHandleResourceQuery_EmptyResource(t *testing.T) {
+handler := buildTestServer(t, defaultTestConfig())
+req := httptest.NewRequest(http.MethodGet, "/data/:query", nil)
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestHandleResourceQuery_NotImplemented(t *testing.T) {
+// Without a real adapter, /data/products:query returns from stub router
+handler := buildTestServer(t, defaultTestConfig())
+req := httptest.NewRequest(http.MethodGet, "/data/products:query", nil)
+w := httptest.NewRecorder()
+handler.ServeHTTP(w, req)
+// Without a database adapter this hits the stub handler
+if w.Code == http.StatusBadRequest {
+t.Fatalf("expected non-400 for valid resource name, got %d", w.Code)
+}
+}
+
+// --- Direct handler stub tests (coverage for empty resource check in stubs) ---
+
+func TestHandleResourceQuery_DirectEmptyResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodGet, "/data/:query", nil)
+w := httptest.NewRecorder()
+handleResourceQuery(w, req)
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestHandleResourceQuery_DirectValidResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodGet, "/data/products:query", nil)
+w := httptest.NewRecorder()
+handleResourceQuery(w, req)
+if w.Code != http.StatusNotImplemented {
+t.Fatalf("expected 501, got %d", w.Code)
+}
+}
+
+func TestHandleResourceMutate_DirectEmptyResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodPost, "/data/:mutate", nil)
+w := httptest.NewRecorder()
+handleResourceMutate(w, req)
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestHandleResourceMutate_DirectValidResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodPost, "/data/products:mutate", nil)
+w := httptest.NewRecorder()
+handleResourceMutate(w, req)
+if w.Code != http.StatusNotImplemented {
+t.Fatalf("expected 501, got %d", w.Code)
+}
+}
+
+func TestHandleResourceSchema_DirectEmptyResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodGet, "/data/:schema", nil)
+w := httptest.NewRecorder()
+handleResourceSchema(w, req)
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d", w.Code)
+}
+}
+
+func TestHandleResourceSchema_DirectValidResource(t *testing.T) {
+req := httptest.NewRequest(http.MethodGet, "/data/products:schema", nil)
+w := httptest.NewRecorder()
+handleResourceSchema(w, req)
+if w.Code != http.StatusNotImplemented {
+t.Fatalf("expected 501, got %d", w.Code)
+}
+}

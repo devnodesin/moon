@@ -1296,3 +1296,311 @@ func TestMutate_Create_BooleanField_Invalid(t *testing.T) {
 		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+// ---------------------------------------------------------------------------
+// validationError type
+// ---------------------------------------------------------------------------
+
+func TestValidationError_Error(t *testing.T) {
+err := &validationError{msg: "test validation error"}
+if got := err.Error(); got != "test validation error" {
+t.Errorf("validationError.Error() = %q, want %q", got, "test validation error")
+}
+}
+
+// ---------------------------------------------------------------------------
+// prepareValueForDB
+// ---------------------------------------------------------------------------
+
+func TestPrepareValueForDB(t *testing.T) {
+tests := []struct {
+name      string
+value     any
+fieldType string
+want      any
+}{
+{"nil value", nil, MoonFieldTypeString, nil},
+{"bool true", true, MoonFieldTypeBoolean, int64(1)},
+{"bool false", false, MoonFieldTypeBoolean, int64(0)},
+{"json map", map[string]any{"a": 1}, MoonFieldTypeJSON, `{"a":1}`},
+{"json array", []any{1, 2}, MoonFieldTypeJSON, `[1,2]`},
+{"string passthrough", "hello", MoonFieldTypeString, "hello"},
+{"integer passthrough", int64(42), MoonFieldTypeInteger, int64(42)},
+}
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+got := prepareValueForDB(tt.value, tt.fieldType)
+// For JSON, check the string representation
+if tt.fieldType == MoonFieldTypeJSON && tt.value != nil {
+gotStr, ok := got.(string)
+if !ok {
+t.Fatalf("expected string for JSON, got %T", got)
+}
+wantStr, _ := tt.want.(string)
+if gotStr != wantStr {
+t.Errorf("prepareValueForDB JSON = %q, want %q", gotStr, wantStr)
+}
+return
+}
+if got != tt.want {
+t.Errorf("prepareValueForDB(%v, %q) = %v (%T), want %v (%T)",
+tt.value, tt.fieldType, got, got, tt.want, tt.want)
+}
+})
+}
+}
+
+// ---------------------------------------------------------------------------
+// isTypeValid - covered by existing TestIsTypeValid above
+// ---------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------
+// Additional action tests for uncovered paths
+// ---------------------------------------------------------------------------
+
+func TestMutate_Action_ResetPassword_MissingID(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "reset_password",
+"data":   []any{map[string]any{"password": "ValidPass1"}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_ResetPassword_InvalidIDType(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "reset_password",
+"data":   []any{map[string]any{"id": 123, "password": "ValidPass1"}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_ResetPassword_InvalidPasswordType(t *testing.T) {
+handler, adapter, _ := setupMutateTest(t)
+userID := seedAdminUser(t, adapter)
+body := map[string]any{
+"op":     "action",
+"action": "reset_password",
+"data":   []any{map[string]any{"id": userID, "password": 12345}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_ResetPassword_UserNotFound(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "reset_password",
+"data":   []any{map[string]any{"id": "nonexistent-id", "password": "ValidPass123"}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusOK {
+t.Fatalf("expected 200 (with failed count), got %d: %s", w.Code, w.Body.String())
+}
+resp := parseResponse(t, w)
+meta := resp["meta"].(map[string]any)
+if meta["failed"].(float64) != 1 {
+t.Errorf("expected failed=1, got %v", meta["failed"])
+}
+}
+
+func TestMutate_Action_RevokeSessions_MissingID(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "revoke_sessions",
+"data":   []any{map[string]any{}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_RevokeSessions_InvalidIDType(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "revoke_sessions",
+"data":   []any{map[string]any{"id": 456}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_RevokeSessions_UserNotFound(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "revoke_sessions",
+"data":   []any{map[string]any{"id": "nonexistent-user"}},
+}
+w := doMutateRequest(t, handler, "users", body, adminIdentity())
+if w.Code != http.StatusOK {
+t.Fatalf("expected 200 (with failed), got %d: %s", w.Code, w.Body.String())
+}
+resp := parseResponse(t, w)
+meta := resp["meta"].(map[string]any)
+if meta["failed"].(float64) != 1 {
+t.Errorf("expected failed=1, got %v", meta["failed"])
+}
+}
+
+func TestMutate_Action_RotateAPIKey_MissingID(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "rotate",
+"data":   []any{map[string]any{}},
+}
+w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Action_RotateAPIKey_InvalidIDType(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":     "action",
+"action": "rotate",
+"data":   []any{map[string]any{"id": true}},
+}
+w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+// ---------------------------------------------------------------------------
+// validateFieldTypes edge cases
+// ---------------------------------------------------------------------------
+
+func TestValidateFieldTypes_NullableField(t *testing.T) {
+fieldMap := map[string]Field{
+"title": {Name: "title", Type: MoonFieldTypeString, Nullable: true},
+}
+item := map[string]any{"title": nil}
+if err := validateFieldTypes(item, fieldMap); err != nil {
+t.Errorf("unexpected error for nullable nil: %v", err)
+}
+}
+
+func TestValidateFieldTypes_NonNullableNilField(t *testing.T) {
+fieldMap := map[string]Field{
+"title": {Name: "title", Type: MoonFieldTypeString, Nullable: false},
+}
+item := map[string]any{"title": nil}
+if err := validateFieldTypes(item, fieldMap); err == nil {
+t.Error("expected error for non-nullable nil field")
+}
+}
+
+func TestValidateFieldTypes_InvalidType(t *testing.T) {
+fieldMap := map[string]Field{
+"count": {Name: "count", Type: MoonFieldTypeInteger, Nullable: false},
+}
+item := map[string]any{"count": "not-an-int"}
+if err := validateFieldTypes(item, fieldMap); err == nil {
+t.Error("expected type error for string in integer field")
+}
+}
+
+func TestValidateFieldTypes_UnknownField(t *testing.T) {
+fieldMap := map[string]Field{
+"title": {Name: "title", Type: MoonFieldTypeString},
+}
+// Unknown fields are ignored (no error)
+item := map[string]any{"unknown_field": "value"}
+if err := validateFieldTypes(item, fieldMap); err != nil {
+t.Errorf("unexpected error for unknown field: %v", err)
+}
+}
+
+// ---------------------------------------------------------------------------
+// Additional destroy/update/handleCreate coverage tests
+// ---------------------------------------------------------------------------
+
+func TestMutate_Destroy_InvalidIDType(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":   "destroy",
+"data": []any{map[string]any{"id": 12345}},
+}
+w := doMutateRequest(t, handler, "products", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Update_InvalidIDType(t *testing.T) {
+handler, _, _ := setupMutateTest(t)
+body := map[string]any{
+"op":   "update",
+"data": []any{map[string]any{"id": true, "title": "X"}},
+}
+w := doMutateRequest(t, handler, "products", body, adminIdentity())
+if w.Code != http.StatusBadRequest {
+t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+}
+}
+
+func TestMutate_Update_RecordNotFound(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+	body := map[string]any{
+		"op":   "update",
+		"data": []any{map[string]any{"id": "nonexistent-id", "title": "Updated"}},
+	}
+	w := doMutateRequest(t, handler, "products", body, adminIdentity())
+	// handleUpdate returns 200 with failed=1 when record not found
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	resp := parseResponse(t, w)
+	meta := resp["meta"].(map[string]any)
+	if meta["failed"].(float64) != 1 {
+		t.Errorf("expected failed=1, got %v", meta["failed"])
+	}
+}
+
+func TestMutate_Create_NullableField(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{"title": "Item", "price": "5.00", "quantity": 1, "description": nil},
+		},
+	}
+	w := doMutateRequest(t, handler, "products", body, adminIdentity())
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestMutate_Destroy_EmptyData(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+	body := map[string]any{
+		"op":   "destroy",
+		"data": []any{},
+	}
+	w := doMutateRequest(t, handler, "products", body, adminIdentity())
+	// Empty data is rejected at HandleMutate level
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}

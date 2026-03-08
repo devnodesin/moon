@@ -868,6 +868,80 @@ func TestSQLiteAdapter_ContextTimeout(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// NewSQLiteAdapter – directory creation
+// ---------------------------------------------------------------------------
+
+// TestNewSQLiteAdapter_CreatesParentDirectory verifies that the adapter
+// creates the database parent directory when it does not exist.
+func TestNewSQLiteAdapter_CreatesParentDirectory(t *testing.T) {
+	base := t.TempDir()
+	// Use a nested path that does not yet exist.
+	dbPath := filepath.Join(base, "subdir", "nested", "test.db")
+
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           dbPath,
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter with missing directory: %v", err)
+	}
+	defer adapter.Close()
+
+	// Verify the database file was created.
+	if _, err := os.Stat(dbPath); err != nil {
+		t.Fatalf("database file not created at %s: %v", dbPath, err)
+	}
+
+	// Verify the adapter is functional.
+	if err := adapter.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping after directory creation: %v", err)
+	}
+}
+
+// TestNewSQLiteAdapter_InMemory verifies that the adapter works correctly
+// with an in-memory database (WAL mode is skipped for in-memory).
+func TestNewSQLiteAdapter_InMemory(t *testing.T) {
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           ":memory:",
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter in-memory: %v", err)
+	}
+	defer adapter.Close()
+
+	if err := adapter.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping in-memory: %v", err)
+	}
+}
+
+// TestNewSQLiteAdapter_DirectoryAlreadyExists verifies that the adapter
+// succeeds when the parent directory already exists.
+func TestNewSQLiteAdapter_DirectoryAlreadyExists(t *testing.T) {
+	dir := t.TempDir() // already exists
+	cfg := DatabaseConfig{
+		Connection:         DBConnectionSQLite,
+		Database:           filepath.Join(dir, "already.db"),
+		QueryTimeout:       5,
+		SlowQueryThreshold: 500,
+	}
+	logger := NewTestLogger(&bytes.Buffer{})
+	adapter, err := NewSQLiteAdapter(cfg, logger)
+	if err != nil {
+		t.Fatalf("NewSQLiteAdapter with existing directory: %v", err)
+	}
+	defer adapter.Close()
+}
+
+// ---------------------------------------------------------------------------
 // DBConnection constants
 // ---------------------------------------------------------------------------
 
