@@ -52,7 +52,7 @@ func NewSQLiteAdapter(cfg DatabaseConfig, logger *Logger) (*SQLiteAdapter, error
 	// Ensure the parent directory exists so SQLite can create the database file.
 	if !isMemory {
 		if dir := filepath.Dir(cfg.Database); dir != "" && dir != "." {
-			if err := os.MkdirAll(dir, 0750); err != nil {
+			if err := os.MkdirAll(dir, 0755); err != nil {
 				return nil, newAdapterError("NewSQLiteAdapter", "", "failed to create database directory", err)
 			}
 		}
@@ -79,7 +79,7 @@ func NewSQLiteAdapter(cfg DatabaseConfig, logger *Logger) (*SQLiteAdapter, error
 		}
 		if mode != "wal" {
 			db.Close()
-			return nil, newAdapterError("NewSQLiteAdapter", "", fmt.Sprintf("WAL mode not supported by filesystem (got %q)", mode), nil)
+			return nil, newAdapterError("NewSQLiteAdapter", "", fmt.Sprintf("WAL mode not supported by filesystem (got %q); ensure the database path is on a local filesystem (not NFS/network mount) and the directory is writable", mode), nil)
 		}
 	}
 

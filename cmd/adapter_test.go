@@ -961,26 +961,26 @@ func TestDBConnectionConstants(t *testing.T) {
 
 // TestLogSlowQuery_BelowThreshold verifies that no warning is logged for fast queries.
 func TestLogSlowQuery_BelowThreshold(t *testing.T) {
-var buf bytes.Buffer
-logger := NewTestLogger(&buf)
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
 
-start := time.Now().Add(-10 * time.Millisecond) // 10ms elapsed
-logSlowQuery(logger, "products", "select", start, 500)
+	start := time.Now().Add(-10 * time.Millisecond) // 10ms elapsed
+	logSlowQuery(logger, "products", "select", start, 500)
 
-if buf.Len() > 0 {
-t.Errorf("expected no log output for fast query, got: %s", buf.String())
-}
+	if buf.Len() > 0 {
+		t.Errorf("expected no log output for fast query, got: %s", buf.String())
+	}
 }
 
 // TestLogSlowQuery_AboveThreshold verifies that a warning is logged for slow queries.
 func TestLogSlowQuery_AboveThreshold(t *testing.T) {
-var buf bytes.Buffer
-logger := NewTestLogger(&buf)
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
 
-start := time.Now().Add(-1 * time.Second) // 1s elapsed
-logSlowQuery(logger, "products", "select", start, 500)
+	start := time.Now().Add(-1 * time.Second) // 1s elapsed
+	logSlowQuery(logger, "products", "select", start, 500)
 
-if !strings.Contains(buf.String(), "slow query") {
-t.Errorf("expected slow query warning, got: %s", buf.String())
-}
+	if !strings.Contains(buf.String(), "slow query") {
+		t.Errorf("expected slow query warning, got: %s", buf.String())
+	}
 }

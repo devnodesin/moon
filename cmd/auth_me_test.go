@@ -609,42 +609,42 @@ func TestRefresh_InvalidTokenType(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdateMe_PasswordRevokesRefreshTokens_AlreadyRevoked(t *testing.T) {
-handler, _, db := setupAuthMeTest(t)
+	handler, _, db := setupAuthMeTest(t)
 
-ctx := context.Background()
-now := time.Now().UTC().Format(time.RFC3339)
+	ctx := context.Background()
+	now := time.Now().UTC().Format(time.RFC3339)
 
-// Insert a pre-revoked token
-_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
-"id":                 GenerateULID(),
-"user_id":            "01TESTUSER000000000000001",
-"refresh_token_hash": "pre-revoked-hash-xyz",
-"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
-"created_at":         now,
-"revoked_at":         now,       // already revoked
-"revocation_reason":  "expired",
-})
+	// Insert a pre-revoked token
+	_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
+		"id":                 GenerateULID(),
+		"user_id":            "01TESTUSER000000000000001",
+		"refresh_token_hash": "pre-revoked-hash-xyz",
+		"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+		"created_at":         now,
+		"revoked_at":         now, // already revoked
+		"revocation_reason":  "expired",
+	})
 
-// Also insert an active token that should get revoked
-_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
-"id":                 GenerateULID(),
-"user_id":            "01TESTUSER000000000000001",
-"refresh_token_hash": "active-hash-xyz",
-"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
-"created_at":         now,
-})
+	// Also insert an active token that should get revoked
+	_ = db.InsertRow(ctx, "moon_auth_refresh_tokens", map[string]any{
+		"id":                 GenerateULID(),
+		"user_id":            "01TESTUSER000000000000001",
+		"refresh_token_hash": "active-hash-xyz",
+		"expires_at":         time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+		"created_at":         now,
+	})
 
-body, _ := json.Marshal(map[string]any{
-"data": map[string]any{
-"old_password": "TestPass1",
-"password":     "NewPass456",
-},
-})
-req := reqWithJWT("POST", "/auth:me", body, "01TESTUSER000000000000001", "admin", true)
-w := httptest.NewRecorder()
-handler.UpdateMe(w, req)
+	body, _ := json.Marshal(map[string]any{
+		"data": map[string]any{
+			"old_password": "TestPass1",
+			"password":     "NewPass456",
+		},
+	})
+	req := reqWithJWT("POST", "/auth:me", body, "01TESTUSER000000000000001", "admin", true)
+	w := httptest.NewRecorder()
+	handler.UpdateMe(w, req)
 
-if w.Code != http.StatusOK {
-t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-}
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
 }

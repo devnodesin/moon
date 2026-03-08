@@ -753,61 +753,61 @@ func TestLoadConfig_NoBootstrapAdmin(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestValidateServer_EmptyHost(t *testing.T) {
-cfg := &AppConfig{
-Server: ServerConfig{Host: "", Port: 6000},
-}
-if err := validateServer(cfg); err == nil {
-t.Fatal("expected error for empty host")
-}
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "", Port: 6000},
+	}
+	if err := validateServer(cfg); err == nil {
+		t.Fatal("expected error for empty host")
+	}
 }
 
 func TestValidateServer_InvalidPort(t *testing.T) {
-cfg := &AppConfig{
-Server: ServerConfig{Host: "127.0.0.1", Port: 0},
-}
-if err := validateServer(cfg); err == nil {
-t.Fatal("expected error for invalid port")
-}
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "127.0.0.1", Port: 0},
+	}
+	if err := validateServer(cfg); err == nil {
+		t.Fatal("expected error for invalid port")
+	}
 }
 
 func TestValidateServer_InvalidPrefix(t *testing.T) {
-logDir := t.TempDir()
-logPath := filepath.Join(logDir, "test.log")
-cfg := &AppConfig{
-Server: ServerConfig{Host: "127.0.0.1", Port: 6000, Prefix: "api", Logpath: logPath},
-}
-if err := validateServer(cfg); err == nil {
-t.Fatal("expected error for prefix not starting with /")
-}
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "test.log")
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "127.0.0.1", Port: 6000, Prefix: "api", Logpath: logPath},
+	}
+	if err := validateServer(cfg); err == nil {
+		t.Fatal("expected error for prefix not starting with /")
+	}
 }
 
 func TestValidateServer_ValidConfig(t *testing.T) {
-logDir := t.TempDir()
-logPath := filepath.Join(logDir, "test.log")
-cfg := &AppConfig{
-Server: ServerConfig{Host: "127.0.0.1", Port: 6000, Logpath: logPath},
-}
-if err := validateServer(cfg); err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "test.log")
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "127.0.0.1", Port: 6000, Logpath: logPath},
+	}
+	if err := validateServer(cfg); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
 
 func TestValidateServer_InvalidHost(t *testing.T) {
-cfg := &AppConfig{
-Server: ServerConfig{Host: "invalid-host-that-does-not-exist.example.invalid", Port: 6000},
-}
-if err := validateServer(cfg); err == nil {
-t.Fatal("expected error for invalid host")
-}
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "invalid-host-that-does-not-exist.example.invalid", Port: 6000},
+	}
+	if err := validateServer(cfg); err == nil {
+		t.Fatal("expected error for invalid host")
+	}
 }
 
 func TestValidateServer_PortTooHigh(t *testing.T) {
-logDir := t.TempDir()
-logPath := filepath.Join(logDir, "test.log")
-cfg := &AppConfig{
-Server: ServerConfig{Host: "127.0.0.1", Port: 65536, Logpath: logPath},
-}
-if err := validateServer(cfg); err == nil {
-t.Fatal("expected error for port > 65535")
-}
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "test.log")
+	cfg := &AppConfig{
+		Server: ServerConfig{Host: "127.0.0.1", Port: 65536, Logpath: logPath},
+	}
+	if err := validateServer(cfg); err == nil {
+		t.Fatal("expected error for port > 65535")
+	}
 }

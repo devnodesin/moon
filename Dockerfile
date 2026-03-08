@@ -15,7 +15,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Create the default data directory so it exists in the final image
+# Create the default data directory in the builder stage so it can be
+# copied to the final scratch image (directories do not auto-transfer).
 RUN mkdir -p /opt/moon
 
 # Build a fully static binary using musl's static libc so the scratch image works.

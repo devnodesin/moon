@@ -554,10 +554,10 @@ func TestRedactingHandler_WithGroup(t *testing.T) {
 
 // TestNewTestLogger_Close verifies that Close on a non-file logger returns nil.
 func TestNewTestLogger_Close(t *testing.T) {
-var buf bytes.Buffer
-logger := NewTestLogger(&buf)
-// No file handle; Close should return nil without panicking.
-if err := logger.Close(); err != nil {
-t.Errorf("Close on non-file logger returned error: %v", err)
-}
+	var buf bytes.Buffer
+	logger := NewTestLogger(&buf)
+	// No file handle; Close should return nil without panicking.
+	if err := logger.Close(); err != nil {
+		t.Errorf("Close on non-file logger returned error: %v", err)
+	}
 }

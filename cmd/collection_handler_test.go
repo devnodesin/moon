@@ -1442,95 +1442,95 @@ func TestDefaultForType(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCollectionMutate_Create_MalformedDataItem(t *testing.T) {
-handler, _, _ := buildAuthenticatedCollectionHandler(t)
+	handler, _, _ := buildAuthenticatedCollectionHandler(t)
 
-// Send a non-object in the data array (malformed item)
-req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
-strings.NewReader(`{"op":"create","data":[true]}`))
-req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
-req.Header.Set("Content-Type", "application/json")
-w := httptest.NewRecorder()
-handler.ServeHTTP(w, req)
+	// Send a non-object in the data array (malformed item)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+		strings.NewReader(`{"op":"create","data":[true]}`))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 
-if w.Code != http.StatusBadRequest {
-t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
-}
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestCollectionMutate_Destroy_MalformedDataItem(t *testing.T) {
-handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
 
-ctx := context.Background()
-if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
-t.Fatalf("create: %v", err)
-}
-if err := registry.Refresh(); err != nil {
-t.Fatalf("refresh: %v", err)
-}
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
 
-// Send a non-object in the data array
-req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
-strings.NewReader(`{"op":"destroy","data":["not-an-object"]}`))
-req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
-req.Header.Set("Content-Type", "application/json")
-w := httptest.NewRecorder()
-handler.ServeHTTP(w, req)
+	// Send a non-object in the data array
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+		strings.NewReader(`{"op":"destroy","data":["not-an-object"]}`))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 
-if w.Code != http.StatusBadRequest {
-t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
-}
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestCollectionMutate_Update_MalformedDataItem(t *testing.T) {
-handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
 
-ctx := context.Background()
-if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
-t.Fatalf("create: %v", err)
-}
-if err := registry.Refresh(); err != nil {
-t.Fatalf("refresh: %v", err)
-}
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
 
-// Send a non-object in the data array
-req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
-strings.NewReader(`{"op":"update","data":[123]}`))
-req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
-req.Header.Set("Content-Type", "application/json")
-w := httptest.NewRecorder()
-handler.ServeHTTP(w, req)
+	// Send a non-object in the data array
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate",
+		strings.NewReader(`{"op":"update","data":[123]}`))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 
-if w.Code != http.StatusBadRequest {
-t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
-}
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestCollectionMutate_Create_NullableColumn(t *testing.T) {
-handler, _, _ := buildAuthenticatedCollectionHandler(t)
+	handler, _, _ := buildAuthenticatedCollectionHandler(t)
 
-nullable := true
-unique := true
-body := map[string]any{
-"op": "create",
-"data": []any{
-map[string]any{
-"name": "orders",
-"columns": []any{
-map[string]any{"name": "note", "type": "string", "nullable": nullable, "unique": unique},
-},
-},
-},
-}
-b, _ := json.Marshal(body)
-req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
-req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
-req.Header.Set("Content-Type", "application/json")
-w := httptest.NewRecorder()
-handler.ServeHTTP(w, req)
+	nullable := true
+	unique := true
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"name": "orders",
+				"columns": []any{
+					map[string]any{"name": "note", "type": "string", "nullable": nullable, "unique": unique},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 
-if w.Code != http.StatusCreated {
-t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
-}
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestCollectionMutate_Update_AddNullableColumn(t *testing.T) {
@@ -1565,5 +1565,238 @@ func TestCollectionMutate_Update_AddNullableColumn(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional executeModifyColumns coverage tests
+// ---------------------------------------------------------------------------
+
+func TestCollectionMutate_Update_ModifyColumns_NonexistentColumn(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE catalog (id TEXT PRIMARY KEY, name TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "catalog",
+				"modify_columns": []any{
+					map[string]any{"name": "nonexistent", "type": "string"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCollectionMutate_Update_ModifyColumns_InvalidType(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE catalog (id TEXT PRIMARY KEY, name TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "catalog",
+				"modify_columns": []any{
+					map[string]any{"name": "name", "type": "invalid_type"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCollectionMutate_Update_ModifyColumns_NullableAndUnique(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	// Create a non-nullable/non-unique column first
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE catalog (id TEXT PRIMARY KEY, name TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	// Modify to change the type (nullable stays false, unique stays false)
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "catalog",
+				"modify_columns": []any{
+					map[string]any{"name": "name", "type": "integer"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional executeAddColumns tests
+// ---------------------------------------------------------------------------
+
+func TestCollectionMutate_Update_AddColumns_InvalidColumnName(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE mystore (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "mystore",
+				"add_columns": []any{
+					map[string]any{"name": "123invalid", "type": "string"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCollectionMutate_Update_AddColumns_InvalidType(t *testing.T) {
+	handler, adapter, registry := buildAuthenticatedCollectionHandler(t)
+
+	ctx := context.Background()
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE mystore (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	body := map[string]any{
+		"op": "update",
+		"data": []any{
+			map[string]any{
+				"name": "mystore",
+				"add_columns": []any{
+					map[string]any{"name": "newcol", "type": "bad_type"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Destroy: already-destroyed collection (MoonPrefix)
+// ---------------------------------------------------------------------------
+
+func TestCollectionMutate_Destroy_MissingName(t *testing.T) {
+	handler, _, _ := buildAuthenticatedCollectionHandler(t)
+
+	body := map[string]any{
+		"op":   "destroy",
+		"data": []any{map[string]any{"name": ""}},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Collection create: moon_prefix and users/apikeys reserved names
+// ---------------------------------------------------------------------------
+
+func TestCollectionMutate_Create_ReservedName_Users(t *testing.T) {
+	handler, _, _ := buildAuthenticatedCollectionHandler(t)
+
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"name": "users",
+				"columns": []any{
+					map[string]any{"name": "title", "type": "string"},
+				},
+			},
+		},
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/collections:mutate", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+adminToken(t, collectionTestSecret))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
 	}
 }
