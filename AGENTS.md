@@ -21,6 +21,7 @@
 - Use only the Go standard library unless a third-party dependency is absolutely essential.
 - **AIP-136 Custom Actions:** APIs use a colon separator (`:`) to distinguish between the resource and the action, providing a predictable and AI-friendly interface.
 - Never reference any file in `prd/` unless explicitly provided by the user; use it only for the requested implementation and not for cross-reference or documentation.
+- Never run `go build` or any Go commands on a Windows system; Go is not installed on Windows PCs.
 
 ## Documentation Compliance
 
