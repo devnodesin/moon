@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func defaultTestConfig() *AppConfig {
@@ -53,6 +54,37 @@ func TestHealthEndpoint(t *testing.T) {
 				t.Fatalf("expected %d, got %d", tt.status, w.Code)
 			}
 		})
+	}
+}
+
+func TestHealthEndpoint_ResponseBody(t *testing.T) {
+	handler := buildTestServer(t, defaultTestConfig())
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var got struct {
+		Data struct {
+			Moon      string `json:"moon"`
+			Timestamp string `json:"timestamp"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if got.Data.Moon != MoonVersion {
+		t.Fatalf("expected moon=%q, got %q", MoonVersion, got.Data.Moon)
+	}
+	if got.Data.Timestamp == "" {
+		t.Fatal("expected non-empty timestamp")
+	}
+	if _, err := time.Parse(time.RFC3339, got.Data.Timestamp); err != nil {
+		t.Fatalf("timestamp %q is not valid RFC3339: %v", got.Data.Timestamp, err)
 	}
 }
 

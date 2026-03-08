@@ -2,11 +2,29 @@ package main
 
 import (
 	"net/http"
+	"time"
 )
 
-// handleHealth returns a minimal 200 response for health checks.
+// healthData is the response body for the health endpoint.
+type healthData struct {
+	Moon      string `json:"moon"`
+	Timestamp string `json:"timestamp"`
+}
+
+// healthResponse is the top-level response envelope for the health endpoint.
+type healthResponse struct {
+	Data healthData `json:"data"`
+}
+
+// handleHealth returns the service version and current UTC timestamp.
 func handleHealth(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "OK"})
+	resp := healthResponse{
+		Data: healthData{
+			Moon:      MoonVersion,
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // newAuthSessionHandler creates the AuthSessionHandler with its dependencies.
