@@ -235,7 +235,16 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 		handlerOpts = append(handlerOpts, WithRateLimiter(rl))
 	}
 
-	mux := NewRouterWithJTI(cfg.Server.Prefix, logger, adapter, cfg, jtiStore, rl)
+	var reg *SchemaRegistry
+	if adapter != nil {
+		var err error
+		reg, err = NewSchemaRegistry(adapter)
+		if err != nil {
+			return fmt.Errorf("create schema registry: %w", err)
+		}
+	}
+
+	mux := NewRouterWithJTI(cfg.Server.Prefix, logger, adapter, cfg, jtiStore, rl, reg)
 	handler := BuildHandler(mux, cfg, logger, handlerOpts...)
 
 	addr := net.JoinHostPort(cfg.Server.Host, fmt.Sprintf("%d", cfg.Server.Port))

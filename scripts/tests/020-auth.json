@@ -41,7 +41,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "email": "admin_updated@example.com"
+        "data": {
+          "email": "admin_updated@example.com"
+        }
       }
     },
     {
