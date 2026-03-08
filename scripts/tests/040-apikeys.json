@@ -20,7 +20,6 @@
         "data": [
           {
             "name": "Integration Service",
-            "description": "Key for integration testing",
             "role": "user",
             "can_write": false
           }
@@ -59,8 +58,7 @@
         "data": [
           {
             "id": "$ULID",
-            "name": "Updated Integration Service",
-            "description": "Updated description"
+            "name": "Updated Integration Service"
           }
         ]
       }
@@ -75,8 +73,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "op": "rotate",
-        "data": ["$ULID"]
+        "op": "action",
+        "action": "rotate",
+        "data": [{"id": "$ULID"}]
       }
     },
     {
@@ -90,7 +89,7 @@
       },
       "data": {
         "op": "destroy",
-        "data": ["$ULID"]
+        "data": [{"id": "$ULID"}]
       }
     }
   ]

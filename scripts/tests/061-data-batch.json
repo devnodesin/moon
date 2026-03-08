@@ -77,7 +77,7 @@
       },
       "data": {
         "op": "destroy",
-        "data": ["$ULID1", "$ULID2", "$ULID3", "$ULID4", "$ULID5", "$ULID6"]
+        "data": [{"id": "$ULID1"}, {"id": "$ULID2"}, {"id": "$ULID3"}, {"id": "$ULID4"}, {"id": "$ULID5"}, {"id": "$ULID6"}]
       }
     },
     {
