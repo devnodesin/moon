@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Automated API test runner")
     parser.add_argument(
         '-o', '--outdir',
-        default='./out',
+        default='./md',
         help='Output directory for result files (default: ./out)'
     )
     parser.add_argument(
