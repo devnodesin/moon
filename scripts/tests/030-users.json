@@ -66,6 +66,45 @@
       }
     },
     {
+      "name": "Reset User Password",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "Reset a user's password via action.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "action",
+        "action": "reset_password",
+        "data": [
+          {
+            "id": "$ULID",
+            "password": "NewSecurePassword123"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Revoke User Sessions",
+      "cmd": "POST",
+      "endpoint": "/data/users:mutate",
+      "details": "Revoke all sessions for a user via action.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "action",
+        "action": "revoke_sessions",
+        "data": [
+          {
+            "id": "$ULID"
+          }
+        ]
+      }
+    },
+    {
       "name": "Delete User",
       "cmd": "POST",
       "endpoint": "/data/users:mutate",
@@ -76,7 +115,7 @@
       },
       "data": {
         "op": "destroy",
-        "data": [{"id": "$ULID"}]
+        "data": [{ "id": "$ULID" }]
       }
     }
   ]
