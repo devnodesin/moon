@@ -1846,6 +1846,74 @@ func TestIsTypeValid_Unknown_Type(t *testing.T) {
 // CreateAPIKey edge case: can_write
 // ---------------------------------------------------------------------------
 
+// TestMutate_Create_JSONField_RoundTrip verifies that a collection with a json
+// column correctly accepts a JSON object on insert (regression for the bug where
+// json columns were stored as TEXT in SQLite and therefore validated as string).
+func TestMutate_Create_JSONField_RoundTrip(t *testing.T) {
+	_, adapter, _ := setupMutateTest(t)
+	ctx := context.Background()
+
+	// Create a table with json and datetime columns (mirrors the 063-data-types test).
+	ddl := `CREATE TABLE typed_items (
+		id TEXT PRIMARY KEY,
+		label TEXT NOT NULL,
+		count INTEGER,
+		active BOOLEAN,
+		date_test TIMESTAMP,
+		json_test JSON
+	)`
+	if err := adapter.ExecDDL(ctx, ddl); err != nil {
+		t.Fatalf("ExecDDL: %v", err)
+	}
+
+	// Build a fresh registry so it picks up the new table with its declared types.
+	registry, err := NewSchemaRegistry(adapter)
+	if err != nil {
+		t.Fatalf("NewSchemaRegistry: %v", err)
+	}
+
+	// Verify the schema reports the correct Moon types (not "string" for json/datetime).
+	coll, ok := registry.Get("typed_items")
+	if !ok {
+		t.Fatal("typed_items not found in registry")
+	}
+	fieldMap := make(map[string]Field)
+	for _, f := range coll.Fields {
+		fieldMap[f.Name] = f
+	}
+	if got := fieldMap["json_test"].Type; got != MoonFieldTypeJSON {
+		t.Errorf("json_test field type = %q, want %q", got, MoonFieldTypeJSON)
+	}
+	if got := fieldMap["date_test"].Type; got != MoonFieldTypeDatetime {
+		t.Errorf("date_test field type = %q, want %q", got, MoonFieldTypeDatetime)
+	}
+
+	// Now insert a record with a JSON object — this must succeed with 201.
+	appCfg := &AppConfig{
+		Server:    ServerConfig{Prefix: ""},
+		JWTSecret: "test-secret-key-that-is-long-enough-for-jwt",
+	}
+	jtiStore := NewJTIRevocationStore()
+	handler := NewResourceMutateHandler(adapter, registry, appCfg, jtiStore)
+
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"label":     "sample",
+				"count":     42,
+				"active":    true,
+				"date_test": "2024-01-01T00:00:00Z",
+				"json_test": map[string]any{"key": "value"},
+			},
+		},
+	}
+	w := doMutateRequest(t, handler, "typed_items", body, adminIdentity())
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestMutate_Create_APIKey_WithCanWrite(t *testing.T) {
 	handler, _, _ := setupMutateTest(t)
 	body := map[string]any{

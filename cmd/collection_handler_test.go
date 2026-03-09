@@ -1156,8 +1156,8 @@ func TestMoonTypeToSQLite(t *testing.T) {
 		"integer":  "INTEGER",
 		"decimal":  "NUMERIC",
 		"boolean":  "BOOLEAN",
-		"datetime": "TEXT",
-		"json":     "TEXT",
+		"datetime": "TIMESTAMP",
+		"json":     "JSON",
 	}
 	for moon, expected := range tests {
 		got := moonTypeToSQLite(moon)
