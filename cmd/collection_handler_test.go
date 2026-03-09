@@ -305,6 +305,9 @@ func TestCollectionQuery_GetOne_SystemCollection(t *testing.T) {
 	if item["name"] != "users" {
 		t.Fatalf("expected 'users', got %v", item["name"])
 	}
+	if item["system"] != true {
+		t.Fatalf("expected system=true for users, got %v", item["system"])
+	}
 }
 
 func TestCollectionQuery_GetOne_NotFound(t *testing.T) {
@@ -365,6 +368,69 @@ func TestCollectionQuery_GetOne_WithCount(t *testing.T) {
 	item := data[0].(map[string]any)
 	if item["count"].(float64) != 3 {
 		t.Fatalf("expected count=3, got %v", item["count"])
+	}
+}
+
+func TestCollectionQuery_SystemField_List(t *testing.T) {
+	adapter, registry, cfg, logger := setupCollectionTest(t)
+	ctx := context.Background()
+
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create products: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	handler := buildCollectionTestHandler(t, adapter, registry, cfg, logger)
+
+	req := httptest.NewRequest(http.MethodGet, "/collections:query", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	resp := decodeResponse(t, w)
+	data := resp["data"].([]any)
+
+	systemNames := map[string]bool{"users": true, "apikeys": true}
+	for _, entry := range data {
+		item := entry.(map[string]any)
+		name := item["name"].(string)
+		wantSystem := systemNames[name]
+		if item["system"] != wantSystem {
+			t.Fatalf("collection %q: expected system=%v, got %v", name, wantSystem, item["system"])
+		}
+	}
+}
+
+func TestCollectionQuery_SystemField_GetOne_Dynamic(t *testing.T) {
+	adapter, registry, cfg, logger := setupCollectionTest(t)
+	ctx := context.Background()
+
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create products: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	handler := buildCollectionTestHandler(t, adapter, registry, cfg, logger)
+
+	req := httptest.NewRequest(http.MethodGet, "/collections:query?name=products", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	resp := decodeResponse(t, w)
+	data := resp["data"].([]any)
+	item := data[0].(map[string]any)
+	if item["system"] != false {
+		t.Fatalf("expected system=false for dynamic collection, got %v", item["system"])
 	}
 }
 
