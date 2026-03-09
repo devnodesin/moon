@@ -117,6 +117,8 @@ This document describes the standard response patterns, query options, and aggre
 
 {{ include ./md/070-query.md }}
 
+{{ include ./md/063-data-types.md }}
+
 ## Standard Error Response
 
 {{ include ./md/080-errors.md }}

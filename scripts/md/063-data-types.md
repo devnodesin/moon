@@ -12,22 +12,22 @@ curl -s -X POST "http://localhost:6000/collections:mutate" \
             "name": "typed_items",
             "columns": [
               {
-                "name": "label",
+                "name": "string_test",
                 "type": "string",
                 "nullable": false
               },
               {
-                "name": "count",
+                "name": "integer_test",
                 "type": "integer",
                 "nullable": true
               },
               {
-                "name": "price",
+                "name": "decimal_test",
                 "type": "decimal",
                 "nullable": true
               },
               {
-                "name": "active",
+                "name": "boolean_test",
                 "type": "boolean",
                 "nullable": true
               },
@@ -57,25 +57,25 @@ curl -s -X POST "http://localhost:6000/collections:mutate" \
     {
       "columns": [
         {
-          "name": "label",
+          "name": "string_test",
           "nullable": false,
           "type": "string",
           "unique": false
         },
         {
-          "name": "count",
+          "name": "integer_test",
           "nullable": true,
           "type": "integer",
           "unique": false
         },
         {
-          "name": "price",
+          "name": "decimal_test",
           "nullable": true,
           "type": "decimal",
           "unique": false
         },
         {
-          "name": "active",
+          "name": "boolean_test",
           "nullable": true,
           "type": "boolean",
           "unique": false
@@ -129,28 +129,28 @@ curl -s -X GET "http://localhost:6000/data/typed_items:schema" \
           "readonly": true
         },
         {
-          "name": "label",
+          "name": "string_test",
           "type": "string",
           "nullable": false,
           "unique": false,
           "readonly": false
         },
         {
-          "name": "count",
+          "name": "integer_test",
           "type": "integer",
           "nullable": true,
           "unique": false,
           "readonly": false
         },
         {
-          "name": "price",
+          "name": "decimal_test",
           "type": "decimal",
           "nullable": true,
           "unique": false,
           "readonly": false
         },
         {
-          "name": "active",
+          "name": "boolean_test",
           "type": "boolean",
           "nullable": true,
           "unique": false,
@@ -158,14 +158,14 @@ curl -s -X GET "http://localhost:6000/data/typed_items:schema" \
         },
         {
           "name": "date_test",
-          "type": "string",
+          "type": "datetime",
           "nullable": true,
           "unique": false,
           "readonly": false
         },
         {
           "name": "json_test",
-          "type": "string",
+          "type": "json",
           "nullable": true,
           "unique": false,
           "readonly": false
@@ -189,10 +189,10 @@ curl -s -X POST "http://localhost:6000/data/typed_items:mutate" \
         "op": "create",
         "data": [
           {
-            "label": "sample",
-            "count": 42,
-            "price": "9.99",
-            "active": true,
+            "string_test": "sample",
+            "integer_test": 42,
+            "decimal_test": "9.99",
+            "boolean_test": true,
             "date_test": "2024-01-01T00:00:00Z",
             "json_test": {
               "key": "value"
@@ -203,27 +203,70 @@ curl -s -X POST "http://localhost:6000/data/typed_items:mutate" \
     ' | jq .
 ```
 
-**Response (400 Bad Request):**
+**Response (201 Created):**
 
 ```json
 {
-  "message": "Invalid value for field 'json_test' of type 'string'"
+  "message": "Resource created successfully",
+  "data": [
+    {
+      "boolean_test": true,
+      "date_test": "2024-01-01 00:00:00 +0000 UTC",
+      "decimal_test": "9.99",
+      "id": "01KK92XEWYF61XCZCQ7GFB20B3",
+      "integer_test": 42,
+      "json_test": {
+        "key": "value"
+      },
+      "string_test": "sample"
+    }
+  ],
+  "meta": {
+    "failed": 0,
+    "success": 1
+  }
 }
 ```
 
 ### Query Record
 
-Fetch the record by its ULID. The response must return `active` as a boolean, `count` as an integer, `price` as a decimal string, and `meta` as a JSON object.
+Fetch the records
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/typed_items:query?id=$ULID" \
+curl -s -X GET "http://localhost:6000/data/typed_items:query" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-**Response (404 Not Found):**
+**Response (200 OK):**
 
 ```json
 {
-  "message": "Resource not found"
+  "message": "Resources retrieved successfully",
+  "data": [
+    {
+      "boolean_test": true,
+      "date_test": "2024-01-01 00:00:00 +0000 UTC",
+      "decimal_test": "9.99",
+      "id": "01KK92XEWYF61XCZCQ7GFB20B3",
+      "integer_test": 42,
+      "json_test": {
+        "key": "value"
+      },
+      "string_test": "sample"
+    }
+  ],
+  "meta": {
+    "count": 1,
+    "current_page": 1,
+    "per_page": 15,
+    "total": 1,
+    "total_pages": 1
+  },
+  "links": {
+    "first": "/data/typed_items:query?page=1&per_page=15",
+    "last": "/data/typed_items:query?page=1&per_page=15",
+    "next": null,
+    "prev": null
+  }
 }
 ```

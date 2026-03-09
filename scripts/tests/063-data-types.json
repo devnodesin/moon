@@ -20,10 +20,10 @@
           {
             "name": "typed_items",
             "columns": [
-              { "name": "label", "type": "string", "nullable": false },
-              { "name": "count", "type": "integer", "nullable": true },
-              { "name": "price", "type": "decimal", "nullable": true },
-              { "name": "active", "type": "boolean", "nullable": true },
+              { "name": "string_test", "type": "string", "nullable": false },
+              { "name": "integer_test", "type": "integer", "nullable": true },
+              { "name": "decimal_test", "type": "decimal", "nullable": true },
+              { "name": "boolean_test", "type": "boolean", "nullable": true },
               { "name": "date_test", "type": "datetime", "nullable": true },
               { "name": "json_test", "type": "json", "nullable": true }
             ]
@@ -53,10 +53,10 @@
         "op": "create",
         "data": [
           {
-            "label": "sample",
-            "count": 42,
-            "price": "9.99",
-            "active": true,
+            "string_test": "sample",
+            "integer_test": 42,
+            "decimal_test": "9.99",
+            "boolean_test": true,
             "date_test": "2024-01-01T00:00:00Z",
             "json_test": { "key": "value" }
           }
@@ -66,10 +66,23 @@
     {
       "name": "Query Record",
       "cmd": "GET",
-      "endpoint": "/data/typed_items:query?id=$ULID",
-      "details": "Fetch the record by its ULID. The response must return `active` as a boolean, `count` as an integer, `price` as a decimal string, and `meta` as a JSON object.",
+      "endpoint": "/data/typed_items:query",
+      "details": "Fetch the records",
       "headers": {
         "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "typed_items"}]
       }
     }
   ]
