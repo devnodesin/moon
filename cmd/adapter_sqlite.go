@@ -21,7 +21,7 @@ const (
 	SQLiteTypeString   = "TEXT"
 	SQLiteTypeInteger  = "INTEGER"
 	SQLiteTypeDecimal  = "NUMERIC"
-	SQLiteTypeBoolean  = "INTEGER"
+	SQLiteTypeBoolean  = "BOOLEAN"
 	SQLiteTypeDatetime = "TEXT"
 	SQLiteTypeJSON     = "TEXT"
 )

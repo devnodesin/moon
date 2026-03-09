@@ -1,0 +1,89 @@
+{
+  "docURL": "http://localhost:6000",
+  "serverURL": "https://moon.devnodes.in",
+  "prefix": "",
+  "username": "admin",
+  "password": "MoonAdmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "typed_items",
+            "columns": [
+              {"name": "label",      "type": "string",   "nullable": false},
+              {"name": "count",      "type": "integer",  "nullable": true},
+              {"name": "price",      "type": "decimal",  "nullable": true},
+              {"name": "active",     "type": "boolean",  "nullable": true},
+              {"name": "created_at", "type": "datetime", "nullable": true},
+              {"name": "meta",       "type": "json",     "nullable": true}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Get Schema",
+      "cmd": "GET",
+      "endpoint": "/data/typed_items:schema",
+      "details": "Retrieve the schema for `typed_items`. Each field must report the correct Moon type: `id` for the primary key, `string`, `integer`, `decimal`, `boolean`, `datetime`, and `json` for the user-defined columns.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "Create Record",
+      "cmd": "POST",
+      "endpoint": "/data/typed_items:mutate",
+      "details": "Insert one record that exercises every supported field type.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "label":      "sample",
+            "count":      42,
+            "price":      "9.99",
+            "active":     true,
+            "created_at": "2024-01-01T00:00:00Z",
+            "meta":       {"key": "value"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "Query Record",
+      "cmd": "GET",
+      "endpoint": "/data/typed_items:query?id=$ULID",
+      "details": "Fetch the record by its ULID. The response must return `active` as a boolean, `count` as an integer, `price` as a decimal string, and `meta` as a JSON object.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN"
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [{"name": "typed_items"}]
+      }
+    }
+  ]
+}

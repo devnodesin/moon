@@ -806,7 +806,7 @@ func TestSQLiteTypeMappingConstants(t *testing.T) {
 	if SQLiteTypeID != "TEXT" {
 		t.Fatalf("SQLiteTypeID: got %q", SQLiteTypeID)
 	}
-	if SQLiteTypeBoolean != "INTEGER" {
+	if SQLiteTypeBoolean != "BOOLEAN" {
 		t.Fatalf("SQLiteTypeBoolean: got %q", SQLiteTypeBoolean)
 	}
 	if SQLiteTypeDecimal != "NUMERIC" {

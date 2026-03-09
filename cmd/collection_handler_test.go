@@ -1155,7 +1155,7 @@ func TestMoonTypeToSQLite(t *testing.T) {
 		"string":   "TEXT",
 		"integer":  "INTEGER",
 		"decimal":  "NUMERIC",
-		"boolean":  "INTEGER",
+		"boolean":  "BOOLEAN",
 		"datetime": "TEXT",
 		"json":     "TEXT",
 	}
