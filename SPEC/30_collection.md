@@ -30,9 +30,9 @@ Response `200 OK`:
 {
   "message": "Collections retrieved successfully",
   "data": [
-    { "name": "users", "count": 5 },
-    { "name": "apikeys", "count": 2 },
-    { "name": "products", "count": 55 }
+    { "name": "users", "count": 5, "system": true },
+    { "name": "apikeys", "count": 2, "system": true },
+    { "name": "products", "count": 55, "system": false }
   ],
   "meta": {
     "total": 3,
@@ -62,7 +62,7 @@ Response `200 OK`:
 {
   "message": "Collection retrieved successfully",
   "data": [
-    { "name": "products", "count": 55 }
+    { "name": "products", "count": 55, "system": false }
   ]
 }
 ```
