@@ -183,3 +183,4 @@ verify_endpoints.sh
 final_verification.sh
 final_results.txt
 *.pyc
+scripts/moon-llms.md
