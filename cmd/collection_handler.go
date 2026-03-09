@@ -60,7 +60,7 @@ func (h *CollectionHandler) handleGetOne(w http.ResponseWriter, _ *http.Request,
 		return
 	}
 
-	item := map[string]any{"name": col.Name, "count": count}
+	item := map[string]any{"name": col.Name, "count": count, "system": col.System}
 	WriteSuccess(w, http.StatusOK, "Collection retrieved successfully", []any{item})
 }
 
@@ -91,7 +91,7 @@ func (h *CollectionHandler) handleList(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
-		data = append(data, map[string]any{"name": col.Name, "count": count})
+		data = append(data, map[string]any{"name": col.Name, "count": count, "system": col.System})
 	}
 
 	basePath := h.prefix + "/collections:query"

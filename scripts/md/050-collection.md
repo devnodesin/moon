@@ -101,15 +101,18 @@ curl -s -X GET "http://localhost:6000/collections:query" \
   "data": [
     {
       "count": 0,
-      "name": "apikeys"
+      "name": "apikeys",
+      "system": true
     },
     {
       "count": 0,
-      "name": "products"
+      "name": "products",
+      "system": false
     },
     {
       "count": 1,
-      "name": "users"
+      "name": "users",
+      "system": true
     }
   ],
   "meta": {
@@ -145,7 +148,8 @@ curl -s -X GET "http://localhost:6000/collections:query?name=products" \
   "data": [
     {
       "count": 0,
-      "name": "products"
+      "name": "products",
+      "system": false
     }
   ]
 }

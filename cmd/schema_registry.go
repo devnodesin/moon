@@ -147,6 +147,7 @@ var physicalTypeMap = map[string]string{
 type Collection struct {
 	Name   string
 	Fields []Field
+	System bool
 }
 
 // APIFields returns only fields that should be visible in API schema
@@ -335,7 +336,8 @@ func (r *SchemaRegistry) buildFromDB(ctx context.Context) (map[string]*Collectio
 		}
 
 		fields = ensureIDFirst(fields)
-		collections[table] = &Collection{Name: table, Fields: fields}
+		isSystem := table == "users" || table == "apikeys"
+		collections[table] = &Collection{Name: table, Fields: fields, System: isSystem}
 		order = append(order, table)
 	}
 
