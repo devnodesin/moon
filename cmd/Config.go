@@ -125,11 +125,12 @@ const (
 // ---------------------------------------------------------------------------
 
 const (
-	MaxPerPage         = 200
-	DefaultPerPage     = 15
-	BcryptCost         = 12
-	MinJWTSecretLength = 32
-	MinPasswordLength  = 8
+	MaxPerPage             = 200
+	DefaultPerPage         = 15
+	BcryptCost             = 12
+	MinJWTSecretLength     = 32
+	MinPasswordLength      = 8
+	DefaultAPIKeyRateLimit = 15
 )
 
 // ---------------------------------------------------------------------------
@@ -159,6 +160,17 @@ const (
 	RateLoginFailureWindow  = 900 // 15 minutes in seconds
 	RateJWTRequestLimit     = 100
 	RateJWTRequestWindow    = 60 // 1 minute
-	RateAPIKeyRequestLimit  = 1000
+	RateAPIKeyRequestLimit  = DefaultAPIKeyRateLimit
 	RateAPIKeyRequestWindow = 60 // 1 minute
+)
+
+// ---------------------------------------------------------------------------
+// CAPTCHA constants
+// ---------------------------------------------------------------------------
+
+const (
+	CaptchaCodeLength  = 6
+	CaptchaTTLSeconds  = 300
+	CaptchaImageWidth  = 240
+	CaptchaImageHeight = 80
 )

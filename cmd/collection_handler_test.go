@@ -50,9 +50,15 @@ func setupCollectionTest(t *testing.T) (*SQLiteAdapter, *SchemaRegistry, *AppCon
 	}
 	if err := adapter.ExecDDL(ctx, `CREATE TABLE apikeys (
 		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
 		key_hash TEXT NOT NULL,
 		role TEXT NOT NULL DEFAULT 'user',
 		can_write INTEGER NOT NULL DEFAULT 0,
+		is_website INTEGER NOT NULL DEFAULT 0,
+		allowed_origins JSON,
+		rate_limit INTEGER NOT NULL DEFAULT 15,
+		captcha_required INTEGER NOT NULL DEFAULT 0,
+		enabled INTEGER NOT NULL DEFAULT 1,
 		created_at TEXT NOT NULL,
 		updated_at TEXT NOT NULL,
 		last_used_at TEXT

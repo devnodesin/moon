@@ -177,12 +177,16 @@ func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger, opts ...Bu
 
 	// Middleware wraps from inside out, so we apply in reverse order.
 	// Final request order:
-	//   method validation → CORS → panic recovery → audit context → auth → rate limit → authz → handler
+	//   method validation → CORS → panic recovery → audit context → auth → website origin → rate limit → captcha → authz → handler
 	if bo.authMiddleware != nil {
 		handler = Authorize(cfg.Server.Prefix, handler)
+		if bo.captchaStore != nil {
+			handler = captchaMiddleware(bo.captchaStore, handler)
+		}
 		if bo.rateLimiter != nil {
 			handler = rateLimitMiddleware(bo.rateLimiter, logger, handler)
 		}
+		handler = websiteAPIKeyMiddleware(handler)
 		handler = bo.authMiddleware.Authenticate(handler)
 	}
 	handler = auditContextMiddleware(logger, handler)
@@ -197,6 +201,7 @@ func BuildHandler(mux *http.ServeMux, cfg *AppConfig, logger *Logger, opts ...Bu
 type buildHandlerOptions struct {
 	authMiddleware *AuthMiddleware
 	rateLimiter    *RateLimiter
+	captchaStore   *CaptchaStore
 }
 
 // BuildHandlerOption configures optional BuildHandler dependencies.
@@ -216,6 +221,13 @@ func WithRateLimiter(rl *RateLimiter) BuildHandlerOption {
 	}
 }
 
+// WithCaptchaStore adds CAPTCHA validation for API keys that require it.
+func WithCaptchaStore(store *CaptchaStore) BuildHandlerOption {
+	return func(o *buildHandlerOptions) {
+		o.captchaStore = store
+	}
+}
+
 // StartServer creates and starts the HTTP server with graceful shutdown.
 // It blocks until the server shuts down.
 func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
@@ -227,12 +239,15 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 	var handlerOpts []BuildHandlerOption
 	var jtiStore *JTIRevocationStore
 	var rl *RateLimiter
+	var captchaStore *CaptchaStore
 	if adapter != nil && cfg.JWTSecret != "" {
 		jtiStore = NewJTIRevocationStore()
 		rl = NewRateLimiter()
+		captchaStore = NewCaptchaStore()
 		am := NewAuthMiddleware(adapter, cfg.JWTSecret, cfg.Server.Prefix, jtiStore)
 		handlerOpts = append(handlerOpts, WithAuthMiddleware(am))
 		handlerOpts = append(handlerOpts, WithRateLimiter(rl))
+		handlerOpts = append(handlerOpts, WithCaptchaStore(captchaStore))
 	}
 
 	var reg *SchemaRegistry

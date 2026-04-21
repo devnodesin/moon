@@ -138,15 +138,18 @@ Requests must pass through middleware in this order:
 2. CORS handling
 3. audit logging context creation
 4. authentication for protected routes
-5. rate limiting
-6. authorization
-7. handler and service execution
-8. response shaping
+5. website API key origin enforcement
+6. rate limiting
+7. CAPTCHA validation
+8. authorization
+9. handler and service execution
+10. response shaping
 
 Rationale:
 
 - CORS must run early so browser preflight behavior is deterministic.
 - Audit context must exist before authentication so rejected requests are still traceable.
+- Website-key origin checks and CAPTCHA checks depend on the authenticated API key metadata and therefore run after authentication.
 - Authorization must occur before handlers perform domain work.
 - Response shaping must be centralized so all errors and success envelopes remain consistent.
 
@@ -320,6 +323,7 @@ server.prefix = "/api"
 - If `cors.enabled` is `false`, the service must not add CORS headers.
 - If `cors.enabled` is `true`, `cors.allowed_origins` controls the browser origin allowlist.
 - Production deployments should use explicit origins and should not rely on wildcard origins.
+- Website API keys must additionally enforce their per-key `allowed_origins` allowlist on authenticated requests. A website key request without a matching `Origin` header must be rejected.
 
 ## 9. Data Model and Persistence
 
@@ -454,6 +458,11 @@ CREATE TABLE apikeys (
     name TEXT NOT NULL, -- unique administrative label, 3-100 chars
     role TEXT NOT NULL, -- 'admin' or 'user'
     can_write BOOLEAN NOT NULL DEFAULT 0, -- default false; ignored when role=admin
+    is_website BOOLEAN NOT NULL DEFAULT 0, -- required; true for browser-facing keys, false for device/service keys
+    allowed_origins JSON, -- optional JSON array of origin strings for website keys
+    rate_limit INTEGER NOT NULL DEFAULT 15, -- positive requests-per-minute limit applied to this key
+    captcha_required BOOLEAN NOT NULL DEFAULT 0, -- if true, POST requests require a CAPTCHA challenge
+    enabled BOOLEAN NOT NULL DEFAULT 1, -- allows a key to be disabled without deletion
     key_hash TEXT NOT NULL, -- SHA-256 or stronger one-way hash of the raw API key; never returned by APIs
     created_at TEXT NOT NULL, -- RFC3339 timestamp, immutable
     updated_at TEXT NOT NULL, -- RFC3339 timestamp, system-managed
@@ -477,6 +486,13 @@ Additional rules:
 - Raw API key material must never be stored after creation or rotation.
 - The key format must remain `moon_live_` plus a 64-character base62 suffix.
 - Rotation replaces the stored credential immediately while preserving the logical API key record identified by `id`.
+- `is_website` is required on every API key record and distinguishes browser-facing keys from device/service keys.
+- `allowed_origins`, when present, must be a JSON array of strings.
+- `rate_limit` must be a positive integer and defaults to `15`.
+- `captcha_required` defaults to `false`.
+- `enabled` defaults to `true`.
+- Disabled API keys must be rejected during authentication.
+- Website API keys must enforce `allowed_origins` on authenticated requests and should use stricter `rate_limit` values than device keys.
 
 ### 9.10 `moon_auth_refresh_tokens` Internal Table
 
@@ -756,6 +772,10 @@ API key requirements are mandatory:
 - subsequent reads must return metadata only, not the raw secret
 - key rotation must invalidate the previous key immediately
 - API key usage should update `last_used_at` or equivalent usage metadata
+- website API keys must require a matching browser `Origin` header
+- API keys with `enabled=false` must be rejected
+- API keys with `captcha_required=true` must require a valid CAPTCHA challenge on authenticated `POST` requests
+- CAPTCHA challenges must be returned as base64-encoded images in JSON responses
 
 API keys must carry enough authorization context to enforce role and write capability consistently with the authorization model.
 
@@ -821,7 +841,8 @@ Moon must enforce the following rate limits:
 | ----------------------------- | --------------------------------------------- |
 | login failures                | 5 attempts per 15 minutes per IP and username |
 | authenticated JWT traffic     | 100 requests per minute per user              |
-| authenticated API key traffic | 1000 requests per minute per key              |
+| authenticated API key traffic | per-key `rate_limit` requests per minute      |
+| website API key traffic       | per-key `rate_limit` requests per minute per key and client IP |
 
 Rate-limit failures must use the standard error format. Any rate-limit headers or retry metadata must be documented in `SPEC_API.md` before clients can rely on them.
 

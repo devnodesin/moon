@@ -14,11 +14,16 @@ Rules:
 - No error codes, validation maps, or extra metadata are allowed.
 - The HTTP status code is the only machine-readable error signal.
 - Clients must not expect structured error codes or error metadata.
+- Documented exception: CAPTCHA challenges use `message` plus a `captcha` object.
 
 Rate-limit rule:
 
 - `429` guarantees only the standard error body.
 - No rate-limit response headers are guaranteed unless a future specification adds them.
+
+CAPTCHA challenge rule:
+
+- `403` may return a CAPTCHA challenge body when an authenticated API key requires CAPTCHA validation on `POST` requests.
 
 ### Error Status Codes
 
@@ -103,6 +108,19 @@ Example response:
 ```json
 {
   "message": "forbidden"
+}
+```
+
+CAPTCHA challenge response:
+
+```json
+{
+  "message": "Captcha required",
+  "captcha": {
+    "id": "01KTESTCAPTCHA1234567890AB",
+    "image_base64": "PHN2ZyB4bWxucz0iLi4uIj48L3N2Zz4=",
+    "expires_in": 300
+  }
 }
 ```
 

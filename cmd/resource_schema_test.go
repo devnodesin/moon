@@ -37,9 +37,14 @@ func TestResourceSchemaHandler_HandleSchema(t *testing.T) {
 				Fields: []Field{
 					{Name: "id", Type: MoonFieldTypeID, Nullable: false, Unique: false, ReadOnly: true},
 					{Name: "name", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: false},
-					{Name: "key_hash", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: true},
 					{Name: "role", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: false},
 					{Name: "can_write", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "is_website", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "allowed_origins", Type: MoonFieldTypeJSON, Nullable: true, Unique: false, ReadOnly: false},
+					{Name: "rate_limit", Type: MoonFieldTypeInteger, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "captcha_required", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "enabled", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "key_hash", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: true},
 					{Name: "created_at", Type: MoonFieldTypeDatetime, Nullable: false, Unique: false, ReadOnly: true},
 					{Name: "updated_at", Type: MoonFieldTypeDatetime, Nullable: false, Unique: false, ReadOnly: true},
 					{Name: "last_used_at", Type: MoonFieldTypeDatetime, Nullable: true, Unique: false, ReadOnly: true},
@@ -143,8 +148,8 @@ func TestResourceSchemaHandler_HandleSchema(t *testing.T) {
 				t.Fatal("key_hash should be hidden from apikeys schema")
 			}
 		}
-		if len(schema.Fields) != 7 {
-			t.Fatalf("got %d fields for apikeys, want 7", len(schema.Fields))
+		if len(schema.Fields) != 12 {
+			t.Fatalf("got %d fields for apikeys, want 12", len(schema.Fields))
 		}
 	})
 

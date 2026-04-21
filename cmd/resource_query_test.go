@@ -70,9 +70,14 @@ func setupResourceQueryTest(t *testing.T) (*ResourceQueryHandler, *SQLiteAdapter
 	apikeysDDL := `CREATE TABLE apikeys (
 		id TEXT PRIMARY KEY,
 		name TEXT NOT NULL,
-		key_hash TEXT NOT NULL,
 		role TEXT NOT NULL DEFAULT 'user',
 		can_write INTEGER NOT NULL DEFAULT 0,
+		is_website INTEGER NOT NULL DEFAULT 0,
+		allowed_origins JSON,
+		rate_limit INTEGER NOT NULL DEFAULT 15,
+		captcha_required INTEGER NOT NULL DEFAULT 0,
+		enabled INTEGER NOT NULL DEFAULT 1,
+		key_hash TEXT NOT NULL,
 		created_at TEXT NOT NULL DEFAULT '',
 		updated_at TEXT NOT NULL DEFAULT '',
 		last_used_at TEXT
@@ -131,13 +136,18 @@ func seedAPIKeys(t *testing.T, adapter *SQLiteAdapter) {
 	t.Helper()
 	ctx := context.Background()
 	if err := adapter.InsertRow(ctx, "apikeys", map[string]any{
-		"id":         "K001",
-		"name":       "test-key",
-		"key_hash":   "abc123hash",
-		"role":       "user",
-		"can_write":  int64(0),
-		"created_at": "2024-01-01T00:00:00Z",
-		"updated_at": "2024-01-01T00:00:00Z",
+		"id":               "K001",
+		"name":             "test-key",
+		"key_hash":         "abc123hash",
+		"role":             "user",
+		"can_write":        int64(0),
+		"is_website":       int64(1),
+		"allowed_origins":  `["https://example.com"]`,
+		"rate_limit":       int64(5),
+		"captcha_required": int64(1),
+		"enabled":          int64(1),
+		"created_at":       "2024-01-01T00:00:00Z",
+		"updated_at":       "2024-01-01T00:00:00Z",
 	}); err != nil {
 		t.Fatalf("InsertRow apikeys: %v", err)
 	}

@@ -49,6 +49,8 @@ Credential rules:
 
 - JWT access tokens are used for interactive user sessions.
 - API keys are used for service access.
+- Website API keys are browser-facing API keys and must enforce a matching `Origin` header from their `allowed_origins` list.
+- Disabled API keys must be rejected.
 - JWT access tokens must include a unique `jti` claim.
 - Malformed, expired, revoked, or unsupported bearer credentials must be rejected with the standard error body.
 - `/auth:session` is the credential-exchange endpoint. It does not require a bearer token.
@@ -148,6 +150,26 @@ All errors use this shape:
 ```
 
 Documented error statuses: See [Standard Error Response](./SPEC/10_error.md)
+
+## CAPTCHA Challenge Response
+
+When an authenticated API key has `captcha_required=true` and a `POST` request is missing or fails CAPTCHA validation, Moon returns `403 Forbidden` with this shape:
+
+```json
+{
+  "message": "Captcha required",
+  "captcha": {
+    "id": "01KTESTCAPTCHA1234567890AB",
+    "image_base64": "PHN2ZyB4bWxucz0iLi4uIj48L3N2Zz4=",
+    "expires_in": 300
+  }
+}
+```
+
+Request rules:
+
+- Clients retry the original `POST` request and include `captcha_id` and `captcha_value` in the top-level JSON body.
+- CAPTCHA challenges are single-use and expire after the documented lifetime.
 
 ## Endpoint Surface
 

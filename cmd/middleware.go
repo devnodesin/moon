@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -127,10 +130,18 @@ func rateLimitMiddleware(rl *RateLimiter, logger *Logger, next http.Handler) htt
 				return
 			}
 		case CredentialTypeAPIKey:
-			if !rl.AllowAPIKey(identity.CallerID) {
+			bucket := identity.CallerID
+			limit := identity.RateLimit
+			if limit < 1 {
+				limit = DefaultAPIKeyRateLimit
+			}
+			if identity.IsWebsite {
+				bucket = fmt.Sprintf("%s:%s", identity.CallerID, clientIP(r))
+			}
+			if !rl.AllowAPIKeyWithLimit(bucket, limit) {
 				logger.AuditEvent(AuditRateLimitViolation,
 					"limit_type", "apikey_traffic",
-					"actor", identity.CallerID,
+					"actor", bucket,
 					"timestamp", time.Now().UTC().Format(time.RFC3339),
 				)
 				WriteError(w, http.StatusTooManyRequests, "Too many requests")
@@ -140,6 +151,81 @@ func rateLimitMiddleware(rl *RateLimiter, logger *Logger, next http.Handler) htt
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// websiteAPIKeyMiddleware enforces allowed origins for website API keys.
+func websiteAPIKeyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := GetAuthIdentity(r.Context())
+		if !ok || identity.CredentialType != CredentialTypeAPIKey || !identity.IsWebsite {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		origin := r.Header.Get("Origin")
+		if matchOrigin(origin, identity.AllowedOrigins) == "" {
+			WriteError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// captchaMiddleware enforces CAPTCHA validation for API keys that require it.
+func captchaMiddleware(store *CaptchaStore, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := GetAuthIdentity(r.Context())
+		if !ok || identity.CredentialType != CredentialTypeAPIKey || !identity.CaptchaRequired || r.Method != http.MethodPost {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		captchaID, captchaValue, parseOK := extractCaptchaFields(r)
+		if parseOK && store.Validate(captchaID, captchaValue) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		challenge, err := store.Issue()
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "Internal server error")
+			return
+		}
+		WriteCaptchaChallenge(w, http.StatusForbidden, challenge)
+	})
+}
+
+func extractCaptchaFields(r *http.Request) (string, string, bool) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return "", "", false
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	if len(bytes.TrimSpace(body)) == 0 {
+		return "", "", true
+	}
+
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return "", "", false
+	}
+
+	var captchaID string
+	if rawID, ok := payload["captcha_id"]; ok {
+		if err := json.Unmarshal(rawID, &captchaID); err != nil {
+			return "", "", false
+		}
+	}
+
+	var captchaValue string
+	if rawValue, ok := payload["captcha_value"]; ok {
+		if err := json.Unmarshal(rawValue, &captchaValue); err != nil {
+			return "", "", false
+		}
+	}
+
+	return captchaID, captchaValue, true
 }
 
 // routes and rejects names starting with "moon_".

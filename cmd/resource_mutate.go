@@ -270,22 +270,59 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 		return nil, &validationError{msg: "Field 'role' must be 'admin' or 'user'"}
 	}
 
+	isWebsiteRaw, ok := item["is_website"]
+	if !ok {
+		return nil, &validationError{msg: "Field 'is_website' is required"}
+	}
+	isWebsite, ok := isWebsiteRaw.(bool)
+	if !ok {
+		return nil, &validationError{msg: "Field 'is_website' must be a boolean"}
+	}
+
 	canWrite := false
 	if v, ok := item["can_write"]; ok {
 		canWrite = toBool(v)
+	}
+
+	allowedOrigins, err := validateAllowedOrigins(item["allowed_origins"])
+	if err != nil {
+		return nil, &validationError{msg: err.Error()}
+	}
+
+	rateLimit := DefaultAPIKeyRateLimit
+	if value, ok := item["rate_limit"]; ok {
+		rateLimit, err = validatePositiveInteger("rate_limit", value)
+		if err != nil {
+			return nil, &validationError{msg: err.Error()}
+		}
+	}
+
+	captchaRequired := false
+	if value, ok := item["captcha_required"]; ok {
+		captchaRequired = toBool(value)
+	}
+
+	enabled := true
+	if value, ok := item["enabled"]; ok {
+		enabled = toBool(value)
 	}
 
 	rawKey, keyHash := GenerateAPIKey()
 	now := time.Now().UTC().Format(time.RFC3339)
 	id := GenerateULID()
 	row := map[string]any{
-		"id":         id,
-		"name":       name,
-		"role":       role,
-		"can_write":  boolToInt(canWrite),
-		"key_hash":   keyHash,
-		"created_at": now,
-		"updated_at": now,
+		"id":               id,
+		"name":             name,
+		"role":             role,
+		"can_write":        boolToInt(canWrite),
+		"is_website":       boolToInt(isWebsite),
+		"allowed_origins":  prepareValueForDB(allowedOrigins, MoonFieldTypeJSON),
+		"rate_limit":       int64(rateLimit),
+		"captcha_required": boolToInt(captchaRequired),
+		"enabled":          boolToInt(enabled),
+		"key_hash":         keyHash,
+		"created_at":       now,
+		"updated_at":       now,
 	}
 
 	if err := h.db.InsertRow(ctx, "apikeys", row); err != nil {
@@ -293,13 +330,18 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 	}
 
 	return map[string]any{
-		"id":         id,
-		"name":       name,
-		"role":       role,
-		"can_write":  canWrite,
-		"key":        rawKey,
-		"created_at": now,
-		"updated_at": now,
+		"id":               id,
+		"name":             name,
+		"role":             role,
+		"can_write":        canWrite,
+		"is_website":       isWebsite,
+		"allowed_origins":  allowedOrigins,
+		"rate_limit":       int64(rateLimit),
+		"captcha_required": captchaRequired,
+		"enabled":          enabled,
+		"key":              rawKey,
+		"created_at":       now,
+		"updated_at":       now,
 	}, nil
 }
 
@@ -387,6 +429,13 @@ func (h *ResourceMutateHandler) handleUpdate(w http.ResponseWriter, _ *http.Requ
 		if err := validateFieldTypes(updateData, fieldMap); err != nil {
 			WriteError(w, http.StatusBadRequest, err.Error())
 			return
+		}
+
+		if resource == "apikeys" {
+			if err := validateAPIKeyMutationFields(updateData); err != nil {
+				WriteError(w, http.StatusBadRequest, err.Error())
+				return
+			}
 		}
 
 		// Check record exists
@@ -763,11 +812,16 @@ func (h *ResourceMutateHandler) actionRotateAPIKey(w http.ResponseWriter, rawIte
 
 		row := existing[0]
 		results = append(results, map[string]any{
-			"id":        id,
-			"name":      stringVal(row, "name"),
-			"role":      stringVal(row, "role"),
-			"can_write": toBool(row["can_write"]),
-			"key":       rawKey,
+			"id":               id,
+			"name":             stringVal(row, "name"),
+			"role":             stringVal(row, "role"),
+			"can_write":        toBool(row["can_write"]),
+			"is_website":       toBool(row["is_website"]),
+			"allowed_origins":  apiKeyAllowedOriginsValue(row["allowed_origins"]),
+			"rate_limit":       int64(apiKeyRateLimitValue(row["rate_limit"])),
+			"captcha_required": toBool(row["captcha_required"]),
+			"enabled":          apiKeyEnabledValue(row),
+			"key":              rawKey,
 		})
 	}
 
@@ -892,6 +946,111 @@ func validateFieldTypes(item map[string]any, fieldMap map[string]Field) error {
 		}
 	}
 	return nil
+}
+
+func validateAPIKeyMutationFields(item map[string]any) error {
+	if _, ok := item["allowed_origins"]; ok {
+		if _, err := validateAllowedOrigins(item["allowed_origins"]); err != nil {
+			return err
+		}
+	}
+
+	if value, ok := item["rate_limit"]; ok {
+		if _, err := validatePositiveInteger("rate_limit", value); err != nil {
+			return err
+		}
+	}
+
+	if value, ok := item["is_website"]; ok {
+		if _, ok := value.(bool); !ok {
+			return fmt.Errorf("Field 'is_website' must be a boolean")
+		}
+	}
+
+	if value, ok := item["captcha_required"]; ok {
+		if _, ok := value.(bool); !ok {
+			return fmt.Errorf("Field 'captcha_required' must be a boolean")
+		}
+	}
+
+	if value, ok := item["enabled"]; ok {
+		if _, ok := value.(bool); !ok {
+			return fmt.Errorf("Field 'enabled' must be a boolean")
+		}
+	}
+
+	return nil
+}
+
+func validateAllowedOrigins(value any) ([]string, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	switch v := value.(type) {
+	case []any:
+		result := make([]string, 0, len(v))
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("Field 'allowed_origins' must contain only strings")
+			}
+			result = append(result, s)
+		}
+		return result, nil
+	case []string:
+		result := make([]string, len(v))
+		copy(result, v)
+		return result, nil
+	default:
+		return nil, fmt.Errorf("Field 'allowed_origins' must be an array of strings")
+	}
+}
+
+func validatePositiveInteger(field string, value any) (int, error) {
+	switch v := value.(type) {
+	case float64:
+		if v != math.Trunc(v) || v < 1 {
+			return 0, fmt.Errorf("Field '%s' must be a positive integer", field)
+		}
+		return int(v), nil
+	case int:
+		if v < 1 {
+			return 0, fmt.Errorf("Field '%s' must be a positive integer", field)
+		}
+		return v, nil
+	case int64:
+		if v < 1 {
+			return 0, fmt.Errorf("Field '%s' must be a positive integer", field)
+		}
+		return int(v), nil
+	default:
+		return 0, fmt.Errorf("Field '%s' must be a positive integer", field)
+	}
+}
+
+func apiKeyAllowedOriginsValue(value any) []string {
+	allowedOrigins, err := parseAllowedOrigins(value)
+	if err != nil {
+		return nil
+	}
+	return allowedOrigins
+}
+
+func apiKeyRateLimitValue(value any) int {
+	rateLimit, err := parseAPIKeyRateLimit(value)
+	if err != nil {
+		return DefaultAPIKeyRateLimit
+	}
+	return rateLimit
+}
+
+func apiKeyEnabledValue(row map[string]any) bool {
+	value, ok := row["enabled"]
+	if !ok {
+		return true
+	}
+	return toBool(value)
 }
 
 // isTypeValid checks if a JSON value is compatible with the given Moon field type.

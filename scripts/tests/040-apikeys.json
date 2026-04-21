@@ -15,16 +15,23 @@
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
-      "data": {
-        "op": "create",
-        "data": [
-          {
-            "name": "Integration Service",
-            "role": "user",
-            "can_write": false
-          }
-        ]
-      }
+        "data": {
+          "op": "create",
+          "data": [
+            {
+              "name": "Integration Service",
+              "role": "user",
+              "can_write": false,
+              "is_website": true,
+              "allowed_origins": [
+                "https://moon.devnodes.in"
+              ],
+              "rate_limit": 5,
+              "captcha_required": true,
+              "enabled": true
+            }
+          ]
+        }
     },
     {
       "name": "List API Keys",
@@ -53,15 +60,22 @@
         "Authorization": "Bearer $ACCESS_TOKEN",
         "Content-Type": "application/json"
       },
-      "data": {
-        "op": "update",
-        "data": [
-          {
-            "id": "$ULID",
-            "name": "Updated Integration Service"
-          }
-        ]
-      }
+        "data": {
+          "op": "update",
+          "data": [
+            {
+              "id": "$ULID",
+              "name": "Updated Integration Service",
+              "allowed_origins": [
+                "https://moon.devnodes.in",
+                "https://www.moon.devnodes.in"
+              ],
+              "rate_limit": 10,
+              "captcha_required": false,
+              "enabled": true
+            }
+          ]
+        }
     },
     {
       "name": "Rotate API Key",
