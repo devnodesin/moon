@@ -13,7 +13,18 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
           {
             "name": "Integration Service",
             "role": "user",
-            "can_write": false
+            "can_write": false,
+            "collections": [
+              "products",
+              "orders"
+            ],
+            "is_website": true,
+            "allowed_origins": [
+              "https://moon.devnodes.in"
+            ],
+            "rate_limit": 5,
+            "captcha_required": true,
+            "enabled": true
           }
         ]
       }
@@ -27,13 +38,24 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
   "message": "Resource created successfully",
   "data": [
     {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
       "can_write": false,
-      "created_at": "2026-03-08T16:38:47Z",
-      "id": "01KK751JJD1GR629JX7RF2Q1N2",
-      "key": "moon_live_6PL5p63vTbGTF9fss4DUj10vusx0oS0R4a01l4P8qeLhmEa9WF20OhbtKhaBatV9",
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "key": "moon_live_YQh3eBJNm0AWUr8L9LXDbTX7Y3wP3qGZJ4f5h3MG2mfICMBVpHgQwbC4QwYH0RL0",
       "name": "Integration Service",
+      "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-03-08T16:38:47Z"
+      "updated_at": "2026-04-21T14:58:39Z"
     }
   ],
   "meta": {
@@ -59,13 +81,24 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
   "message": "Resources retrieved successfully",
   "data": [
     {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
       "can_write": false,
-      "created_at": "2026-03-08T16:38:47Z",
-      "id": "01KK751JJD1GR629JX7RF2Q1N2",
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
       "last_used_at": null,
       "name": "Integration Service",
+      "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-03-08T16:38:47Z"
+      "updated_at": "2026-04-21T14:58:39Z"
     }
   ],
   "meta": {
@@ -89,7 +122,7 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
 Retrieve a specific API key by its ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KK751JJD1GR629JX7RF2Q1N2" \
+curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KPR8SVKNGXSCC3EY1DB6RSRZ" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -100,13 +133,24 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KK751JJD1GR629JX7R
   "message": "Resource retrieved successfully",
   "data": [
     {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
       "can_write": false,
-      "created_at": "2026-03-08T16:38:47Z",
-      "id": "01KK751JJD1GR629JX7RF2Q1N2",
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
       "last_used_at": null,
       "name": "Integration Service",
+      "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-03-08T16:38:47Z"
+      "updated_at": "2026-04-21T14:58:39Z"
     }
   ]
 }
@@ -125,8 +169,18 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KK751JJD1GR629JX7RF2Q1N2",
-            "name": "Updated Integration Service"
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+            "name": "Updated Integration Service",
+            "collections": [
+              "products"
+            ],
+            "allowed_origins": [
+              "https://moon.devnodes.in",
+              "https://www.moon.devnodes.in"
+            ],
+            "rate_limit": 10,
+            "captcha_required": false,
+            "enabled": true
           }
         ]
       }
@@ -140,13 +194,24 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
   "message": "Resource updated successfully",
   "data": [
     {
+      "allowed_origins": [
+        "https://moon.devnodes.in",
+        "https://www.moon.devnodes.in"
+      ],
       "can_write": false,
-      "created_at": "2026-03-08T16:38:47Z",
-      "id": "01KK751JJD1GR629JX7RF2Q1N2",
+      "captcha_required": false,
+      "collections": [
+        "products"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
       "last_used_at": null,
       "name": "Updated Integration Service",
+      "rate_limit": 10,
       "role": "user",
-      "updated_at": "2026-03-08T16:38:48Z"
+      "updated_at": "2026-04-21T14:58:40Z"
     }
   ],
   "meta": {
@@ -170,7 +235,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "action": "rotate",
         "data": [
           {
-            "id": "01KK751JJD1GR629JX7RF2Q1N2"
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
           }
         ]
       }
@@ -184,10 +249,21 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
   "message": "Action completed successfully",
   "data": [
     {
+      "allowed_origins": [
+        "https://moon.devnodes.in",
+        "https://www.moon.devnodes.in"
+      ],
       "can_write": false,
-      "id": "01KK751JJD1GR629JX7RF2Q1N2",
-      "key": "moon_live_55XwTPU7On334v2DAXhlnlSrjKq9BPUhTASgomEB79ULKqFPxG1ZX2ZsBGAJXt23",
+      "captcha_required": false,
+      "collections": [
+        "products"
+      ],
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "key": "moon_live_FcxzPdRuR3l31Fd6Kh9OUtaJ9NAZ2kYl9XdwGk2AOvEDLKl8NnXI8QmDLlvoNzTD",
       "name": "Updated Integration Service",
+      "rate_limit": 10,
       "role": "user"
     }
   ],
@@ -211,7 +287,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KK751JJD1GR629JX7RF2Q1N2"
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
           }
         ]
       }

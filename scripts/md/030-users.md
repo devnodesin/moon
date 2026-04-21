@@ -30,11 +30,11 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-03-09T17:13:00Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "role": "user",
-      "updated_at": "2026-03-09T17:13:00Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ],
@@ -62,40 +62,30 @@ curl -s -X GET "http://localhost:6000/data/users:query" \
   "data": [
     {
       "can_write": true,
-      "created_at": "2026-03-09T10:15:50Z",
+      "created_at": "2026-04-21T14:13:02Z",
       "email": "admin@example.com",
-      "id": "01KK91H3WK7KH2H1H7AT4NYMA6",
-      "last_login_at": "2026-03-09T17:13:00Z",
+      "id": "01KPR66AXSAYXKS27QAEGM7A9X",
+      "last_login_at": "2026-04-21T14:58:35Z",
       "role": "admin",
-      "updated_at": "2026-03-09T17:13:00Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "admin"
     },
     {
-      "can_write": true,
-      "created_at": "2026-03-09T15:07:48Z",
-      "email": "mohamed@asensar.com",
-      "id": "01KK9J7Q51N1SW86VBWHB1NKH0",
-      "last_login_at": null,
-      "role": "user",
-      "updated_at": "2026-03-09T15:07:48Z",
-      "username": "mohamed"
-    },
-    {
       "can_write": false,
-      "created_at": "2026-03-09T17:13:00Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-03-09T17:13:00Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ],
   "meta": {
-    "count": 3,
+    "count": 2,
     "current_page": 1,
     "per_page": 15,
-    "total": 3,
+    "total": 2,
     "total_pages": 1
   },
   "links": {
@@ -112,7 +102,7 @@ curl -s -X GET "http://localhost:6000/data/users:query" \
 Retrieve a specific user by their ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/users:query?id=01KK9SCZ3TMBYP9E8KV34GEQ9J" \
+curl -s -X GET "http://localhost:6000/data/users:query?id=01KPR8SR8D8E2FGWEFB7Z4HJBC" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -124,12 +114,12 @@ curl -s -X GET "http://localhost:6000/data/users:query?id=01KK9SCZ3TMBYP9E8KV34G
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-03-09T17:13:00Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-03-09T17:13:00Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ]
@@ -149,7 +139,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
             "email": "moonuser_updated@example.com"
           }
         ]
@@ -165,12 +155,12 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-03-09T17:13:00Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser_updated@example.com",
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-03-09T17:13:01Z",
+      "updated_at": "2026-04-21T14:58:36Z",
       "username": "moonuser"
     }
   ],
@@ -195,7 +185,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "action": "reset_password",
         "data": [
           {
-            "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J",
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
             "password": "NewSecurePassword123"
           }
         ]
@@ -210,7 +200,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "message": "Action completed successfully",
   "data": [
     {
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J"
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
     }
   ],
   "meta": {
@@ -234,7 +224,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "action": "revoke_sessions",
         "data": [
           {
-            "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J"
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
           }
         ]
       }
@@ -248,7 +238,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "message": "Action completed successfully",
   "data": [
     {
-      "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J"
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
     }
   ],
   "meta": {
@@ -271,7 +261,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KK9SCZ3TMBYP9E8KV34GEQ9J"
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
           }
         ]
       }

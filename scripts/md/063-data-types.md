@@ -213,7 +213,7 @@ curl -s -X POST "http://localhost:6000/data/typed_items:mutate" \
       "boolean_test": true,
       "date_test": "2024-01-01 00:00:00 +0000 UTC",
       "decimal_test": "9.99",
-      "id": "01KK92XEWYF61XCZCQ7GFB20B3",
+      "id": "01KPR8T9042J5DXVH4DW5K17HT",
       "integer_test": 42,
       "json_test": {
         "key": "value"
@@ -247,7 +247,7 @@ curl -s -X GET "http://localhost:6000/data/typed_items:query" \
       "boolean_test": true,
       "date_test": "2024-01-01 00:00:00 +0000 UTC",
       "decimal_test": "9.99",
-      "id": "01KK92XEWYF61XCZCQ7GFB20B3",
+      "id": "01KPR8T9042J5DXVH4DW5K17HT",
       "integer_test": 42,
       "json_test": {
         "key": "value"

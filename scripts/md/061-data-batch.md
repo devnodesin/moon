@@ -50,37 +50,37 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
   "message": "Resource created successfully",
   "data": [
     {
-      "id": "01KK7522G6DX66VDCTZ5JYTQJH",
+      "id": "01KPR8T3SVZXSKS028C8TA420F",
       "quantity": 5,
       "title": "Product 1"
     },
     {
-      "id": "01KK7522G6CAC4V9BS0Z26WXG3",
+      "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
       "quantity": 10,
       "title": "Product 2"
     },
     {
-      "id": "01KK7522G662T7P7EAKP8409J4",
+      "id": "01KPR8T3SVC9T082BH23RDJA6T",
       "quantity": 20,
       "title": "Product 3"
     },
     {
-      "id": "01KK7522G7WKQ9CCCGK2Z19JBM",
+      "id": "01KPR8T3SWFY4XTVPZFH0WTS7A",
       "quantity": 55,
       "title": "Product 4"
     },
     {
-      "id": "01KK7522G76KDCYQFF7QBPFZCS",
+      "id": "01KPR8T3SW9M9PV21JDSVDSQNM",
       "quantity": 56,
       "title": "Product 5"
     },
     {
-      "id": "01KK7522G7KHAEGAV2Q1DG85T0",
+      "id": "01KPR8T3SWV90NG8K3DXTV8EAW",
       "quantity": 5,
       "title": "Product 6"
     },
     {
-      "id": "01KK7522G7F8KSFE27C24WN8QX",
+      "id": "01KPR8T3SWGG60G31N0FYVBG2D",
       "quantity": 12,
       "title": "Product 7"
     }
@@ -105,12 +105,12 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KK7522G6DX66VDCTZ5JYTQJH",
+            "id": "01KPR8T3SVZXSKS028C8TA420F",
             "quantity": 1200,
             "title": "Updated Product 1"
           },
           {
-            "id": "01KK7522G6CAC4V9BS0Z26WXG3",
+            "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
             "title": "Updated Product 2"
           }
         ]
@@ -125,12 +125,12 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
   "message": "Resource updated successfully",
   "data": [
     {
-      "id": "01KK7522G6DX66VDCTZ5JYTQJH",
+      "id": "01KPR8T3SVZXSKS028C8TA420F",
       "quantity": 1200,
       "title": "Updated Product 1"
     },
     {
-      "id": "01KK7522G6CAC4V9BS0Z26WXG3",
+      "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
       "quantity": 10,
       "title": "Updated Product 2"
     }
@@ -155,22 +155,22 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KK7522G6DX66VDCTZ5JYTQJH"
+            "id": "01KPR8T3SVZXSKS028C8TA420F"
           },
           {
-            "id": "01KK7522G6CAC4V9BS0Z26WXG3"
+            "id": "01KPR8T3SV69F89Z2E4K7K4PXM"
           },
           {
-            "id": "01KK7522G662T7P7EAKP8409J4"
+            "id": "01KPR8T3SVC9T082BH23RDJA6T"
           },
           {
-            "id": "01KK7522G7WKQ9CCCGK2Z19JBM"
+            "id": "01KPR8T3SWFY4XTVPZFH0WTS7A"
           },
           {
-            "id": "01KK7522G76KDCYQFF7QBPFZCS"
+            "id": "01KPR8T3SW9M9PV21JDSVDSQNM"
           },
           {
-            "id": "01KK7522G7KHAEGAV2Q1DG85T0"
+            "id": "01KPR8T3SWV90NG8K3DXTV8EAW"
           }
         ]
       }

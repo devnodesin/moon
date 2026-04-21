@@ -1,6 +1,6 @@
 {
   "docURL": "http://localhost:6000",
-  "serverURL": "https://moon.devnodes.in",
+  "serverURL": "https://moon.devnodes.in/api",
   "prefix": "",
   "username": "admin",
   "password": "MoonAdmin12#",

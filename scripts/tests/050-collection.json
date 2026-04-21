@@ -1,6 +1,6 @@
 {
   "docURL": "http://localhost:6000",
-  "serverURL": "https://moon.devnodes.in",
+  "serverURL": "https://moon.devnodes.in/api",
   "prefix": "",
   "username": "admin",
   "password": "MoonAdmin12#",
@@ -25,6 +25,28 @@
               {"name": "price",       "type": "integer", "nullable": false},
               {"name": "description", "type": "string",  "nullable": true},
               {"name": "category",    "type": "string",  "nullable": true}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Create Collection",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "details": "Create a new collection named `category` with typed columns.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "category",
+            "columns": [
+              {"name": "title",       "type": "string",  "nullable": false, "unique": true},
+              {"name": "description", "type": "string",  "nullable": true}
             ]
           }
         ]

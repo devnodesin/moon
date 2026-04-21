@@ -97,7 +97,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KK751WWJZA1F1YWA28ERN448",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -128,7 +128,7 @@ curl -s -X GET "http://localhost:6000/data/products:query" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KK751WWJZA1F1YWA28ERN448",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -155,7 +155,7 @@ curl -s -X GET "http://localhost:6000/data/products:query" \
 Retrieve a single record by its ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/products:query?id=01KK751WWJZA1F1YWA28ERN448" \
+curl -s -X GET "http://localhost:6000/data/products:query?id=01KPR8T0YFNYKNZ265XBGS8XR3" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -168,7 +168,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?id=01KK751WWJZA1F1YWA2
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KK751WWJZA1F1YWA28ERN448",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -190,7 +190,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KK751WWJZA1F1YWA28ERN448",
+            "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
             "price": 6000
           }
         ]
@@ -207,7 +207,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KK751WWJZA1F1YWA28ERN448",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 6000,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -233,7 +233,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KK751WWJZA1F1YWA28ERN448"
+            "id": "01KPR8T0YFNYKNZ265XBGS8XR3"
           }
         ]
       }
