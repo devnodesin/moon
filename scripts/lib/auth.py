@@ -161,7 +161,7 @@ def extract_tokens_from_response(
     data_obj: Dict[str, Any] = {}
 
     if isinstance(data_raw, list) and len(data_raw) > 0:
-        data_obj = data_raw[0] if isinstance(data_raw[0], dict) else {}
+        data_obj = data_raw[0]
     elif isinstance(data_raw, dict):
         data_obj = data_raw
     else:

@@ -63,11 +63,11 @@ class AuthState:
         if token and token not in self.all_refresh_tokens:
             self.all_refresh_tokens.append(token)
 
-    def update_api_key(self, api_key: str) -> None:
+    def update_api_key(self, key: str) -> None:
         """Update API key and track it for documentation replacement."""
-        self.api_key = api_key
-        if api_key and api_key not in self.all_api_keys:
-            self.all_api_keys.append(api_key)
+        self.api_key = key
+        if key and key not in self.all_api_keys:
+            self.all_api_keys.append(key)
     
     def update_credentials(self, username: str, password: str) -> None:
         """Update current credentials after password change."""
