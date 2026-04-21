@@ -993,6 +993,7 @@ func TestIsReadOnlyField(t *testing.T) {
 		{"users", "role", false, false},
 		{"apikeys", "name", false, false},
 		{"apikeys", "role", false, false},
+		{"apikeys", "collections", false, false},
 		{"apikeys", "is_website", false, false},
 		{"apikeys", "allowed_origins", false, false},
 		{"apikeys", "rate_limit", false, false},
@@ -1057,6 +1058,9 @@ func TestSchemaRegistry_ApikeysFields(t *testing.T) {
 
 	if got := fieldMap["is_website"].Type; got != MoonFieldTypeBoolean {
 		t.Fatalf("is_website type=%q, want %q", got, MoonFieldTypeBoolean)
+	}
+	if got := fieldMap["collections"].Type; got != MoonFieldTypeJSON {
+		t.Fatalf("collections type=%q, want %q", got, MoonFieldTypeJSON)
 	}
 	if got := fieldMap["allowed_origins"].Type; got != MoonFieldTypeJSON {
 		t.Fatalf("allowed_origins type=%q, want %q", got, MoonFieldTypeJSON)

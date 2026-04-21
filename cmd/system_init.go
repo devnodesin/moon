@@ -35,6 +35,7 @@ const ddlApikeysTable = `CREATE TABLE IF NOT EXISTS apikeys (
     name TEXT NOT NULL,
     role TEXT NOT NULL,
     can_write BOOLEAN NOT NULL DEFAULT 0,
+    collections JSON NOT NULL DEFAULT '[]',
     is_website BOOLEAN NOT NULL DEFAULT 0,
     allowed_origins JSON,
     rate_limit INTEGER NOT NULL DEFAULT 15,

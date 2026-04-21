@@ -39,6 +39,7 @@ func TestResourceSchemaHandler_HandleSchema(t *testing.T) {
 					{Name: "name", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: false},
 					{Name: "role", Type: MoonFieldTypeString, Nullable: false, Unique: false, ReadOnly: false},
 					{Name: "can_write", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
+					{Name: "collections", Type: MoonFieldTypeJSON, Nullable: false, Unique: false, ReadOnly: false},
 					{Name: "is_website", Type: MoonFieldTypeBoolean, Nullable: false, Unique: false, ReadOnly: false},
 					{Name: "allowed_origins", Type: MoonFieldTypeJSON, Nullable: true, Unique: false, ReadOnly: false},
 					{Name: "rate_limit", Type: MoonFieldTypeInteger, Nullable: false, Unique: false, ReadOnly: false},
@@ -148,8 +149,8 @@ func TestResourceSchemaHandler_HandleSchema(t *testing.T) {
 				t.Fatal("key_hash should be hidden from apikeys schema")
 			}
 		}
-		if len(schema.Fields) != 12 {
-			t.Fatalf("got %d fields for apikeys, want 12", len(schema.Fields))
+		if len(schema.Fields) != 13 {
+			t.Fatalf("got %d fields for apikeys, want 13", len(schema.Fields))
 		}
 	})
 

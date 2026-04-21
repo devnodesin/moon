@@ -42,9 +42,14 @@ func (h *CollectionHandler) HandleQuery(w http.ResponseWriter, r *http.Request) 
 	h.handleList(w, r)
 }
 
-func (h *CollectionHandler) handleGetOne(w http.ResponseWriter, _ *http.Request, name string) {
+func (h *CollectionHandler) handleGetOne(w http.ResponseWriter, r *http.Request, name string) {
 	if strings.HasPrefix(name, "moon_") {
 		WriteError(w, http.StatusBadRequest, "Collection name is reserved")
+		return
+	}
+
+	if !isCollectionVisibleToIdentity(r.Context(), name) {
+		WriteError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
 
@@ -67,7 +72,7 @@ func (h *CollectionHandler) handleGetOne(w http.ResponseWriter, _ *http.Request,
 func (h *CollectionHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 
-	allCollections := h.registry.List()
+	allCollections := filterCollectionsByIdentity(r.Context(), h.registry.List())
 	total := len(allCollections)
 	totalPages := 1
 	if total > 0 {
@@ -105,6 +110,27 @@ func (h *CollectionHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	links := buildPaginationLinks(basePath, page, perPage, totalPages)
 
 	WriteSuccessFull(w, http.StatusOK, "Collections retrieved successfully", data, meta, links)
+}
+
+func filterCollectionsByIdentity(ctx context.Context, collections []*Collection) []*Collection {
+	if identity, ok := GetAuthIdentity(ctx); ok && identity.CredentialType == CredentialTypeAPIKey {
+		filtered := make([]*Collection, 0, len(collections))
+		for _, col := range collections {
+			if stringInSlice(col.Name, identity.Collections) {
+				filtered = append(filtered, col)
+			}
+		}
+		return filtered
+	}
+	return collections
+}
+
+func isCollectionVisibleToIdentity(ctx context.Context, name string) bool {
+	identity, ok := GetAuthIdentity(ctx)
+	if !ok || identity.CredentialType != CredentialTypeAPIKey {
+		return true
+	}
+	return stringInSlice(name, identity.Collections)
 }
 
 // ---------------------------------------------------------------------------

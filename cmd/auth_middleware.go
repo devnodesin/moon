@@ -26,6 +26,7 @@ type AuthIdentity struct {
 	Role            string // "admin" or "user"
 	CanWrite        bool
 	JTI             string // only for JWT credentials
+	Collections     []string
 	IsWebsite       bool
 	AllowedOrigins  []string
 	RateLimit       int
@@ -283,6 +284,10 @@ func (m *AuthMiddleware) validateAPIKey(ctx context.Context, key string) (*AuthI
 	id, _ := row["id"].(string)
 	role, _ := row["role"].(string)
 	canWrite := toBool(row["can_write"])
+	collections, err := parseCollections(row["collections"])
+	if err != nil {
+		return nil, fmt.Errorf("parse collections: %w", err)
+	}
 	isWebsite := toBool(row["is_website"])
 	allowedOrigins, err := parseAllowedOrigins(row["allowed_origins"])
 	if err != nil {
@@ -315,6 +320,7 @@ func (m *AuthMiddleware) validateAPIKey(ctx context.Context, key string) (*AuthI
 		CallerID:        id,
 		Role:            role,
 		CanWrite:        canWrite,
+		Collections:     collections,
 		IsWebsite:       isWebsite,
 		AllowedOrigins:  allowedOrigins,
 		RateLimit:       rateLimit,
@@ -323,7 +329,15 @@ func (m *AuthMiddleware) validateAPIKey(ctx context.Context, key string) (*AuthI
 	}, nil
 }
 
+func parseCollections(value any) ([]string, error) {
+	return parseStringArrayValue(value, "collections")
+}
+
 func parseAllowedOrigins(value any) ([]string, error) {
+	return parseStringArrayValue(value, "allowed origins")
+}
+
+func parseStringArrayValue(value any, fieldName string) ([]string, error) {
 	switch v := value.(type) {
 	case nil:
 		return nil, nil
@@ -354,13 +368,13 @@ func parseAllowedOrigins(value any) ([]string, error) {
 		for _, item := range v {
 			s, ok := item.(string)
 			if !ok {
-				return nil, fmt.Errorf("allowed origins must contain only strings")
+				return nil, fmt.Errorf("%s must contain only strings", fieldName)
 			}
 			result = append(result, s)
 		}
 		return result, nil
 	default:
-		return nil, fmt.Errorf("unsupported allowed origins type %T", value)
+		return nil, fmt.Errorf("unsupported %s type %T", fieldName, value)
 	}
 }
 
@@ -414,6 +428,11 @@ func Authorize(prefix string, next http.Handler) http.Handler {
 
 		path := r.URL.Path
 
+		if !isAPIKeyResourceAllowed(identity, path) {
+			WriteError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
 		// Determine what kind of operation this is
 		if isAdminOnlyRoute(path, r.Method, p) {
 			if identity.Role != "admin" {
@@ -442,6 +461,28 @@ func Authorize(prefix string, next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isAPIKeyResourceAllowed(identity *AuthIdentity, path string) bool {
+	if identity.CredentialType != CredentialTypeAPIKey {
+		return true
+	}
+
+	resource := extractResource(path)
+	if resource == "" {
+		return true
+	}
+
+	return stringInSlice(resource, identity.Collections)
+}
+
+func stringInSlice(value string, items []string) bool {
+	for _, item := range items {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
 
 // isAdminOnlyRoute returns true for routes that require admin role.

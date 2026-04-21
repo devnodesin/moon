@@ -508,6 +508,7 @@ func TestMutate_Create_APIKey_Success(t *testing.T) {
 				"name":             "my-service",
 				"role":             "user",
 				"can_write":        true,
+				"collections":      []any{"products", "orders"},
 				"is_website":       true,
 				"allowed_origins":  []any{"https://example.com"},
 				"rate_limit":       5,
@@ -532,6 +533,10 @@ func TestMutate_Create_APIKey_Success(t *testing.T) {
 	}
 	if len(key) != APIKeyTotalLen {
 		t.Fatalf("expected key length %d, got %d", APIKeyTotalLen, len(key))
+	}
+	collections := record["collections"].([]any)
+	if len(collections) != 2 || collections[0] != "products" || collections[1] != "orders" {
+		t.Fatalf("unexpected collections=%v", record["collections"])
 	}
 	if record["is_website"] != true {
 		t.Fatalf("expected is_website=true, got %v", record["is_website"])
@@ -579,6 +584,27 @@ func TestMutate_Create_APIKey_MissingIsWebsite(t *testing.T) {
 			map[string]any{
 				"name": "my-service",
 				"role": "user",
+				"collections": []any{"products"},
+			},
+		},
+	}
+
+	w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestMutate_Create_APIKey_MissingCollections(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"name":       "my-service",
+				"role":       "user",
+				"is_website": false,
 			},
 		},
 	}
@@ -1028,6 +1054,7 @@ func TestMutate_Action_RotateAPIKey_Success(t *testing.T) {
 		"name":             "service-key",
 		"role":             "user",
 		"can_write":        int64(1),
+		"collections":      `["products"]`,
 		"is_website":       int64(1),
 		"allowed_origins":  `["https://example.com"]`,
 		"rate_limit":       int64(5),
@@ -1068,6 +1095,9 @@ func TestMutate_Action_RotateAPIKey_Success(t *testing.T) {
 	}
 	if record["role"] != "user" {
 		t.Fatalf("expected role=user, got %v", record["role"])
+	}
+	if got := record["collections"].([]any); len(got) != 1 || got[0] != "products" {
+		t.Fatalf("expected collections=[products], got %v", record["collections"])
 	}
 	if record["is_website"] != true {
 		t.Fatalf("expected is_website=true, got %v", record["is_website"])
@@ -1974,6 +2004,7 @@ func TestMutate_Create_APIKey_WithCanWrite(t *testing.T) {
 				"name":       "readonly-key",
 				"role":       "user",
 				"can_write":  false,
+				"collections": []any{"products"},
 				"is_website": false,
 			},
 		},
@@ -1999,6 +2030,7 @@ func TestValidateAPIKeyMutationFields(t *testing.T) {
 		{
 			name: "valid",
 			item: map[string]any{
+				"collections":      []any{"products"},
 				"is_website":       true,
 				"allowed_origins":  []any{"https://example.com"},
 				"rate_limit":       float64(5),
@@ -2010,6 +2042,13 @@ func TestValidateAPIKeyMutationFields(t *testing.T) {
 			name: "invalid origins",
 			item: map[string]any{
 				"allowed_origins": map[string]any{"origin": "https://example.com"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid collections",
+			item: map[string]any{
+				"collections": map[string]any{"name": "products"},
 			},
 			wantErr: true,
 		},

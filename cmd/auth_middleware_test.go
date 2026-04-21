@@ -108,6 +108,7 @@ func testAuthHandler() http.Handler {
 			"role":             identity.Role,
 			"can_write":        identity.CanWrite,
 			"jti":              identity.JTI,
+			"collections":      identity.Collections,
 			"is_website":       identity.IsWebsite,
 			"rate_limit":       identity.RateLimit,
 			"captcha_required": identity.CaptchaRequired,
@@ -573,6 +574,7 @@ func TestAuthenticate_ValidAPIKey(t *testing.T) {
 				"key_hash":         hash,
 				"role":             "user",
 				"can_write":        true,
+				"collections":      `["products","orders"]`,
 				"is_website":       true,
 				"allowed_origins":  `["https://example.com"]`,
 				"rate_limit":       int64(5),
@@ -609,6 +611,10 @@ func TestAuthenticate_ValidAPIKey(t *testing.T) {
 	}
 	if body["is_website"] != true {
 		t.Fatalf("expected is_website=true, got %v", body["is_website"])
+	}
+	collections := body["collections"].([]any)
+	if len(collections) != 2 || collections[0] != "products" || collections[1] != "orders" {
+		t.Fatalf("unexpected collections=%v", body["collections"])
 	}
 	if body["rate_limit"] != float64(5) {
 		t.Fatalf("expected rate_limit=5, got %v", body["rate_limit"])
@@ -700,6 +706,34 @@ func TestParseAllowedOrigins(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := parseAllowedOrigins(tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != tt.wantLen {
+				t.Fatalf("expected len=%d, got %d", tt.wantLen, len(got))
+			}
+		})
+	}
+}
+
+func TestParseCollections(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   any
+		wantLen int
+		wantErr bool
+	}{
+		{"nil", nil, 0, false},
+		{"json string", `["products"]`, 1, false},
+		{"json bytes", []byte(`["products","orders"]`), 2, false},
+		{"string slice", []string{"products"}, 1, false},
+		{"any slice", []any{"products"}, 1, false},
+		{"bad any slice", []any{1}, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseCollections(tt.value)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -1022,6 +1056,37 @@ func TestAuthorize_WithPrefix(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+func TestAuthorize_APIKeyCollectionsRestricted(t *testing.T) {
+	identity := &AuthIdentity{
+		CredentialType: CredentialTypeAPIKey,
+		CallerID:       "key1",
+		Role:           "user",
+		CanWrite:       true,
+		Collections:    []string{"products"},
+	}
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := Authorize("", inner)
+
+	req := httptest.NewRequest(http.MethodGet, "/data/products:query", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/data/orders:query", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", w.Code)
 	}

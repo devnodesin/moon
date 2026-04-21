@@ -284,6 +284,11 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 		canWrite = toBool(v)
 	}
 
+	collections, err := validateCollections(item["collections"], true)
+	if err != nil {
+		return nil, &validationError{msg: err.Error()}
+	}
+
 	allowedOrigins, err := validateAllowedOrigins(item["allowed_origins"])
 	if err != nil {
 		return nil, &validationError{msg: err.Error()}
@@ -315,6 +320,7 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 		"name":             name,
 		"role":             role,
 		"can_write":        boolToInt(canWrite),
+		"collections":      prepareValueForDB(collections, MoonFieldTypeJSON),
 		"is_website":       boolToInt(isWebsite),
 		"allowed_origins":  prepareValueForDB(allowedOrigins, MoonFieldTypeJSON),
 		"rate_limit":       int64(rateLimit),
@@ -334,6 +340,7 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 		"name":             name,
 		"role":             role,
 		"can_write":        canWrite,
+		"collections":      collections,
 		"is_website":       isWebsite,
 		"allowed_origins":  allowedOrigins,
 		"rate_limit":       int64(rateLimit),
@@ -816,6 +823,7 @@ func (h *ResourceMutateHandler) actionRotateAPIKey(w http.ResponseWriter, rawIte
 			"name":             stringVal(row, "name"),
 			"role":             stringVal(row, "role"),
 			"can_write":        toBool(row["can_write"]),
+			"collections":      apiKeyCollectionsValue(row["collections"]),
 			"is_website":       toBool(row["is_website"]),
 			"allowed_origins":  apiKeyAllowedOriginsValue(row["allowed_origins"]),
 			"rate_limit":       int64(apiKeyRateLimitValue(row["rate_limit"])),
@@ -954,6 +962,11 @@ func validateAPIKeyMutationFields(item map[string]any) error {
 			return err
 		}
 	}
+	if _, ok := item["collections"]; ok {
+		if _, err := validateCollections(item["collections"], false); err != nil {
+			return err
+		}
+	}
 
 	if value, ok := item["rate_limit"]; ok {
 		if _, err := validatePositiveInteger("rate_limit", value); err != nil {
@@ -983,7 +996,18 @@ func validateAPIKeyMutationFields(item map[string]any) error {
 }
 
 func validateAllowedOrigins(value any) ([]string, error) {
+	return validateStringArrayField("allowed_origins", value, false)
+}
+
+func validateCollections(value any, required bool) ([]string, error) {
+	return validateStringArrayField("collections", value, required)
+}
+
+func validateStringArrayField(field string, value any, required bool) ([]string, error) {
 	if value == nil {
+		if required {
+			return nil, fmt.Errorf("Field '%s' is required", field)
+		}
 		return nil, nil
 	}
 
@@ -993,7 +1017,7 @@ func validateAllowedOrigins(value any) ([]string, error) {
 		for _, item := range v {
 			s, ok := item.(string)
 			if !ok {
-				return nil, fmt.Errorf("Field 'allowed_origins' must contain only strings")
+				return nil, fmt.Errorf("Field '%s' must contain only strings", field)
 			}
 			result = append(result, s)
 		}
@@ -1003,7 +1027,7 @@ func validateAllowedOrigins(value any) ([]string, error) {
 		copy(result, v)
 		return result, nil
 	default:
-		return nil, fmt.Errorf("Field 'allowed_origins' must be an array of strings")
+		return nil, fmt.Errorf("Field '%s' must be an array of strings", field)
 	}
 }
 
@@ -1035,6 +1059,14 @@ func apiKeyAllowedOriginsValue(value any) []string {
 		return nil
 	}
 	return allowedOrigins
+}
+
+func apiKeyCollectionsValue(value any) []string {
+	collections, err := parseCollections(value)
+	if err != nil {
+		return nil
+	}
+	return collections
 }
 
 func apiKeyRateLimitValue(value any) int {

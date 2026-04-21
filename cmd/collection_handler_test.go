@@ -54,6 +54,7 @@ func setupCollectionTest(t *testing.T) (*SQLiteAdapter, *SchemaRegistry, *AppCon
 		key_hash TEXT NOT NULL,
 		role TEXT NOT NULL DEFAULT 'user',
 		can_write INTEGER NOT NULL DEFAULT 0,
+		collections JSON NOT NULL DEFAULT '[]',
 		is_website INTEGER NOT NULL DEFAULT 0,
 		allowed_origins JSON,
 		rate_limit INTEGER NOT NULL DEFAULT 15,
