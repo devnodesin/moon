@@ -103,7 +103,7 @@ curl -s -X GET "http://localhost:6000/health" | jq .
 {
   "data": {
     "moon": "1.00",
-    "timestamp": "2026-04-21T14:05:31Z"
+    "timestamp": "2026-04-21T14:58:28Z"
   }
 }
 ```
@@ -122,7 +122,7 @@ curl -s -X GET "http://localhost:6000/" | jq .
 {
   "data": {
     "moon": "1.00",
-    "timestamp": "2026-04-21T14:05:31Z"
+    "timestamp": "2026-04-21T14:58:28Z"
   }
 }
 ```
@@ -155,19 +155,19 @@ curl -s -X POST "http://localhost:6000/auth:session" \
   "message": "Login successful",
   "data": [
     {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYW5fd3JpdGUiOmZhbHNlLCJleHAiOjE3NzY3ODM5MzMsImlhdCI6MTc3Njc4MDMzMywianRpIjoiMDFLUFI1Uk1CUVhZR0czWloyWFowWDhFTUoiLCJyb2xlIjoidXNlciIsInN1YiI6IjAxS1BSNVJLTjhWNzJOMDJBQ1lUNjVDNEg0In0.N23kMhi57Zc_1VUZMa8ouJZBsps2V8tbxMXvdaCgyhA",
-      "refresh_token": "SnA0J-7JzB0MeYvq3EaSVl1ESOlfsGeb-tKjwn8j7v0",
-      "expires_at": "2026-04-21T15:05:33Z",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYW5fd3JpdGUiOmZhbHNlLCJleHAiOjE3NzY3ODcxMTEsImlhdCI6MTc3Njc4MzUxMSwianRpIjoiMDFLUFI4U0tOQlZYV0ZOQTIxRkRENENHRFMiLCJyb2xlIjoidXNlciIsInN1YiI6IjAxS1BSOFNKVkNYWkE1MTg1SzFNVzMxOE40In0.7IJGtc5_R3I1xfh7vcDC4df1cDiNB4t68h8Z-Ei_YC4",
+      "refresh_token": "OIDUSNLYbbkVF50h9yUIFHpeeme7LJznuAGVzWozing",
+      "expires_at": "2026-04-21T15:58:31Z",
       "token_type": "Bearer",
       "user": {
-        "id": "01KPR5RKN8V72N02ACYT65C4H4",
+        "id": "01KPR8SJVCXZA5185K1MW318N4",
         "username": "moonuser",
         "email": "moonuser@example.com",
         "role": "user",
         "can_write": false,
-        "created_at": "2026-04-21T14:05:32Z",
-        "updated_at": "2026-04-21T14:05:32Z",
-        "last_login_at": "2026-04-21T14:05:33Z"
+        "created_at": "2026-04-21T14:58:30Z",
+        "updated_at": "2026-04-21T14:58:30Z",
+        "last_login_at": "2026-04-21T14:58:31Z"
       }
     }
   ]
@@ -191,12 +191,12 @@ curl -s -X GET "http://localhost:6000/auth:me" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:32Z",
+      "created_at": "2026-04-21T14:58:30Z",
       "email": "moonuser@example.com",
-      "id": "01KPR5RKN8V72N02ACYT65C4H4",
-      "last_login_at": "2026-04-21T14:05:33Z",
+      "id": "01KPR8SJVCXZA5185K1MW318N4",
+      "last_login_at": "2026-04-21T14:58:31Z",
       "role": "user",
-      "updated_at": "2026-04-21T14:05:33Z",
+      "updated_at": "2026-04-21T14:58:31Z",
       "username": "moonuser"
     }
   ]
@@ -228,12 +228,12 @@ curl -s -X POST "http://localhost:6000/auth:me" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:32Z",
+      "created_at": "2026-04-21T14:58:30Z",
       "email": "admin_updated@example.com",
-      "id": "01KPR5RKN8V72N02ACYT65C4H4",
-      "last_login_at": "2026-04-21T14:05:33Z",
+      "id": "01KPR8SJVCXZA5185K1MW318N4",
+      "last_login_at": "2026-04-21T14:58:31Z",
       "role": "user",
-      "updated_at": "2026-04-21T14:05:34Z",
+      "updated_at": "2026-04-21T14:58:31Z",
       "username": "moonuser"
     }
   ]
@@ -266,12 +266,12 @@ curl -s -X POST "http://localhost:6000/auth:me" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:32Z",
+      "created_at": "2026-04-21T14:58:30Z",
       "email": "admin_updated@example.com",
-      "id": "01KPR5RKN8V72N02ACYT65C4H4",
-      "last_login_at": "2026-04-21T14:05:33Z",
+      "id": "01KPR8SJVCXZA5185K1MW318N4",
+      "last_login_at": "2026-04-21T14:58:31Z",
       "role": "user",
-      "updated_at": "2026-04-21T14:05:35Z",
+      "updated_at": "2026-04-21T14:58:32Z",
       "username": "moonuser"
     }
   ]
@@ -302,19 +302,19 @@ curl -s -X POST "http://localhost:6000/auth:session" \
   "message": "Token refreshed successfully",
   "data": [
     {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYW5fd3JpdGUiOmZhbHNlLCJleHAiOjE3NzY3ODM5MzYsImlhdCI6MTc3Njc4MDMzNiwianRpIjoiMDFLUFI1UlEzOUJSUFJCVlBHU1I2NDVZR0ciLCJyb2xlIjoidXNlciIsInN1YiI6IjAxS1BSNVJLTjhWNzJOMDJBQ1lUNjVDNEg0In0.oaVjK47VAdKunqj-gR6-Ia4YnMlH5yRcDcJjl3CWC6M",
-      "refresh_token": "v4ZmCWBeFcXC9gDH87U9_83XouJF2CGuPaS6WRpeFfg",
-      "expires_at": "2026-04-21T15:05:36Z",
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYW5fd3JpdGUiOmZhbHNlLCJleHAiOjE3NzY3ODcxMTMsImlhdCI6MTc3Njc4MzUxMywianRpIjoiMDFLUFI4U05UV1lQNUNSWFdQVzBGWVc1WkUiLCJyb2xlIjoidXNlciIsInN1YiI6IjAxS1BSOFNKVkNYWkE1MTg1SzFNVzMxOE40In0.GOqe3k4-CwuOX3q2Ek5kX978p_V3Qhs_LdL7-x32dCU",
+      "refresh_token": "krd0cdFFMhhHbmJ5OOVDAn7kexI_VN-8jhfNaH6Bvkc",
+      "expires_at": "2026-04-21T15:58:33Z",
       "token_type": "Bearer",
       "user": {
-        "id": "01KPR5RKN8V72N02ACYT65C4H4",
+        "id": "01KPR8SJVCXZA5185K1MW318N4",
         "username": "moonuser",
         "email": "admin_updated@example.com",
         "role": "user",
         "can_write": false,
-        "created_at": "2026-04-21T14:05:32Z",
-        "updated_at": "2026-04-21T14:05:35Z",
-        "last_login_at": "2026-04-21T14:05:35Z"
+        "created_at": "2026-04-21T14:58:30Z",
+        "updated_at": "2026-04-21T14:58:33Z",
+        "last_login_at": "2026-04-21T14:58:33Z"
       }
     }
   ]
@@ -382,11 +382,11 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:38Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KPR5RSACB91CZ216R43Y45CK",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "role": "user",
-      "updated_at": "2026-04-21T14:05:38Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ],
@@ -414,22 +414,22 @@ curl -s -X GET "http://localhost:6000/data/users:query" \
   "data": [
     {
       "can_write": true,
-      "created_at": "2026-04-14T10:14:09Z",
+      "created_at": "2026-04-21T14:13:02Z",
       "email": "admin@example.com",
-      "id": "01KP5QQWBK7P5VHATED0ZQSM97",
-      "last_login_at": "2026-04-21T14:05:37Z",
+      "id": "01KPR66AXSAYXKS27QAEGM7A9X",
+      "last_login_at": "2026-04-21T14:58:35Z",
       "role": "admin",
-      "updated_at": "2026-04-21T14:05:37Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "admin"
     },
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:38Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KPR5RSACB91CZ216R43Y45CK",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-04-21T14:05:38Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ],
@@ -454,7 +454,7 @@ curl -s -X GET "http://localhost:6000/data/users:query" \
 Retrieve a specific user by their ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/users:query?id=01KPR5RSACB91CZ216R43Y45CK" \
+curl -s -X GET "http://localhost:6000/data/users:query?id=01KPR8SR8D8E2FGWEFB7Z4HJBC" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -466,12 +466,12 @@ curl -s -X GET "http://localhost:6000/data/users:query?id=01KPR5RSACB91CZ216R43Y
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:38Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser@example.com",
-      "id": "01KPR5RSACB91CZ216R43Y45CK",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-04-21T14:05:38Z",
+      "updated_at": "2026-04-21T14:58:35Z",
       "username": "moonuser"
     }
   ]
@@ -491,7 +491,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KPR5RSACB91CZ216R43Y45CK",
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
             "email": "moonuser_updated@example.com"
           }
         ]
@@ -507,12 +507,12 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "data": [
     {
       "can_write": false,
-      "created_at": "2026-04-21T14:05:38Z",
+      "created_at": "2026-04-21T14:58:35Z",
       "email": "moonuser_updated@example.com",
-      "id": "01KPR5RSACB91CZ216R43Y45CK",
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
       "last_login_at": null,
       "role": "user",
-      "updated_at": "2026-04-21T14:05:39Z",
+      "updated_at": "2026-04-21T14:58:36Z",
       "username": "moonuser"
     }
   ],
@@ -537,7 +537,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "action": "reset_password",
         "data": [
           {
-            "id": "01KPR5RSACB91CZ216R43Y45CK",
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC",
             "password": "NewSecurePassword123"
           }
         ]
@@ -552,7 +552,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "message": "Action completed successfully",
   "data": [
     {
-      "id": "01KPR5RSACB91CZ216R43Y45CK"
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
     }
   ],
   "meta": {
@@ -576,7 +576,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "action": "revoke_sessions",
         "data": [
           {
-            "id": "01KPR5RSACB91CZ216R43Y45CK"
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
           }
         ]
       }
@@ -590,7 +590,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
   "message": "Action completed successfully",
   "data": [
     {
-      "id": "01KPR5RSACB91CZ216R43Y45CK"
+      "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
     }
   ],
   "meta": {
@@ -613,7 +613,7 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KPR5RSACB91CZ216R43Y45CK"
+            "id": "01KPR8SR8D8E2FGWEFB7Z4HJBC"
           }
         ]
       }
@@ -668,11 +668,37 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
     ' | jq .
 ```
 
-**Response (400 Bad Request):**
+**Response (201 Created):**
 
 ```json
 {
-  "message": "Unknown field 'allowed_origins'"
+  "message": "Resource created successfully",
+  "data": [
+    {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
+      "can_write": false,
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "key": "moon_live_YQh3eBJNm0AWUr8L9LXDbTX7Y3wP3qGZJ4f5h3MG2mfICMBVpHgQwbC4QwYH0RL0",
+      "name": "Integration Service",
+      "rate_limit": 5,
+      "role": "user",
+      "updated_at": "2026-04-21T14:58:39Z"
+    }
+  ],
+  "meta": {
+    "failed": 0,
+    "success": 1
+  }
 }
 ```
 
@@ -690,11 +716,33 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
 ```json
 {
   "message": "Resources retrieved successfully",
+  "data": [
+    {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
+      "can_write": false,
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "last_used_at": null,
+      "name": "Integration Service",
+      "rate_limit": 5,
+      "role": "user",
+      "updated_at": "2026-04-21T14:58:39Z"
+    }
+  ],
   "meta": {
-    "count": 0,
+    "count": 1,
     "current_page": 1,
     "per_page": 15,
-    "total": 0,
+    "total": 1,
     "total_pages": 1
   },
   "links": {
@@ -711,15 +759,37 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
 Retrieve a specific API key by its ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/apikeys:query?id=$ULID" \
+curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KPR8SVKNGXSCC3EY1DB6RSRZ" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
-**Response (404 Not Found):**
+**Response (200 OK):**
 
 ```json
 {
-  "message": "Resource not found"
+  "message": "Resource retrieved successfully",
+  "data": [
+    {
+      "allowed_origins": [
+        "https://moon.devnodes.in"
+      ],
+      "can_write": false,
+      "captcha_required": true,
+      "collections": [
+        "products",
+        "orders"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "last_used_at": null,
+      "name": "Integration Service",
+      "rate_limit": 5,
+      "role": "user",
+      "updated_at": "2026-04-21T14:58:39Z"
+    }
+  ]
 }
 ```
 
@@ -736,7 +806,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "$ULID",
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
             "name": "Updated Integration Service",
             "collections": [
               "products"
@@ -754,11 +824,37 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
     ' | jq .
 ```
 
-**Response (400 Bad Request):**
+**Response (200 OK):**
 
 ```json
 {
-  "message": "Unknown field 'enabled'"
+  "message": "Resource updated successfully",
+  "data": [
+    {
+      "allowed_origins": [
+        "https://moon.devnodes.in",
+        "https://www.moon.devnodes.in"
+      ],
+      "can_write": false,
+      "captcha_required": false,
+      "collections": [
+        "products"
+      ],
+      "created_at": "2026-04-21T14:58:39Z",
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "last_used_at": null,
+      "name": "Updated Integration Service",
+      "rate_limit": 10,
+      "role": "user",
+      "updated_at": "2026-04-21T14:58:40Z"
+    }
+  ],
+  "meta": {
+    "failed": 0,
+    "success": 1
+  }
 }
 ```
 
@@ -776,7 +872,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "action": "rotate",
         "data": [
           {
-            "id": "$ULID"
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
           }
         ]
       }
@@ -788,9 +884,29 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
 ```json
 {
   "message": "Action completed successfully",
+  "data": [
+    {
+      "allowed_origins": [
+        "https://moon.devnodes.in",
+        "https://www.moon.devnodes.in"
+      ],
+      "can_write": false,
+      "captcha_required": false,
+      "collections": [
+        "products"
+      ],
+      "enabled": true,
+      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "is_website": true,
+      "key": "moon_live_FcxzPdRuR3l31Fd6Kh9OUtaJ9NAZ2kYl9XdwGk2AOvEDLKl8NnXI8QmDLlvoNzTD",
+      "name": "Updated Integration Service",
+      "rate_limit": 10,
+      "role": "user"
+    }
+  ],
   "meta": {
-    "failed": 1,
-    "success": 0
+    "failed": 0,
+    "success": 1
   }
 }
 ```
@@ -808,7 +924,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "$ULID"
+            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
           }
         ]
       }
@@ -821,8 +937,8 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
 {
   "message": "Resource destroyed successfully",
   "meta": {
-    "failed": 1,
-    "success": 0
+    "failed": 0,
+    "success": 1
   }
 }
 ```
@@ -916,6 +1032,70 @@ curl -s -X POST "http://localhost:6000/collections:mutate" \
 }
 ```
 
+### Create Collection
+
+Create a new collection named `category` with typed columns.
+
+```bash
+curl -s -X POST "http://localhost:6000/collections:mutate" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "create",
+        "data": [
+          {
+            "name": "category",
+            "columns": [
+              {
+                "name": "title",
+                "type": "string",
+                "nullable": false,
+                "unique": true
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "nullable": true
+              }
+            ]
+          }
+        ]
+      }
+    ' | jq .
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "message": "Collection created successfully",
+  "data": [
+    {
+      "columns": [
+        {
+          "name": "title",
+          "nullable": false,
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "description",
+          "nullable": true,
+          "type": "string",
+          "unique": false
+        }
+      ],
+      "name": "category"
+    }
+  ],
+  "meta": {
+    "failed": 0,
+    "success": 1
+  }
+}
+```
+
 ### List Collections
 
 Retrieve all user-defined collections.
@@ -937,38 +1117,8 @@ curl -s -X GET "http://localhost:6000/collections:query" \
       "system": true
     },
     {
-      "count": 1,
-      "name": "bills",
-      "system": false
-    },
-    {
-      "count": 5,
-      "name": "branch",
-      "system": false
-    },
-    {
-      "count": 3,
-      "name": "categories",
-      "system": false
-    },
-    {
-      "count": 15,
-      "name": "customers",
-      "system": false
-    },
-    {
-      "count": 1,
-      "name": "estimates",
-      "system": false
-    },
-    {
-      "count": 1,
-      "name": "orders",
-      "system": false
-    },
-    {
       "count": 0,
-      "name": "payments",
+      "name": "category",
       "system": false
     },
     {
@@ -977,36 +1127,16 @@ curl -s -X GET "http://localhost:6000/collections:query" \
       "system": false
     },
     {
-      "count": 2,
-      "name": "purchase_orders",
-      "system": false
-    },
-    {
-      "count": 24,
-      "name": "settings",
-      "system": false
-    },
-    {
       "count": 1,
       "name": "users",
       "system": true
-    },
-    {
-      "count": 2,
-      "name": "vendor_payments",
-      "system": false
-    },
-    {
-      "count": 1,
-      "name": "vendors",
-      "system": false
     }
   ],
   "meta": {
-    "count": 14,
+    "count": 4,
     "current_page": 1,
     "per_page": 15,
-    "total": 14,
+    "total": 4,
     "total_pages": 1
   },
   "links": {
@@ -1398,7 +1528,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5S12WBQBD3WWB326E3KCT",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1429,7 +1559,7 @@ curl -s -X GET "http://localhost:6000/data/products:query" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5S12WBQBD3WWB326E3KCT",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1456,7 +1586,7 @@ curl -s -X GET "http://localhost:6000/data/products:query" \
 Retrieve a single record by its ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/products:query?id=01KPR5S12WBQBD3WWB326E3KCT" \
+curl -s -X GET "http://localhost:6000/data/products:query?id=01KPR8T0YFNYKNZ265XBGS8XR3" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -1469,7 +1599,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?id=01KPR5S12WBQBD3WWB3
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5S12WBQBD3WWB326E3KCT",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1491,7 +1621,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KPR5S12WBQBD3WWB326E3KCT",
+            "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
             "price": 6000
           }
         ]
@@ -1508,7 +1638,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5S12WBQBD3WWB326E3KCT",
+      "id": "01KPR8T0YFNYKNZ265XBGS8XR3",
       "price": 6000,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1534,7 +1664,7 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KPR5S12WBQBD3WWB326E3KCT"
+            "id": "01KPR8T0YFNYKNZ265XBGS8XR3"
           }
         ]
       }
@@ -1606,37 +1736,37 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
   "message": "Resource created successfully",
   "data": [
     {
-      "id": "01KPR5S3JDVRYNKEKG8N88C8RB",
+      "id": "01KPR8T3SVZXSKS028C8TA420F",
       "quantity": 5,
       "title": "Product 1"
     },
     {
-      "id": "01KPR5S3JDWRBC330H7E3GYTSF",
+      "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
       "quantity": 10,
       "title": "Product 2"
     },
     {
-      "id": "01KPR5S3JDA21VK299SERABRCE",
+      "id": "01KPR8T3SVC9T082BH23RDJA6T",
       "quantity": 20,
       "title": "Product 3"
     },
     {
-      "id": "01KPR5S3JE7TQ1FZTW1BEW566X",
+      "id": "01KPR8T3SWFY4XTVPZFH0WTS7A",
       "quantity": 55,
       "title": "Product 4"
     },
     {
-      "id": "01KPR5S3JEZJP2VXWAS2FERK60",
+      "id": "01KPR8T3SW9M9PV21JDSVDSQNM",
       "quantity": 56,
       "title": "Product 5"
     },
     {
-      "id": "01KPR5S3JEMF4S5J5J47866DBM",
+      "id": "01KPR8T3SWV90NG8K3DXTV8EAW",
       "quantity": 5,
       "title": "Product 6"
     },
     {
-      "id": "01KPR5S3JEY95BRNASQNY4H1N6",
+      "id": "01KPR8T3SWGG60G31N0FYVBG2D",
       "quantity": 12,
       "title": "Product 7"
     }
@@ -1661,12 +1791,12 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KPR5S3JDVRYNKEKG8N88C8RB",
+            "id": "01KPR8T3SVZXSKS028C8TA420F",
             "quantity": 1200,
             "title": "Updated Product 1"
           },
           {
-            "id": "01KPR5S3JDWRBC330H7E3GYTSF",
+            "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
             "title": "Updated Product 2"
           }
         ]
@@ -1681,12 +1811,12 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
   "message": "Resource updated successfully",
   "data": [
     {
-      "id": "01KPR5S3JDVRYNKEKG8N88C8RB",
+      "id": "01KPR8T3SVZXSKS028C8TA420F",
       "quantity": 1200,
       "title": "Updated Product 1"
     },
     {
-      "id": "01KPR5S3JDWRBC330H7E3GYTSF",
+      "id": "01KPR8T3SV69F89Z2E4K7K4PXM",
       "quantity": 10,
       "title": "Updated Product 2"
     }
@@ -1711,22 +1841,22 @@ curl -s -X POST "http://localhost:6000/data/products:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KPR5S3JDVRYNKEKG8N88C8RB"
+            "id": "01KPR8T3SVZXSKS028C8TA420F"
           },
           {
-            "id": "01KPR5S3JDWRBC330H7E3GYTSF"
+            "id": "01KPR8T3SV69F89Z2E4K7K4PXM"
           },
           {
-            "id": "01KPR5S3JDA21VK299SERABRCE"
+            "id": "01KPR8T3SVC9T082BH23RDJA6T"
           },
           {
-            "id": "01KPR5S3JE7TQ1FZTW1BEW566X"
+            "id": "01KPR8T3SWFY4XTVPZFH0WTS7A"
           },
           {
-            "id": "01KPR5S3JEZJP2VXWAS2FERK60"
+            "id": "01KPR8T3SW9M9PV21JDSVDSQNM"
           },
           {
-            "id": "01KPR5S3JEMF4S5J5J47866DBM"
+            "id": "01KPR8T3SWV90NG8K3DXTV8EAW"
           }
         ]
       }
@@ -1762,17 +1892,17 @@ curl -s -X GET "http://localhost:6000/data/products:query?per_page=3&page=1" \
   "message": "Resources retrieved successfully",
   "data": [
     {
-      "id": "01KPR5S61YVQPBZFTFG1T1XWQ9",
+      "id": "01KPR8T6F2SDTMG876C48N6MH9",
       "quantity": 1,
       "title": "Product 1"
     },
     {
-      "id": "01KPR5S61YS1Y8VX0171PKDSHQ",
+      "id": "01KPR8T6F3E3J23V1B76XAP3K2",
       "quantity": 2,
       "title": "Product 2"
     },
     {
-      "id": "01KPR5S61Y0AEQNP639C9A1P3B",
+      "id": "01KPR8T6F36T8HAEEAXS3QNDZQ",
       "quantity": 3,
       "title": "Product 3"
     }
@@ -1809,17 +1939,17 @@ curl -s -X GET "http://localhost:6000/data/products:query?per_page=3&page=2" \
   "message": "Resources retrieved successfully",
   "data": [
     {
-      "id": "01KPR5S61Y4B7SGJSH8VME1YQN",
+      "id": "01KPR8T6F30KF4CQMKTXXDHJGP",
       "quantity": 4,
       "title": "Product 4"
     },
     {
-      "id": "01KPR5S61YB3VGWN0YFH0G5582",
+      "id": "01KPR8T6F391DYBJB1B5Z5SM0J",
       "quantity": 5,
       "title": "Product 5"
     },
     {
-      "id": "01KPR5S61ZXVVG2EA6R8E9NR56",
+      "id": "01KPR8T6F3RHE73S67Z7B2DJBZ",
       "quantity": 6,
       "title": "Product 6"
     }
@@ -1856,7 +1986,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?per_page=3&page=3" \
   "message": "Resources retrieved successfully",
   "data": [
     {
-      "id": "01KPR5S61ZJ5W9BNVGJNEM8HG1",
+      "id": "01KPR8T6F3FC6HG80APX4CKMWW",
       "quantity": 7,
       "title": "Product 7"
     }
@@ -1896,7 +2026,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?quantity[gt]=5&brand[e
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1904,7 +2034,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?quantity[gt]=5&brand[e
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KPR5SA5NGASGBE3G6YZH4NDZ",
+      "id": "01KPR8TATC12RACY36RBAYSF0R",
       "price": 199,
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -1912,7 +2042,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?quantity[gt]=5&brand[e
     {
       "brand": "Wow",
       "details": "Adjustable laptop stand",
-      "id": "01KPR5SA5NNMA0FD5K3S1JKYNE",
+      "id": "01KPR8TATCW1G2MW6J7FSQ6CT5",
       "price": 49,
       "quantity": 8,
       "title": "Laptop Stand"
@@ -1952,7 +2082,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?sort=-quantity,title" 
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KPR5SA5MTWZ86KXDEW9N60QH",
+      "id": "01KPR8TATC1PYSQGAREVCZ5320",
       "price": 19,
       "quantity": 55,
       "title": "USB Keyboard"
@@ -1960,7 +2090,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?sort=-quantity,title" 
     {
       "brand": "Wow",
       "details": "Full HD monitor",
-      "id": "01KPR5SA5NGASGBE3G6YZH4NDZ",
+      "id": "01KPR8TATC12RACY36RBAYSF0R",
       "price": 199,
       "quantity": 20,
       "title": "Monitor 21 inch"
@@ -1968,7 +2098,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?sort=-quantity,title" 
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -1976,7 +2106,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?sort=-quantity,title" 
     {
       "brand": "Wow",
       "details": "Adjustable laptop stand",
-      "id": "01KPR5SA5NNMA0FD5K3S1JKYNE",
+      "id": "01KPR8TATCW1G2MW6J7FSQ6CT5",
       "price": 49,
       "quantity": 8,
       "title": "Laptop Stand"
@@ -1984,7 +2114,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?sort=-quantity,title" 
     {
       "brand": "Orange",
       "details": "1080p webcam",
-      "id": "01KPR5SA5N2CY2W7JP1P6YDEK4",
+      "id": "01KPR8TATCEQSZGNH2FKP540TH",
       "price": 79,
       "quantity": 3,
       "title": "Webcam HD"
@@ -2024,7 +2154,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?q=mouse" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -2062,27 +2192,27 @@ curl -s -X GET "http://localhost:6000/data/products:query?fields=quantity,title"
   "message": "Resources retrieved successfully",
   "data": [
     {
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "quantity": 10,
       "title": "Wireless Mouse"
     },
     {
-      "id": "01KPR5SA5MTWZ86KXDEW9N60QH",
+      "id": "01KPR8TATC1PYSQGAREVCZ5320",
       "quantity": 55,
       "title": "USB Keyboard"
     },
     {
-      "id": "01KPR5SA5NGASGBE3G6YZH4NDZ",
+      "id": "01KPR8TATC12RACY36RBAYSF0R",
       "quantity": 20,
       "title": "Monitor 21 inch"
     },
     {
-      "id": "01KPR5SA5NNMA0FD5K3S1JKYNE",
+      "id": "01KPR8TATCW1G2MW6J7FSQ6CT5",
       "quantity": 8,
       "title": "Laptop Stand"
     },
     {
-      "id": "01KPR5SA5N2CY2W7JP1P6YDEK4",
+      "id": "01KPR8TATCEQSZGNH2FKP540TH",
       "quantity": 3,
       "title": "Webcam HD"
     }
@@ -2121,7 +2251,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?per_page=2&page=1" \
     {
       "brand": "Wow",
       "details": "Ergonomic wireless mouse",
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -2129,7 +2259,7 @@ curl -s -X GET "http://localhost:6000/data/products:query?per_page=2&page=1" \
     {
       "brand": "Orange",
       "details": "Gaming keyboard",
-      "id": "01KPR5SA5MTWZ86KXDEW9N60QH",
+      "id": "01KPR8TATC1PYSQGAREVCZ5320",
       "price": 19,
       "quantity": 55,
       "title": "USB Keyboard"
@@ -2167,19 +2297,19 @@ curl -s -X GET "http://localhost:6000/data/products:query?brand[eq]=Wow&sort=-pr
   "message": "Resources retrieved successfully",
   "data": [
     {
-      "id": "01KPR5SA5NGASGBE3G6YZH4NDZ",
+      "id": "01KPR8TATC12RACY36RBAYSF0R",
       "price": 199,
       "quantity": 20,
       "title": "Monitor 21 inch"
     },
     {
-      "id": "01KPR5SA5NNMA0FD5K3S1JKYNE",
+      "id": "01KPR8TATCW1G2MW6J7FSQ6CT5",
       "price": 49,
       "quantity": 8,
       "title": "Laptop Stand"
     },
     {
-      "id": "01KPR5SA5M23DNVFC2RH95CQ4J",
+      "id": "01KPR8TATC1FBZ1J2PQ682DWHE",
       "price": 29,
       "quantity": 10,
       "title": "Wireless Mouse"
@@ -2417,7 +2547,7 @@ curl -s -X POST "http://localhost:6000/data/typed_items:mutate" \
       "boolean_test": true,
       "date_test": "2024-01-01 00:00:00 +0000 UTC",
       "decimal_test": "9.99",
-      "id": "01KPR5S8H61QDA2HXSWH8GC7RP",
+      "id": "01KPR8T9042J5DXVH4DW5K17HT",
       "integer_test": 42,
       "json_test": {
         "key": "value"
@@ -2451,7 +2581,7 @@ curl -s -X GET "http://localhost:6000/data/typed_items:query" \
       "boolean_test": true,
       "date_test": "2024-01-01 00:00:00 +0000 UTC",
       "decimal_test": "9.99",
-      "id": "01KPR5S8H61QDA2HXSWH8GC7RP",
+      "id": "01KPR8T9042J5DXVH4DW5K17HT",
       "integer_test": 42,
       "json_test": {
         "key": "value"

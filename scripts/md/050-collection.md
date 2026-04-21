@@ -84,6 +84,70 @@ curl -s -X POST "http://localhost:6000/collections:mutate" \
 }
 ```
 
+### Create Collection
+
+Create a new collection named `category` with typed columns.
+
+```bash
+curl -s -X POST "http://localhost:6000/collections:mutate" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "create",
+        "data": [
+          {
+            "name": "category",
+            "columns": [
+              {
+                "name": "title",
+                "type": "string",
+                "nullable": false,
+                "unique": true
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "nullable": true
+              }
+            ]
+          }
+        ]
+      }
+    ' | jq .
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "message": "Collection created successfully",
+  "data": [
+    {
+      "columns": [
+        {
+          "name": "title",
+          "nullable": false,
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "description",
+          "nullable": true,
+          "type": "string",
+          "unique": false
+        }
+      ],
+      "name": "category"
+    }
+  ],
+  "meta": {
+    "failed": 0,
+    "success": 1
+  }
+}
+```
+
 ### List Collections
 
 Retrieve all user-defined collections.
@@ -106,6 +170,11 @@ curl -s -X GET "http://localhost:6000/collections:query" \
     },
     {
       "count": 0,
+      "name": "category",
+      "system": false
+    },
+    {
+      "count": 0,
       "name": "products",
       "system": false
     },
@@ -116,10 +185,10 @@ curl -s -X GET "http://localhost:6000/collections:query" \
     }
   ],
   "meta": {
-    "count": 3,
+    "count": 4,
     "current_page": 1,
     "per_page": 15,
-    "total": 3,
+    "total": 4,
     "total_pages": 1
   },
   "links": {
