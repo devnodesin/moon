@@ -25,6 +25,7 @@ class TestSuite:
     prefix: str = ""
     username: str = "admin"
     password: str = "MoonAdmin12#"
+    api_key: Optional[str] = None
     health: str = "/health"
     tests: List[TestDefinition] = field(default_factory=list)
 
@@ -43,10 +44,12 @@ class AuthState:
     """Tracks authentication state throughout test execution."""
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
+    api_key: Optional[str] = None
     current_username: Optional[str] = None
     current_password: Optional[str] = None
     all_access_tokens: List[str] = field(default_factory=list)
     all_refresh_tokens: List[str] = field(default_factory=list)
+    all_api_keys: List[str] = field(default_factory=list)
     
     def update_access_token(self, token: str) -> None:
         """Update access token and track it for documentation replacement."""
@@ -59,6 +62,12 @@ class AuthState:
         self.refresh_token = token
         if token and token not in self.all_refresh_tokens:
             self.all_refresh_tokens.append(token)
+
+    def update_api_key(self, key: str) -> None:
+        """Update API key and track it for documentation replacement."""
+        self.api_key = key
+        if key and key not in self.all_api_keys:
+            self.all_api_keys.append(key)
     
     def update_credentials(self, username: str, password: str) -> None:
         """Update current credentials after password change."""

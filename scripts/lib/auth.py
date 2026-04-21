@@ -6,6 +6,24 @@ from typing import Optional, Dict, Any
 from .types import AuthState, TestDefinition
 
 
+def extract_response_data_object(
+    response_obj: Optional[Dict[str, Any]]
+) -> Optional[Dict[str, Any]]:
+    """Extract the first response payload object from a Moon API response."""
+    if not response_obj or not isinstance(response_obj, dict):
+        return None
+
+    data_raw = response_obj.get("data")
+
+    if isinstance(data_raw, list) and len(data_raw) > 0:
+        return data_raw[0] if isinstance(data_raw[0], dict) else None
+
+    if isinstance(data_raw, dict):
+        return data_raw
+
+    return response_obj
+
+
 def perform_login(
     server_url: str,
     username: str,
@@ -50,13 +68,7 @@ def perform_login(
             current_password=password,
         )
 
-        # Response shape: {"message": "...", "data": [{"access_token": ..., "refresh_token": ..., ...}]}
-        data_list = token_json.get("data", [])
-        data_obj: Dict[str, Any] = {}
-        if isinstance(data_list, list) and len(data_list) > 0:
-            data_obj = data_list[0] if isinstance(data_list[0], dict) else {}
-        elif isinstance(data_list, dict):
-            data_obj = data_list
+        data_obj = extract_response_data_object(token_json) or {}
 
         access_token = data_obj.get("access_token")
         if access_token:
@@ -154,19 +166,7 @@ def extract_tokens_from_response(
     Returns:
         Tuple of (access_token, refresh_token), either can be None
     """
-    if not response_obj or not isinstance(response_obj, dict):
-        return None, None
-
-    data_raw = response_obj.get("data")
-    data_obj: Dict[str, Any] = {}
-
-    if isinstance(data_raw, list) and len(data_raw) > 0:
-        data_obj = data_raw[0] if isinstance(data_raw[0], dict) else {}
-    elif isinstance(data_raw, dict):
-        data_obj = data_raw
-    else:
-        data_obj = response_obj
-
+    data_obj = extract_response_data_object(response_obj)
     if not isinstance(data_obj, dict):
         return None, None
 
@@ -174,6 +174,53 @@ def extract_tokens_from_response(
     refresh_token = data_obj.get("refresh_token")
 
     return access_token, refresh_token
+
+
+def extract_api_key_from_response(response_obj: Optional[Dict[str, Any]]) -> Optional[str]:
+    """
+    Extract a raw API key from a Moon API response object.
+
+    API keys are returned only by API key create and rotate responses.
+
+    Args:
+        response_obj: Response JSON object
+
+    Returns:
+        Raw API key if present, otherwise None
+    """
+    data_obj = extract_response_data_object(response_obj)
+    if not isinstance(data_obj, dict):
+        return None
+
+    api_key = data_obj.get("key")
+    return api_key if isinstance(api_key, str) else None
+
+
+def detect_api_key_create_or_rotate(test: TestDefinition) -> bool:
+    """
+    Detect if a test creates or rotates an API key.
+
+    Args:
+        test: Test definition to check
+
+    Returns:
+        True if the request should return raw API key material
+    """
+    method = test.cmd.upper()
+    endpoint = test.endpoint
+    data = test.data
+
+    if method != "POST" or "/data/apikeys:mutate" not in endpoint:
+        return False
+
+    if not isinstance(data, dict):
+        return False
+
+    op = data.get("op")
+    if op == "create":
+        return True
+
+    return op == "action" and data.get("action") == "rotate"
 
 
 def should_relogin_after_test(
@@ -216,4 +263,3 @@ def relogin_with_new_password(
         New AuthState with updated tokens, or None if login failed
     """
     return perform_login(server_url, username, new_password, prefix, timeout)
-
