@@ -68,22 +68,29 @@ def sanitize_curl_for_documentation(
         Sanitized curl command suitable for documentation
     """
     sanitized = curl_cmd
-    
+
     # Replace server URL with doc URL
     sanitized = sanitized.replace(server_url, doc_url)
-    
-    # Replace all access tokens with placeholder
+
+    return sanitize_body_for_documentation(sanitized, auth_state)
+
+
+def sanitize_body_for_documentation(body: str, auth_state: AuthState) -> str:
+    """Sanitize response content by replacing credentials with placeholders."""
+    sanitized = body
+
     for token in auth_state.all_access_tokens:
         if token:
             sanitized = sanitized.replace(token, "$ACCESS_TOKEN")
-    
-    # Replace all refresh tokens with placeholder
+
     for token in auth_state.all_refresh_tokens:
         if token:
             sanitized = sanitized.replace(token, "$REFRESH_TOKEN")
-    
-    # Keep actual record IDs in the output (don't replace with placeholders)
-    
+
+    for api_key in auth_state.all_api_keys:
+        if api_key:
+            sanitized = sanitized.replace(api_key, "$API_KEY")
+
     return sanitized
 
 

@@ -15,6 +15,8 @@ from .auth import (
     detect_password_change,
     detect_token_refresh,
     detect_login,
+    detect_api_key_create_or_rotate,
+    extract_api_key_from_response,
     extract_tokens_from_response,
     should_relogin_after_test,
     relogin_with_new_password
@@ -28,6 +30,7 @@ from .placeholders import (
 )
 from .formatters import (
     format_markdown_result,
+    sanitize_body_for_documentation,
     sanitize_curl_for_documentation,
     write_markdown_output
 )
@@ -108,6 +111,7 @@ def run_test_suite(
         if is_successful and response.response_obj:
             is_login = detect_login(test_copy)
             is_refresh = detect_token_refresh(test_copy)
+            is_api_key_create_or_rotate = detect_api_key_create_or_rotate(test_copy)
             
             if is_login or is_refresh:
                 access_token, refresh_token = extract_tokens_from_response(
@@ -117,6 +121,11 @@ def run_test_suite(
                     auth_state.update_access_token(access_token)
                 if refresh_token:
                     auth_state.update_refresh_token(refresh_token)
+
+            if is_api_key_create_or_rotate:
+                api_key = extract_api_key_from_response(response.response_obj)
+                if api_key:
+                    auth_state.update_api_key(api_key)
         
         # Handle password change: re-login with new password
         if should_relogin_after_test(test_copy, response.status, new_password):
@@ -163,13 +172,14 @@ def run_test_suite(
             placeholder_context.captured_record_id,
             placeholder_context.placeholder_type
         )
+        sanitized_body = sanitize_body_for_documentation(response.body, auth_state)
         
         # Only add to output if test has a name
         if test.name:
             markdown_lines.extend(format_markdown_result(
                 sanitized_curl,
                 response.status,
-                response.body,
+                sanitized_body,
                 test.name,
                 test.details,
                 test.notes

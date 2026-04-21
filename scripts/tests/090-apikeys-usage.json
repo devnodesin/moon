@@ -1,0 +1,257 @@
+{
+  "docURL": "http://localhost:6000",
+  "serverURL": "https://moon.devnodes.in/api",
+  "prefix": "",
+  "username": "admin",
+  "password": "MoonAdmin12#",
+  "health": "/health",
+  "tests": [
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "apikey_usage_devices",
+            "columns": [
+              {"name": "label", "type": "string", "nullable": false}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "apikey_usage_pages",
+            "columns": [
+              {"name": "title", "type": "string", "nullable": false}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Create Device API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Create a device API key after logging in with username and password. The returned key is reused by later requests through `$API_KEY`.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "create",
+        "data": [
+          {
+            "name": "Moon Usage Key",
+            "role": "user",
+            "can_write": false,
+            "collections": [
+              "apikey_usage_devices"
+            ],
+            "is_website": false,
+            "rate_limit": 15,
+            "captcha_required": false,
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Device Key Lists Granted Collections",
+      "cmd": "GET",
+      "endpoint": "/collections:query",
+      "details": "List collections with the device API key. The response should be limited to granted collections.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY"
+      }
+    },
+    {
+      "name": "Device Key Reads Granted Data",
+      "cmd": "GET",
+      "endpoint": "/data/apikey_usage_devices:query",
+      "details": "Read data from the collection granted to the device API key.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY"
+      }
+    },
+    {
+      "name": "Device Key Rejects Unlisted Collection",
+      "cmd": "GET",
+      "endpoint": "/collections:query?name=apikey_usage_pages",
+      "details": "Attempt to access a collection that is not in the device key allowlist.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY"
+      },
+      "expected_status": 403
+    },
+    {
+      "name": "Device Key Rejects Unlisted Data",
+      "cmd": "GET",
+      "endpoint": "/data/apikey_usage_pages:query",
+      "details": "Attempt to read data from a collection that is not in the device key allowlist.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY"
+      },
+      "expected_status": 403
+    },
+    {
+      "name": "Convert to Website API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Update the same API key to website mode and move access to the website collection.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "update",
+        "data": [
+          {
+            "id": "$ULID",
+            "name": "Moon Usage Key",
+            "role": "user",
+            "can_write": false,
+            "collections": [
+              "apikey_usage_pages"
+            ],
+            "is_website": true,
+            "allowed_origins": [
+              "https://moon.devnodes.in"
+            ],
+            "rate_limit": 10,
+            "captcha_required": false,
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rotate Website API Key",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "details": "Rotate the website API key to capture the fresh website credential for subsequent requests.",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "action",
+        "action": "rotate",
+        "data": [
+          {
+            "id": "$ULID"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Website Key Reads Granted Collection",
+      "cmd": "GET",
+      "endpoint": "/collections:query?name=apikey_usage_pages",
+      "details": "Read an allowed collection with the website API key and a matching `Origin` header.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY",
+        "Origin": "https://moon.devnodes.in"
+      }
+    },
+    {
+      "name": "Website Key Reads Granted Data",
+      "cmd": "GET",
+      "endpoint": "/data/apikey_usage_pages:query",
+      "details": "Read data with the website API key and a matching `Origin` header.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY",
+        "Origin": "https://moon.devnodes.in"
+      }
+    },
+    {
+      "name": "Website Key Rejects Missing Origin",
+      "cmd": "GET",
+      "endpoint": "/data/apikey_usage_pages:query",
+      "details": "Website API keys must reject requests without a matching `Origin` header.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY"
+      },
+      "expected_status": 403
+    },
+    {
+      "name": "Website Key Rejects Unlisted Collection",
+      "cmd": "GET",
+      "endpoint": "/collections:query?name=apikey_usage_devices",
+      "details": "Attempt to access a collection that is no longer granted to the website API key.",
+      "headers": {
+        "Authorization": "Bearer $API_KEY",
+        "Origin": "https://moon.devnodes.in"
+      },
+      "expected_status": 403
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/data/apikeys:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [
+          {
+            "id": "$ULID"
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [
+          {
+            "name": "apikey_usage_pages"
+          }
+        ]
+      }
+    },
+    {
+      "name": "",
+      "cmd": "POST",
+      "endpoint": "/collections:mutate",
+      "headers": {
+        "Authorization": "Bearer $ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "data": {
+        "op": "destroy",
+        "data": [
+          {
+            "name": "apikey_usage_devices"
+          }
+        ]
+      }
+    }
+  ]
+}

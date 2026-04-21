@@ -33,6 +33,19 @@ def replace_auth_placeholders(
             data_str = data_str.replace("$REFRESH_TOKEN", auth_state.refresh_token)
             test.data = json.loads(data_str)
 
+    # Replace $API_KEY in headers and data
+    if auth_state.api_key and test.headers:
+        if "Authorization" in test.headers:
+            test.headers["Authorization"] = test.headers["Authorization"].replace(
+                "$API_KEY", auth_state.api_key
+            )
+
+    if auth_state.api_key and test.data:
+        data_str = json.dumps(test.data)
+        if "$API_KEY" in data_str:
+            data_str = data_str.replace("$API_KEY", auth_state.api_key)
+            test.data = json.loads(data_str)
+
 
 def replace_record_placeholders(
     test: TestDefinition,

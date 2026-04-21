@@ -68,17 +68,28 @@ def load_test_suite(test_file: str) -> TestSuite:
         prefix=data.get("prefix", ""),
         username=data.get("username", "admin"),
         password=data.get("password", "MoonAdmin12#"),
+        api_key=data.get("apiKey"),
         health=data.get("health", "/health"),
         tests=tests
     )
 
 
-def check_if_auth_needed(test_suite: TestSuite) -> bool:
-    """Check if any test requires authentication token."""
+def _test_uses_placeholder(test: TestDefinition, placeholder: str) -> bool:
+    """Check whether a test references a placeholder in headers or data."""
+    if test.headers and any(placeholder in value for value in test.headers.values()):
+        return True
+
+    if test.data:
+        return placeholder in json.dumps(test.data)
+
+    return False
+
+
+def check_if_login_needed(test_suite: TestSuite) -> bool:
+    """Check if the suite needs an initial username/password login."""
     return any(
-        test.headers
-        and "Authorization" in test.headers
-        and "$ACCESS_TOKEN" in test.headers["Authorization"]
+        _test_uses_placeholder(test, "$ACCESS_TOKEN")
+        or _test_uses_placeholder(test, "$REFRESH_TOKEN")
         for test in test_suite.tests
     )
 
@@ -113,18 +124,28 @@ def process_test_file(test_file: str, args: argparse.Namespace) -> None:
         print(f"Skipping {test_file} [server unhealthy: {error_msg}]")
         return
     
+    auth_state = AuthState()
+
+    if test_suite.api_key:
+        auth_state.update_api_key(test_suite.api_key)
+
     # Check if authentication is needed
-    auth_state: Optional[AuthState] = None
-    if check_if_auth_needed(test_suite):
-        auth_state = perform_login(
+    if check_if_login_needed(test_suite):
+        login_state = perform_login(
             test_suite.serverURL,
             test_suite.username,
             test_suite.password,
             test_suite.prefix
         )
-        if not auth_state or not auth_state.access_token:
+        if not login_state or not login_state.access_token:
             print(f"Login failed for {test_file}")
             return
+        auth_state.current_username = login_state.current_username
+        auth_state.current_password = login_state.current_password
+        if login_state.access_token:
+            auth_state.update_access_token(login_state.access_token)
+        if login_state.refresh_token:
+            auth_state.update_refresh_token(login_state.refresh_token)
     
     # Prepare output file
     base = os.path.splitext(os.path.basename(test_file))[0]
