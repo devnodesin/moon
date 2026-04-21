@@ -181,7 +181,11 @@ func captchaMiddleware(store *CaptchaStore, next http.Handler) http.Handler {
 			return
 		}
 
-		captchaID, captchaValue, parseOK := extractCaptchaFields(r)
+		captchaID, captchaValue, parseOK, err := extractCaptchaFields(r)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
 		if parseOK && store.Validate(captchaID, captchaValue) {
 			next.ServeHTTP(w, r)
 			return
@@ -196,36 +200,39 @@ func captchaMiddleware(store *CaptchaStore, next http.Handler) http.Handler {
 	})
 }
 
-func extractCaptchaFields(r *http.Request) (string, string, bool) {
-	body, err := io.ReadAll(r.Body)
+func extractCaptchaFields(r *http.Request) (string, string, bool, error) {
+	body, err := io.ReadAll(io.LimitReader(r.Body, MaxCaptchaBodyBytes+1))
 	if err != nil {
-		return "", "", false
+		return "", "", false, err
+	}
+	if len(body) > MaxCaptchaBodyBytes {
+		return "", "", false, fmt.Errorf("request body exceeds limit")
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
 	if len(bytes.TrimSpace(body)) == 0 {
-		return "", "", true
+		return "", "", true, nil
 	}
 
 	var payload map[string]json.RawMessage
 	if err := json.Unmarshal(body, &payload); err != nil {
-		return "", "", false
+		return "", "", false, nil
 	}
 
 	var captchaID string
 	if rawID, ok := payload["captcha_id"]; ok {
 		if err := json.Unmarshal(rawID, &captchaID); err != nil {
-			return "", "", false
+			return "", "", false, nil
 		}
 	}
 
 	var captchaValue string
 	if rawValue, ok := payload["captcha_value"]; ok {
 		if err := json.Unmarshal(rawValue, &captchaValue); err != nil {
-			return "", "", false
+			return "", "", false, nil
 		}
 	}
 
-	return captchaID, captchaValue, true
+	return captchaID, captchaValue, true, nil
 }
 
 // routes and rejects names starting with "moon_".

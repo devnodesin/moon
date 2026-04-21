@@ -278,7 +278,10 @@ func TestMatchOrigin(t *testing.T) {
 
 func TestExtractCaptchaFields(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/data/contact:mutate", bytes.NewBufferString(`{"captcha_id":"abc","captcha_value":"123456","op":"create"}`))
-	id, value, ok := extractCaptchaFields(req)
+	id, value, ok, err := extractCaptchaFields(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if !ok {
 		t.Fatal("expected captcha fields to parse")
 	}

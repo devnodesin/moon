@@ -169,8 +169,9 @@ const (
 // ---------------------------------------------------------------------------
 
 const (
-	CaptchaCodeLength  = 6
-	CaptchaTTLSeconds  = 300
-	CaptchaImageWidth  = 240
-	CaptchaImageHeight = 80
+	CaptchaCodeLength   = 6
+	CaptchaTTLSeconds   = 300
+	CaptchaImageWidth   = 240
+	CaptchaImageHeight  = 80
+	MaxCaptchaBodyBytes = 1 << 20
 )
