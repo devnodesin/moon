@@ -178,8 +178,9 @@ func TestEnsureSystemTables_ApikeysColumns(t *testing.T) {
 		t.Fatalf("DescribeTable: %v", err)
 	}
 
-	wantCols := []string{"id", "name", "role", "can_write", "key_hash",
-		"created_at", "updated_at", "last_used_at"}
+	wantCols := []string{"id", "name", "role", "can_write", "collections", "is_website",
+		"allowed_origins", "rate_limit", "captcha_required", "enabled",
+		"key_hash", "created_at", "updated_at", "last_used_at"}
 	got := make(map[string]bool)
 	for _, c := range cols {
 		got[c.Name] = true

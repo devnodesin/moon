@@ -443,6 +443,18 @@ func TestWithRateLimiter_SetsOption(t *testing.T) {
 	}
 }
 
+func TestWithCaptchaStore_SetsOption(t *testing.T) {
+	store := NewCaptchaStore()
+	opt := WithCaptchaStore(store)
+
+	opts := &buildHandlerOptions{}
+	opt(opts)
+
+	if opts.captchaStore != store {
+		t.Fatal("WithCaptchaStore did not set captchaStore option")
+	}
+}
+
 // --- handlers.go stub function tests ---
 
 func TestHandleResourceQuery_EmptyResource(t *testing.T) {

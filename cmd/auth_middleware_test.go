@@ -103,11 +103,17 @@ func testAuthHandler() http.Handler {
 			return
 		}
 		WriteJSON(w, http.StatusOK, map[string]any{
-			"credential_type": identity.CredentialType,
-			"caller_id":       identity.CallerID,
-			"role":            identity.Role,
-			"can_write":       identity.CanWrite,
-			"jti":             identity.JTI,
+			"credential_type":  identity.CredentialType,
+			"caller_id":        identity.CallerID,
+			"role":             identity.Role,
+			"can_write":        identity.CanWrite,
+			"jti":              identity.JTI,
+			"collections":      identity.Collections,
+			"is_website":       identity.IsWebsite,
+			"rate_limit":       identity.RateLimit,
+			"captcha_required": identity.CaptchaRequired,
+			"enabled":          identity.Enabled,
+			"allowed_origins":  identity.AllowedOrigins,
 		})
 	})
 }
@@ -563,7 +569,18 @@ func TestAuthenticate_ValidAPIKey(t *testing.T) {
 	keyID := GenerateULID()
 	db := &mockAuthDB{
 		apikeys: []map[string]any{
-			{"id": keyID, "key_hash": hash, "role": "user", "can_write": true},
+			{
+				"id":               keyID,
+				"key_hash":         hash,
+				"role":             "user",
+				"can_write":        true,
+				"collections":      `["products","orders"]`,
+				"is_website":       true,
+				"allowed_origins":  `["https://example.com"]`,
+				"rate_limit":       int64(5),
+				"captcha_required": true,
+				"enabled":          true,
+			},
 		},
 	}
 
@@ -591,6 +608,19 @@ func TestAuthenticate_ValidAPIKey(t *testing.T) {
 	}
 	if body["caller_id"] != keyID {
 		t.Fatalf("expected %s, got %v", keyID, body["caller_id"])
+	}
+	if body["is_website"] != true {
+		t.Fatalf("expected is_website=true, got %v", body["is_website"])
+	}
+	collections := body["collections"].([]any)
+	if len(collections) != 2 || collections[0] != "products" || collections[1] != "orders" {
+		t.Fatalf("unexpected collections=%v", body["collections"])
+	}
+	if body["rate_limit"] != float64(5) {
+		t.Fatalf("expected rate_limit=5, got %v", body["rate_limit"])
+	}
+	if body["captcha_required"] != true {
+		t.Fatalf("expected captcha_required=true, got %v", body["captcha_required"])
 	}
 }
 
@@ -630,6 +660,118 @@ func TestAuthenticate_APIKey_NotFound(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestAuthenticate_APIKey_Disabled(t *testing.T) {
+	raw, hash := createTestAPIKey()
+	keyID := GenerateULID()
+	db := &mockAuthDB{
+		apikeys: []map[string]any{
+			{"id": keyID, "key_hash": hash, "role": "user", "enabled": false},
+		},
+	}
+
+	jtiStore := NewJTIRevocationStore()
+	am := NewAuthMiddleware(db, testJWTSecret(), "", jtiStore)
+
+	handler := am.Authenticate(testAuthHandler())
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+raw)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestParseAllowedOrigins(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   any
+		wantLen int
+		wantErr bool
+	}{
+		{"nil", nil, 0, false},
+		{"json string", `["https://example.com"]`, 1, false},
+		{"json bytes", []byte(`["https://example.com","https://moon.dev"]`), 2, false},
+		{"string slice", []string{"https://example.com"}, 1, false},
+		{"any slice", []any{"https://example.com"}, 1, false},
+		{"bad any slice", []any{1}, 0, true},
+		{"bad type", true, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseAllowedOrigins(tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != tt.wantLen {
+				t.Fatalf("expected len=%d, got %d", tt.wantLen, len(got))
+			}
+		})
+	}
+}
+
+func TestParseCollections(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   any
+		wantLen int
+		wantErr bool
+	}{
+		{"nil", nil, 0, false},
+		{"json string", `["products"]`, 1, false},
+		{"json bytes", []byte(`["products","orders"]`), 2, false},
+		{"string slice", []string{"products"}, 1, false},
+		{"any slice", []any{"products"}, 1, false},
+		{"bad any slice", []any{1}, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseCollections(tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != tt.wantLen {
+				t.Fatalf("expected len=%d, got %d", tt.wantLen, len(got))
+			}
+		})
+	}
+}
+
+func TestParseAPIKeyRateLimit(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   any
+		want    int
+		wantErr bool
+	}{
+		{"nil", nil, DefaultAPIKeyRateLimit, false},
+		{"int", 5, 5, false},
+		{"int64", int64(7), 7, false},
+		{"float64", float64(9), 9, false},
+		{"string", "11", 11, false},
+		{"bytes", []byte("13"), 13, false},
+		{"invalid string", "bad", 0, true},
+		{"invalid type", true, 0, true},
+		{"non-positive", 0, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseAPIKeyRateLimit(tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Fatalf("expected %d, got %d", tt.want, got)
+			}
+		})
 	}
 }
 
@@ -914,6 +1056,37 @@ func TestAuthorize_WithPrefix(t *testing.T) {
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+func TestAuthorize_APIKeyCollectionsRestricted(t *testing.T) {
+	identity := &AuthIdentity{
+		CredentialType: CredentialTypeAPIKey,
+		CallerID:       "key1",
+		Role:           "user",
+		CanWrite:       true,
+		Collections:    []string{"products"},
+	}
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := Authorize("", inner)
+
+	req := httptest.NewRequest(http.MethodGet, "/data/products:query", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/data/orders:query", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), identity))
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", w.Code)
 	}

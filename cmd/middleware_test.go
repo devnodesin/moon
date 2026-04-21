@@ -147,6 +147,46 @@ func TestCORSMiddleware_SpecificOrigins(t *testing.T) {
 	})
 }
 
+func TestWebsiteAPIKeyMiddleware(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := websiteAPIKeyMiddleware(inner)
+
+	t.Run("allowed origin", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/data/contact:query", nil)
+		req.Header.Set("Origin", "https://example.com")
+		req = req.WithContext(SetAuthIdentity(req.Context(), &AuthIdentity{
+			CredentialType: CredentialTypeAPIKey,
+			CallerID:       "key-1",
+			IsWebsite:      true,
+			AllowedOrigins: []string{"https://example.com"},
+		}))
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("missing origin", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/data/contact:query", nil)
+		req = req.WithContext(SetAuthIdentity(req.Context(), &AuthIdentity{
+			CredentialType: CredentialTypeAPIKey,
+			CallerID:       "key-1",
+			IsWebsite:      true,
+			AllowedOrigins: []string{"https://example.com"},
+		}))
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", w.Code)
+		}
+	})
+}
+
 func TestPanicRecoveryMiddleware(t *testing.T) {
 	logger := middlewareTestLogger()
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -233,6 +273,20 @@ func TestMatchOrigin(t *testing.T) {
 				t.Fatalf("matchOrigin(%q, %v) = %q, want %q", tt.origin, tt.allowed, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestExtractCaptchaFields(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/data/contact:mutate", bytes.NewBufferString(`{"captcha_id":"abc","captcha_value":"123456","op":"create"}`))
+	id, value, ok, err := extractCaptchaFields(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected captcha fields to parse")
+	}
+	if id != "abc" || value != "123456" {
+		t.Fatalf("unexpected captcha fields: %q %q", id, value)
 	}
 }
 

@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,11 +21,17 @@ import (
 
 // AuthIdentity represents the authenticated caller attached to the request.
 type AuthIdentity struct {
-	CredentialType string // "jwt" or "apikey"
-	CallerID       string // user id or api key id
-	Role           string // "admin" or "user"
-	CanWrite       bool
-	JTI            string // only for JWT credentials
+	CredentialType  string // "jwt" or "apikey"
+	CallerID        string // user id or api key id
+	Role            string // "admin" or "user"
+	CanWrite        bool
+	JTI             string // only for JWT credentials
+	Collections     []string
+	IsWebsite       bool
+	AllowedOrigins  []string
+	RateLimit       int
+	CaptchaRequired bool
+	Enabled         bool
 }
 
 type contextKey string
@@ -276,6 +284,30 @@ func (m *AuthMiddleware) validateAPIKey(ctx context.Context, key string) (*AuthI
 	id, _ := row["id"].(string)
 	role, _ := row["role"].(string)
 	canWrite := toBool(row["can_write"])
+	collections, err := parseCollections(row["collections"])
+	if err != nil {
+		return nil, fmt.Errorf("parse collections: %w", err)
+	}
+	isWebsite := toBool(row["is_website"])
+	allowedOrigins, err := parseAllowedOrigins(row["allowed_origins"])
+	if err != nil {
+		return nil, fmt.Errorf("parse allowed origins: %w", err)
+	}
+	rateLimit, err := parseAPIKeyRateLimit(row["rate_limit"])
+	if err != nil {
+		return nil, fmt.Errorf("parse rate limit: %w", err)
+	}
+	enabled := true
+	if rawEnabled, ok := row["enabled"]; ok {
+		enabled = toBool(rawEnabled)
+	}
+	if !enabled {
+		return nil, fmt.Errorf("api key disabled")
+	}
+	captchaRequired := false
+	if rawCaptcha, ok := row["captcha_required"]; ok {
+		captchaRequired = toBool(rawCaptcha)
+	}
 
 	// Best-effort update of last_used_at
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -284,11 +316,99 @@ func (m *AuthMiddleware) validateAPIKey(ctx context.Context, key string) (*AuthI
 	})
 
 	return &AuthIdentity{
-		CredentialType: CredentialTypeAPIKey,
-		CallerID:       id,
-		Role:           role,
-		CanWrite:       canWrite,
+		CredentialType:  CredentialTypeAPIKey,
+		CallerID:        id,
+		Role:            role,
+		CanWrite:        canWrite,
+		Collections:     collections,
+		IsWebsite:       isWebsite,
+		AllowedOrigins:  allowedOrigins,
+		RateLimit:       rateLimit,
+		CaptchaRequired: captchaRequired,
+		Enabled:         enabled,
 	}, nil
+}
+
+func parseCollections(value any) ([]string, error) {
+	return parseStringArrayValue(value, "collections")
+}
+
+func parseAllowedOrigins(value any) ([]string, error) {
+	return parseStringArrayValue(value, "allowed origins")
+}
+
+func parseStringArrayValue(value any, fieldName string) ([]string, error) {
+	switch v := value.(type) {
+	case nil:
+		return nil, nil
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return nil, nil
+		}
+		var parsed []string
+		if err := json.Unmarshal([]byte(v), &parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
+	case []byte:
+		if len(v) == 0 {
+			return nil, nil
+		}
+		var parsed []string
+		if err := json.Unmarshal(v, &parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
+	case []string:
+		result := make([]string, len(v))
+		copy(result, v)
+		return result, nil
+	case []any:
+		result := make([]string, 0, len(v))
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("%s must contain only strings", fieldName)
+			}
+			result = append(result, s)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("unsupported %s type %T", fieldName, value)
+	}
+}
+
+func parseAPIKeyRateLimit(value any) (int, error) {
+	if value == nil {
+		return DefaultAPIKeyRateLimit, nil
+	}
+	var limit int
+	switch v := value.(type) {
+	case int:
+		limit = v
+	case int64:
+		limit = int(v)
+	case float64:
+		limit = int(v)
+	case string:
+		parsed, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, err
+		}
+		limit = parsed
+	case []byte:
+		parsed, err := strconv.Atoi(string(v))
+		if err != nil {
+			return 0, err
+		}
+		limit = parsed
+	default:
+		return 0, fmt.Errorf("unsupported rate limit type %T", value)
+	}
+	if limit < 1 {
+		return 0, fmt.Errorf("rate limit must be positive")
+	}
+	return limit, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -307,6 +427,11 @@ func Authorize(prefix string, next http.Handler) http.Handler {
 		}
 
 		path := r.URL.Path
+
+		if !isAPIKeyResourceAllowed(identity, path) {
+			WriteError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
 
 		// Determine what kind of operation this is
 		if isAdminOnlyRoute(path, r.Method, p) {
@@ -336,6 +461,28 @@ func Authorize(prefix string, next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isAPIKeyResourceAllowed(identity *AuthIdentity, path string) bool {
+	if identity.CredentialType != CredentialTypeAPIKey {
+		return true
+	}
+
+	resource := extractResource(path)
+	if resource == "" {
+		return true
+	}
+
+	return stringInSlice(resource, identity.Collections)
+}
+
+func stringInSlice(value string, items []string) bool {
+	for _, item := range items {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
 
 // isAdminOnlyRoute returns true for routes that require admin role.

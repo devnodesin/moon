@@ -410,6 +410,11 @@ Response `200 OK`:
       "name": "Updated Service Name",
       "role": "user",
       "can_write": true,
+      "is_website": true,
+      "allowed_origins": ["https://moon.devnodes.in"],
+      "rate_limit": 5,
+      "captcha_required": true,
+      "enabled": true,
       "key": "moon_live_I7T1uNRduazIASRIIucsgctuktM2Rk1J9O0E3ezfAaxREEgMaQBoxqJzoAY1A6Gk"
     }
   ],
@@ -424,6 +429,8 @@ API key rule:
 
 - Raw `key` material is returned only when an API key is created or rotated.
 - Raw `key` material is never returned by query or schema endpoints.
+- API key query and schema responses include `collections`, `is_website`, `allowed_origins`, `rate_limit`, `captcha_required`, and `enabled`.
+- When `captcha_required=true`, authenticated `POST` requests may include `captcha_id` and `captcha_value` at the top level of the JSON body.
 
 See `SPEC/10_error.md` for error handling.
 

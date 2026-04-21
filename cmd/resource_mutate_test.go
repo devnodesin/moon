@@ -505,9 +505,15 @@ func TestMutate_Create_APIKey_Success(t *testing.T) {
 		"op": "create",
 		"data": []any{
 			map[string]any{
-				"name":      "my-service",
-				"role":      "user",
-				"can_write": true,
+				"name":             "my-service",
+				"role":             "user",
+				"can_write":        true,
+				"collections":      []any{"products", "orders"},
+				"is_website":       true,
+				"allowed_origins":  []any{"https://example.com"},
+				"rate_limit":       5,
+				"captcha_required": true,
+				"enabled":          true,
 			},
 		},
 	}
@@ -528,6 +534,26 @@ func TestMutate_Create_APIKey_Success(t *testing.T) {
 	if len(key) != APIKeyTotalLen {
 		t.Fatalf("expected key length %d, got %d", APIKeyTotalLen, len(key))
 	}
+	collections := record["collections"].([]any)
+	if len(collections) != 2 || collections[0] != "products" || collections[1] != "orders" {
+		t.Fatalf("unexpected collections=%v", record["collections"])
+	}
+	if record["is_website"] != true {
+		t.Fatalf("expected is_website=true, got %v", record["is_website"])
+	}
+	if record["captcha_required"] != true {
+		t.Fatalf("expected captcha_required=true, got %v", record["captcha_required"])
+	}
+	if record["enabled"] != true {
+		t.Fatalf("expected enabled=true, got %v", record["enabled"])
+	}
+	if record["rate_limit"] != float64(5) {
+		t.Fatalf("expected rate_limit=5, got %v", record["rate_limit"])
+	}
+	origins := record["allowed_origins"].([]any)
+	if len(origins) != 1 || origins[0] != "https://example.com" {
+		t.Fatalf("unexpected allowed_origins=%v", record["allowed_origins"])
+	}
 
 	// key_hash must not appear
 	if _, ok := record["key_hash"]; ok {
@@ -540,7 +566,47 @@ func TestMutate_Create_APIKey_MissingName(t *testing.T) {
 
 	body := map[string]any{
 		"op":   "create",
-		"data": []any{map[string]any{"role": "user"}},
+		"data": []any{map[string]any{"role": "user", "is_website": false}},
+	}
+
+	w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestMutate_Create_APIKey_MissingIsWebsite(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"name":        "my-service",
+				"role":        "user",
+				"collections": []any{"products"},
+			},
+		},
+	}
+
+	w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestMutate_Create_APIKey_MissingCollections(t *testing.T) {
+	handler, _, _ := setupMutateTest(t)
+
+	body := map[string]any{
+		"op": "create",
+		"data": []any{
+			map[string]any{
+				"name":       "my-service",
+				"role":       "user",
+				"is_website": false,
+			},
+		},
 	}
 
 	w := doMutateRequest(t, handler, "apikeys", body, adminIdentity())
@@ -984,13 +1050,19 @@ func TestMutate_Action_RotateAPIKey_Success(t *testing.T) {
 	_ = origRaw
 	id := GenerateULID()
 	err := adapter.InsertRow(context.Background(), "apikeys", map[string]any{
-		"id":         id,
-		"name":       "service-key",
-		"role":       "user",
-		"can_write":  int64(1),
-		"key_hash":   origHash,
-		"created_at": "2025-01-01T00:00:00Z",
-		"updated_at": "2025-01-01T00:00:00Z",
+		"id":               id,
+		"name":             "service-key",
+		"role":             "user",
+		"can_write":        int64(1),
+		"collections":      `["products"]`,
+		"is_website":       int64(1),
+		"allowed_origins":  `["https://example.com"]`,
+		"rate_limit":       int64(5),
+		"captcha_required": int64(1),
+		"enabled":          int64(1),
+		"key_hash":         origHash,
+		"created_at":       "2025-01-01T00:00:00Z",
+		"updated_at":       "2025-01-01T00:00:00Z",
 	})
 	if err != nil {
 		t.Fatalf("seed apikey: %v", err)
@@ -1023,6 +1095,15 @@ func TestMutate_Action_RotateAPIKey_Success(t *testing.T) {
 	}
 	if record["role"] != "user" {
 		t.Fatalf("expected role=user, got %v", record["role"])
+	}
+	if got := record["collections"].([]any); len(got) != 1 || got[0] != "products" {
+		t.Fatalf("expected collections=[products], got %v", record["collections"])
+	}
+	if record["is_website"] != true {
+		t.Fatalf("expected is_website=true, got %v", record["is_website"])
+	}
+	if record["rate_limit"] != float64(5) {
+		t.Fatalf("expected rate_limit=5, got %v", record["rate_limit"])
 	}
 	if record["can_write"] != true {
 		t.Fatalf("expected can_write=true, got %v", record["can_write"])
@@ -1920,9 +2001,11 @@ func TestMutate_Create_APIKey_WithCanWrite(t *testing.T) {
 		"op": "create",
 		"data": []any{
 			map[string]any{
-				"name":      "readonly-key",
-				"role":      "user",
-				"can_write": false,
+				"name":        "readonly-key",
+				"role":        "user",
+				"can_write":   false,
+				"collections": []any{"products"},
+				"is_website":  false,
 			},
 		},
 	}
@@ -1935,5 +2018,62 @@ func TestMutate_Create_APIKey_WithCanWrite(t *testing.T) {
 	record := data[0].(map[string]any)
 	if record["can_write"] != false {
 		t.Errorf("expected can_write=false, got %v", record["can_write"])
+	}
+}
+
+func TestValidateAPIKeyMutationFields(t *testing.T) {
+	tests := []struct {
+		name    string
+		item    map[string]any
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			item: map[string]any{
+				"collections":      []any{"products"},
+				"is_website":       true,
+				"allowed_origins":  []any{"https://example.com"},
+				"rate_limit":       float64(5),
+				"captcha_required": true,
+				"enabled":          true,
+			},
+		},
+		{
+			name: "invalid origins",
+			item: map[string]any{
+				"allowed_origins": map[string]any{"origin": "https://example.com"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid collections",
+			item: map[string]any{
+				"collections": map[string]any{"name": "products"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid rate limit",
+			item: map[string]any{
+				"rate_limit": float64(0),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid enabled",
+			item: map[string]any{
+				"enabled": "yes",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAPIKeyMutationFields(tt.item)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }

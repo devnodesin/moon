@@ -33,6 +33,13 @@ func newSlidingWindowLimiter(limit int, window time.Duration) *slidingWindowLimi
 // Allow returns true if the key is below the limit and records the hit.
 // Returns false without recording a hit if the limit is already reached.
 func (l *slidingWindowLimiter) Allow(key string) bool {
+	return l.AllowWithLimit(key, l.limit)
+}
+
+// AllowWithLimit returns true if the key is below the provided limit and
+// records the hit. Returns false without recording a hit if the limit is
+// already reached.
+func (l *slidingWindowLimiter) AllowWithLimit(key string, limit int) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -40,7 +47,7 @@ func (l *slidingWindowLimiter) Allow(key string) bool {
 	cutoff := now.Add(-l.window)
 	l.hits[key] = keepAfter(l.hits[key], cutoff)
 
-	if len(l.hits[key]) >= l.limit {
+	if len(l.hits[key]) >= limit {
 		return false
 	}
 	l.hits[key] = append(l.hits[key], now)
@@ -130,6 +137,12 @@ func (r *RateLimiter) AllowJWT(userID string) bool {
 // AllowAPIKey returns true if the API key request is within the per-key limit.
 func (r *RateLimiter) AllowAPIKey(keyID string) bool {
 	return r.apikeyRequest.Allow(keyID)
+}
+
+// AllowAPIKeyWithLimit returns true if the API key request is within the
+// provided per-minute limit.
+func (r *RateLimiter) AllowAPIKeyWithLimit(keyID string, limit int) bool {
+	return r.apikeyRequest.AllowWithLimit(keyID, limit)
 }
 
 // loginFailureKey returns the composite rate-limit key for login failure tracking.

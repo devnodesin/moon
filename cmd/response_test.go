@@ -60,6 +60,30 @@ func TestWriteError(t *testing.T) {
 	}
 }
 
+func TestWriteCaptchaChallenge(t *testing.T) {
+	w := httptest.NewRecorder()
+	WriteCaptchaChallenge(w, http.StatusForbidden, CaptchaChallengeDTO{
+		ID:          "captcha-1",
+		ImageBase64: "PHN2Zz4=",
+		ExpiresIn:   300,
+	})
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+
+	var got CaptchaChallengeResponse
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	if got.Message != "Captcha required" {
+		t.Fatalf("unexpected message: %q", got.Message)
+	}
+	if got.Captcha.ID != "captcha-1" {
+		t.Fatalf("unexpected captcha id: %q", got.Captcha.ID)
+	}
+}
+
 func TestWriteSuccess(t *testing.T) {
 	w := httptest.NewRecorder()
 	data := []any{map[string]string{"id": "abc"}}

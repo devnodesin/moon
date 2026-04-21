@@ -18,6 +18,12 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// CaptchaChallengeResponse is the documented CAPTCHA challenge envelope.
+type CaptchaChallengeResponse struct {
+	Message string              `json:"message"`
+	Captcha CaptchaChallengeDTO `json:"captcha"`
+}
+
 // WriteJSON serializes body as JSON and writes it to w with the given status.
 func WriteJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -28,6 +34,14 @@ func WriteJSON(w http.ResponseWriter, status int, body any) {
 // WriteError writes a standard error response with the given status and message.
 func WriteError(w http.ResponseWriter, status int, message string) {
 	WriteJSON(w, status, ErrorResponse{Message: message})
+}
+
+// WriteCaptchaChallenge writes a CAPTCHA challenge response.
+func WriteCaptchaChallenge(w http.ResponseWriter, status int, challenge CaptchaChallengeDTO) {
+	WriteJSON(w, status, CaptchaChallengeResponse{
+		Message: "Captcha required",
+		Captcha: challenge,
+	})
 }
 
 // WriteSuccess writes a standard success response with data.

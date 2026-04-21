@@ -199,6 +199,22 @@ func TestRateLimiter_APIKey(t *testing.T) {
 	}
 }
 
+func TestRateLimiter_APIKey_CustomLimit(t *testing.T) {
+	rl := NewRateLimiter()
+
+	const keyID = "01TESTAPIKEY0000000000002"
+
+	for range 5 {
+		if !rl.AllowAPIKeyWithLimit(keyID, 5) {
+			t.Fatal("request within custom limit should be allowed")
+		}
+	}
+
+	if rl.AllowAPIKeyWithLimit(keyID, 5) {
+		t.Fatal("request beyond custom limit should be denied")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // clientIP tests
 // ---------------------------------------------------------------------------

@@ -993,6 +993,12 @@ func TestIsReadOnlyField(t *testing.T) {
 		{"users", "role", false, false},
 		{"apikeys", "name", false, false},
 		{"apikeys", "role", false, false},
+		{"apikeys", "collections", false, false},
+		{"apikeys", "is_website", false, false},
+		{"apikeys", "allowed_origins", false, false},
+		{"apikeys", "rate_limit", false, false},
+		{"apikeys", "captcha_required", false, false},
+		{"apikeys", "enabled", false, false},
 
 		// Dynamic collection fields (not readonly).
 		{"products", "title", false, false},
@@ -1048,6 +1054,25 @@ func TestSchemaRegistry_ApikeysFields(t *testing.T) {
 	}
 	if !n.Unique {
 		t.Fatal("apikeys.name must be unique")
+	}
+
+	if got := fieldMap["is_website"].Type; got != MoonFieldTypeBoolean {
+		t.Fatalf("is_website type=%q, want %q", got, MoonFieldTypeBoolean)
+	}
+	if got := fieldMap["collections"].Type; got != MoonFieldTypeJSON {
+		t.Fatalf("collections type=%q, want %q", got, MoonFieldTypeJSON)
+	}
+	if got := fieldMap["allowed_origins"].Type; got != MoonFieldTypeJSON {
+		t.Fatalf("allowed_origins type=%q, want %q", got, MoonFieldTypeJSON)
+	}
+	if got := fieldMap["rate_limit"].Type; got != MoonFieldTypeInteger {
+		t.Fatalf("rate_limit type=%q, want %q", got, MoonFieldTypeInteger)
+	}
+	if got := fieldMap["captcha_required"].Type; got != MoonFieldTypeBoolean {
+		t.Fatalf("captcha_required type=%q, want %q", got, MoonFieldTypeBoolean)
+	}
+	if got := fieldMap["enabled"].Type; got != MoonFieldTypeBoolean {
+		t.Fatalf("enabled type=%q, want %q", got, MoonFieldTypeBoolean)
 	}
 
 	// id first.

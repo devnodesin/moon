@@ -22,6 +22,8 @@ Rules:
 
 In list mode, the endpoint returns only API-visible collections. Internal `moon_*` tables are excluded.
 
+When the caller uses an API key, the response must be filtered to collections listed in that key's `collections` allowlist.
+
 ### List Response
 
 Response `200 OK`:
@@ -66,6 +68,8 @@ Response `200 OK`:
   ]
 }
 ```
+
+If the caller uses an API key and `name` is not present in that key's `collections` allowlist, the request must be rejected.
 
 Validation rules:
 
