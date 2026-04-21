@@ -51,6 +51,7 @@ Credential rules:
 - API keys are used for service access.
 - Website API keys are browser-facing API keys and must enforce a matching `Origin` header from their `allowed_origins` list.
 - Disabled API keys must be rejected.
+- API keys must access only collections listed in their `collections` field.
 - JWT access tokens must include a unique `jti` claim.
 - Malformed, expired, revoked, or unsupported bearer credentials must be rejected with the standard error body.
 - `/auth:session` is the credential-exchange endpoint. It does not require a bearer token.
@@ -238,12 +239,16 @@ See [Resource API](./SPEC/40_resource.md)
 1. **List mode**: no `name`
 2. **Get-one mode**: `?name=...`
 
+When the caller is an API key, collection query results are limited to the key's `collections` allowlist.
+
 ### Resource Query Modes
 
 `GET /data/{resource}:query` supports:
 
 1. **List mode**: no `id`
 2. **Get-one mode**: `?id=...`
+
+When the caller is an API key, `/data/{resource}:query`, `/data/{resource}:mutate`, and `/data/{resource}:schema` are allowed only if `{resource}` is listed in the key's `collections` allowlist.
 
 ## Query Options
 

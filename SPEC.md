@@ -458,6 +458,7 @@ CREATE TABLE apikeys (
     name TEXT NOT NULL, -- unique administrative label, 3-100 chars
     role TEXT NOT NULL, -- 'admin' or 'user'
     can_write BOOLEAN NOT NULL DEFAULT 0, -- default false; ignored when role=admin
+    collections JSON NOT NULL DEFAULT '[]', -- required JSON array of collection names the key may access
     is_website BOOLEAN NOT NULL DEFAULT 0, -- required; true for browser-facing keys, false for device/service keys
     allowed_origins JSON, -- optional JSON array of origin strings for website keys
     rate_limit INTEGER NOT NULL DEFAULT 15, -- positive requests-per-minute limit applied to this key
@@ -486,6 +487,8 @@ Additional rules:
 - Raw API key material must never be stored after creation or rotation.
 - The key format must remain `moon_live_` plus a 64-character base62 suffix.
 - Rotation replaces the stored credential immediately while preserving the logical API key record identified by `id`.
+- `collections` is required and must be a JSON array of collection names.
+- API keys must be authorized only for collections listed in `collections`.
 - `is_website` is required on every API key record and distinguishes browser-facing keys from device/service keys.
 - `allowed_origins`, when present, must be a JSON array of strings.
 - `rate_limit` must be a positive integer and defaults to `15`.
@@ -774,6 +777,7 @@ API key requirements are mandatory:
 - API key usage should update `last_used_at` or equivalent usage metadata
 - website API keys must require a matching browser `Origin` header
 - API keys with `enabled=false` must be rejected
+- API keys must be denied access to any collection not listed in `collections`
 - API keys with `captcha_required=true` must require a valid CAPTCHA challenge on authenticated `POST` requests
 - CAPTCHA challenges must be returned as base64-encoded images in JSON responses
 

@@ -771,6 +771,10 @@ func TestResourceQuery_APIKeys_HidesKeyHash(t *testing.T) {
 	if _, ok := record["name"]; !ok {
 		t.Fatal("name should be visible")
 	}
+	collections := record["collections"].([]any)
+	if len(collections) != 1 || collections[0] != "products" {
+		t.Fatalf("unexpected collections=%v", record["collections"])
+	}
 }
 
 // ---------------------------------------------------------------------------

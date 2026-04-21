@@ -582,8 +582,8 @@ func TestMutate_Create_APIKey_MissingIsWebsite(t *testing.T) {
 		"op": "create",
 		"data": []any{
 			map[string]any{
-				"name": "my-service",
-				"role": "user",
+				"name":        "my-service",
+				"role":        "user",
 				"collections": []any{"products"},
 			},
 		},
@@ -2001,11 +2001,11 @@ func TestMutate_Create_APIKey_WithCanWrite(t *testing.T) {
 		"op": "create",
 		"data": []any{
 			map[string]any{
-				"name":       "readonly-key",
-				"role":       "user",
-				"can_write":  false,
+				"name":        "readonly-key",
+				"role":        "user",
+				"can_write":   false,
 				"collections": []any{"products"},
-				"is_website": false,
+				"is_website":  false,
 			},
 		},
 	}

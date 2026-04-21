@@ -22,6 +22,10 @@
               "name": "Integration Service",
               "role": "user",
               "can_write": false,
+              "collections": [
+                "products",
+                "orders"
+              ],
               "is_website": true,
               "allowed_origins": [
                 "https://moon.devnodes.in"
@@ -66,6 +70,9 @@
             {
               "id": "$ULID",
               "name": "Updated Integration Service",
+              "collections": [
+                "products"
+              ],
               "allowed_origins": [
                 "https://moon.devnodes.in",
                 "https://www.moon.devnodes.in"

@@ -215,6 +215,44 @@ func TestCollectionQuery_List_WithDynamicCollections(t *testing.T) {
 	}
 }
 
+func TestCollectionQuery_List_FilteredForAPIKey(t *testing.T) {
+	adapter, registry, cfg, _ := setupCollectionTest(t)
+	ctx := context.Background()
+
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create products: %v", err)
+	}
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE orders (id TEXT PRIMARY KEY, total TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create orders: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	handler := NewCollectionHandler(adapter, registry, cfg)
+	req := httptest.NewRequest(http.MethodGet, "/collections:query", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), &AuthIdentity{
+		CredentialType: CredentialTypeAPIKey,
+		CallerID:       "key-1",
+		Collections:    []string{"products"},
+	}))
+	w := httptest.NewRecorder()
+	handler.HandleQuery(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	resp := decodeResponse(t, w)
+	data := resp["data"].([]any)
+	if len(data) != 1 {
+		t.Fatalf("expected 1 collection, got %d", len(data))
+	}
+	if data[0].(map[string]any)["name"] != "products" {
+		t.Fatalf("expected products, got %v", data[0])
+	}
+}
+
 func TestCollectionQuery_List_ExcludesMoonTables(t *testing.T) {
 	adapter, registry, cfg, logger := setupCollectionTest(t)
 	ctx := context.Background()
@@ -375,6 +413,32 @@ func TestCollectionQuery_GetOne_WithCount(t *testing.T) {
 	item := data[0].(map[string]any)
 	if item["count"].(float64) != 3 {
 		t.Fatalf("expected count=3, got %v", item["count"])
+	}
+}
+
+func TestCollectionQuery_GetOne_FilteredForAPIKey(t *testing.T) {
+	adapter, registry, cfg, _ := setupCollectionTest(t)
+	ctx := context.Background()
+
+	if err := adapter.ExecDDL(ctx, `CREATE TABLE products (id TEXT PRIMARY KEY, title TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create products: %v", err)
+	}
+	if err := registry.Refresh(); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	handler := NewCollectionHandler(adapter, registry, cfg)
+	req := httptest.NewRequest(http.MethodGet, "/collections:query?name=products", nil)
+	req = req.WithContext(SetAuthIdentity(req.Context(), &AuthIdentity{
+		CredentialType: CredentialTypeAPIKey,
+		CallerID:       "key-1",
+		Collections:    []string{"orders"},
+	}))
+	w := httptest.NewRecorder()
+	handler.HandleQuery(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
 	}
 }
 
