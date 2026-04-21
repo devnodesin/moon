@@ -30,7 +30,7 @@ from .placeholders import (
 )
 from .formatters import (
     format_markdown_result,
-    sanitize_body_for_documentation,
+    sanitize_credentials_for_documentation,
     sanitize_curl_for_documentation,
     write_markdown_output
 )
@@ -172,7 +172,10 @@ def run_test_suite(
             placeholder_context.captured_record_id,
             placeholder_context.placeholder_type
         )
-        sanitized_body = sanitize_body_for_documentation(response.body, auth_state)
+        sanitized_body = sanitize_credentials_for_documentation(
+            response.body,
+            auth_state
+        )
         
         # Only add to output if test has a name
         if test.name:

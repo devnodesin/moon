@@ -6,6 +6,24 @@ from typing import Optional, Dict, Any
 from .types import AuthState, TestDefinition
 
 
+def extract_response_data_object(
+    response_obj: Optional[Dict[str, Any]]
+) -> Optional[Dict[str, Any]]:
+    """Extract the first response payload object from a Moon API response."""
+    if not response_obj or not isinstance(response_obj, dict):
+        return None
+
+    data_raw = response_obj.get("data")
+
+    if isinstance(data_raw, list) and len(data_raw) > 0:
+        return data_raw[0] if isinstance(data_raw[0], dict) else None
+
+    if isinstance(data_raw, dict):
+        return data_raw
+
+    return response_obj
+
+
 def perform_login(
     server_url: str,
     username: str,
@@ -50,13 +68,7 @@ def perform_login(
             current_password=password,
         )
 
-        # Response shape: {"message": "...", "data": [{"access_token": ..., "refresh_token": ..., ...}]}
-        data_list = token_json.get("data", [])
-        data_obj: Dict[str, Any] = {}
-        if isinstance(data_list, list) and len(data_list) > 0:
-            data_obj = data_list[0] if isinstance(data_list[0], dict) else {}
-        elif isinstance(data_list, dict):
-            data_obj = data_list
+        data_obj = extract_response_data_object(token_json) or {}
 
         access_token = data_obj.get("access_token")
         if access_token:
@@ -154,19 +166,7 @@ def extract_tokens_from_response(
     Returns:
         Tuple of (access_token, refresh_token), either can be None
     """
-    if not response_obj or not isinstance(response_obj, dict):
-        return None, None
-
-    data_raw = response_obj.get("data")
-    data_obj: Dict[str, Any] = {}
-
-    if isinstance(data_raw, list) and len(data_raw) > 0:
-        data_obj = data_raw[0]
-    elif isinstance(data_raw, dict):
-        data_obj = data_raw
-    else:
-        data_obj = response_obj
-
+    data_obj = extract_response_data_object(response_obj)
     if not isinstance(data_obj, dict):
         return None, None
 
@@ -188,19 +188,7 @@ def extract_api_key_from_response(response_obj: Optional[Dict[str, Any]]) -> Opt
     Returns:
         Raw API key if present, otherwise None
     """
-    if not response_obj or not isinstance(response_obj, dict):
-        return None
-
-    data_raw = response_obj.get("data")
-    data_obj: Dict[str, Any] = {}
-
-    if isinstance(data_raw, list) and len(data_raw) > 0:
-        data_obj = data_raw[0] if isinstance(data_raw[0], dict) else {}
-    elif isinstance(data_raw, dict):
-        data_obj = data_raw
-    else:
-        data_obj = response_obj
-
+    data_obj = extract_response_data_object(response_obj)
     if not isinstance(data_obj, dict):
         return None
 

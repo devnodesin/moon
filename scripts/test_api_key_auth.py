@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from lib.auth import extract_api_key_from_response
 from lib.formatters import (
-    sanitize_body_for_documentation,
+    sanitize_credentials_for_documentation,
     sanitize_curl_for_documentation,
 )
 from lib.placeholders import replace_auth_placeholders
@@ -94,7 +94,7 @@ class APIKeyAuthTests(unittest.TestCase):
             "http://localhost:6000",
             auth_state,
         )
-        body = sanitize_body_for_documentation(
+        body = sanitize_credentials_for_documentation(
             '{"access_token":"jwt-token","refresh_token":"refresh-token","key":"moon_live_example"}',
             auth_state,
         )

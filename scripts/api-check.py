@@ -74,7 +74,7 @@ def load_test_suite(test_file: str) -> TestSuite:
     )
 
 
-def _uses_placeholder(test: TestDefinition, placeholder: str) -> bool:
+def uses_placeholder(test: TestDefinition, placeholder: str) -> bool:
     """Check whether a test references a placeholder in headers or data."""
     if test.headers and any(placeholder in value for value in test.headers.values()):
         return True
@@ -88,8 +88,8 @@ def _uses_placeholder(test: TestDefinition, placeholder: str) -> bool:
 def check_if_login_needed(test_suite: TestSuite) -> bool:
     """Check if the suite needs an initial username/password login."""
     return any(
-        _uses_placeholder(test, "$ACCESS_TOKEN")
-        or _uses_placeholder(test, "$REFRESH_TOKEN")
+        uses_placeholder(test, "$ACCESS_TOKEN")
+        or uses_placeholder(test, "$REFRESH_TOKEN")
         for test in test_suite.tests
     )
 

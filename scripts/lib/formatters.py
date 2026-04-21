@@ -72,12 +72,12 @@ def sanitize_curl_for_documentation(
     # Replace server URL with doc URL
     sanitized = sanitized.replace(server_url, doc_url)
 
-    return sanitize_body_for_documentation(sanitized, auth_state)
+    return sanitize_credentials_for_documentation(sanitized, auth_state)
 
 
-def sanitize_body_for_documentation(body: str, auth_state: AuthState) -> str:
-    """Sanitize response content by replacing credentials with placeholders."""
-    sanitized = body
+def sanitize_credentials_for_documentation(text: str, auth_state: AuthState) -> str:
+    """Sanitize documentation content by replacing credentials with placeholders."""
+    sanitized = text
 
     for token in auth_state.all_access_tokens:
         if token:
