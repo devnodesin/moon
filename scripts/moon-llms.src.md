@@ -103,6 +103,10 @@ This document describes the standard response patterns, query options, and aggre
 
 {{ include ./md/040-apikeys.md }}
 
+## APIKey Usage
+
+{{ include ./md/041-apikeys-usage.md }}
+
 ## Collection Managment API
 
 {{ include ./md/050-collection.md }}
