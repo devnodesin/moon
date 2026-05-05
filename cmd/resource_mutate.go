@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -170,7 +171,7 @@ func (h *ResourceMutateHandler) handleCreate(w http.ResponseWriter, _ *http.Requ
 				return
 			}
 			if isUniqueViolation(insertErr) {
-				WriteError(w, http.StatusConflict, "Unique constraint violation")
+				WriteError(w, http.StatusConflict, uniqueViolationMessage(insertErr))
 				return
 			}
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
@@ -1167,21 +1168,84 @@ func boolToInt(b bool) int64 {
 
 // isUniqueViolation checks if an error indicates a unique constraint violation.
 func isUniqueViolation(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	if strings.Contains(msg, "UNIQUE constraint failed") ||
-		strings.Contains(msg, "unique constraint") ||
-		strings.Contains(msg, "duplicate key") {
-		return true
-	}
-	var ae *AdapterError
-	if errors.As(err, &ae) && ae.Err != nil {
-		inner := ae.Err.Error()
-		return strings.Contains(inner, "UNIQUE constraint failed") ||
-			strings.Contains(inner, "unique constraint") ||
-			strings.Contains(inner, "duplicate key")
+	for _, msg := range errorMessages(err) {
+		if strings.Contains(msg, "UNIQUE constraint failed") ||
+			strings.Contains(msg, "unique constraint") ||
+			strings.Contains(msg, "duplicate key") {
+			return true
+		}
 	}
 	return false
+}
+
+var postgresUniqueFieldsPattern = regexp.MustCompile(`Key \(([^)]+)\)=`)
+
+func uniqueViolationMessage(err error) string {
+	fields := uniqueViolationFields(err)
+	switch len(fields) {
+	case 0:
+		return "Unique constraint violation"
+	case 1:
+		return fmt.Sprintf("Unique constraint violation for field: %s", fields[0])
+	default:
+		return fmt.Sprintf("Unique constraint violation for fields: %s", strings.Join(fields, ", "))
+	}
+}
+
+func uniqueViolationFields(err error) []string {
+	const sqlitePrefix = "UNIQUE constraint failed:"
+
+	for _, msg := range errorMessages(err) {
+		if idx := strings.Index(msg, sqlitePrefix); idx >= 0 {
+			fields := parseUniqueFieldList(msg[idx+len(sqlitePrefix):])
+			if len(fields) > 0 {
+				return fields
+			}
+		}
+
+		matches := postgresUniqueFieldsPattern.FindStringSubmatch(msg)
+		if len(matches) == 2 {
+			fields := parseUniqueFieldList(matches[1])
+			if len(fields) > 0 {
+				return fields
+			}
+		}
+	}
+
+	return nil
+}
+
+func parseUniqueFieldList(raw string) []string {
+	parts := strings.Split(raw, ",")
+	fields := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		field := strings.TrimSpace(part)
+		field = strings.Trim(field, `"'`+"`")
+		if dot := strings.LastIndex(field, "."); dot >= 0 {
+			field = field[dot+1:]
+		}
+		field = strings.TrimSpace(strings.Trim(field, `"'`+"`"))
+		if field == "" {
+			continue
+		}
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		seen[field] = struct{}{}
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+func errorMessages(err error) []string {
+	if err == nil {
+		return nil
+	}
+
+	var messages []string
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		messages = append(messages, current.Error())
+	}
+	return messages
 }
