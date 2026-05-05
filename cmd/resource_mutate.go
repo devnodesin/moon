@@ -1178,7 +1178,10 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
+// postgresUniqueFieldsPattern extracts field names from PostgreSQL duplicate key errors.
 var postgresUniqueFieldsPattern = regexp.MustCompile(`Key \(([^)]+)\)=`)
+
+const uniqueFieldNameTrimCutset = "\"'`"
 
 func uniqueViolationMessage(err error) string {
 	fields := uniqueViolationFields(err)
@@ -1220,12 +1223,11 @@ func parseUniqueFieldList(raw string) []string {
 	fields := make([]string, 0, len(parts))
 	seen := make(map[string]struct{}, len(parts))
 	for _, part := range parts {
-		field := strings.TrimSpace(part)
-		field = strings.Trim(field, `"'`+"`")
+		field := strings.Trim(strings.TrimSpace(part), uniqueFieldNameTrimCutset)
 		if dot := strings.LastIndex(field, "."); dot >= 0 {
 			field = field[dot+1:]
 		}
-		field = strings.TrimSpace(strings.Trim(field, `"'`+"`"))
+		field = strings.Trim(strings.TrimSpace(field), uniqueFieldNameTrimCutset)
 		if field == "" {
 			continue
 		}
