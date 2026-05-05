@@ -1223,7 +1223,7 @@ func parseUniqueFieldList(raw string) []string {
 	fields := make([]string, 0, len(parts))
 	seen := make(map[string]struct{}, len(parts))
 	for _, part := range parts {
-		field := strings.Trim(strings.TrimSpace(part), uniqueFieldNameTrimCutset)
+		field := strings.TrimSpace(part)
 		if dot := strings.LastIndex(field, "."); dot >= 0 {
 			field = field[dot+1:]
 		}
