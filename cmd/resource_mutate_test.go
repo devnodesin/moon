@@ -492,6 +492,10 @@ func TestMutate_Create_User_DuplicateUsername(t *testing.T) {
 	if w.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
 	}
+	resp := parseResponse(t, w)
+	if got := resp["message"]; got != "Unique constraint violation for field: username" {
+		t.Fatalf("expected unique field message, got %v", got)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1217,6 +1221,48 @@ func TestMutate_NoAuthIdentity(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Tests: UniqueViolation detection
 // ---------------------------------------------------------------------------
+
+func TestUniqueViolationMessage(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "sqlite single field",
+			err:  fmt.Errorf("UNIQUE constraint failed: users.username"),
+			want: "Unique constraint violation for field: username",
+		},
+		{
+			name: "sqlite multiple fields",
+			err:  fmt.Errorf("UNIQUE constraint failed: estimates.title, estimates.phone"),
+			want: "Unique constraint violation for fields: title, phone",
+		},
+		{
+			name: "postgres detail",
+			err:  fmt.Errorf(`duplicate key value violates unique constraint "estimates_title_phone_key" (SQLSTATE 23505): Key (title, phone)=(a, b) already exists.`),
+			want: "Unique constraint violation for fields: title, phone",
+		},
+		{
+			name: "fallback",
+			err:  fmt.Errorf("unique constraint violation"),
+			want: "Unique constraint violation",
+		},
+		{
+			name: "wrapped adapter error",
+			err:  newAdapterError("InsertRow", "users", "insert failed", fmt.Errorf("UNIQUE constraint failed: users.email")),
+			want: "Unique constraint violation for field: email",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := uniqueViolationMessage(tt.err); got != tt.want {
+				t.Fatalf("uniqueViolationMessage() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestIsUniqueViolation(t *testing.T) {
 	tests := []struct {
