@@ -3,7 +3,10 @@
 FROM golang:1.24-alpine AS builder
 
 # Install build tools: gcc and musl-dev are required for CGO (go-sqlite3)
-RUN apk add --no-cache ca-certificates gcc musl-dev
+RUN apk add --no-cache ca-certificates gcc musl-dev shadow
+
+# Create a non-root user/group to run the binary in the scratch image
+RUN addgroup -S -g 1000 moon && adduser -S -u 1000 -G moon moon
 
 # Set working directory
 WORKDIR /build
@@ -36,6 +39,12 @@ COPY --from=builder /opt/moon /opt/moon
 
 # Copy binary from builder
 COPY --from=builder /build/moon /usr/local/bin/moon
+
+# Bring the non-root user/group entries into the scratch image
+COPY --from=builder /etc/passwd /etc/group /etc/
+
+# Switch to the non-root user
+USER moon
 
 # Expose default port
 EXPOSE 6006
