@@ -1,0 +1,47 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@0.0.38"],
+    },
+    "hound": {
+      "type": "local",
+      "command": ["hound"],
+      "enabled": true
+    },
+  },
+  "permission": {
+    "bash": "allow",
+    "external_directory": "ask",
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "task": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "codesearch": "allow",
+    "lsp": "allow",
+    "doom_loop": "allow",
+    "skill": "allow",
+    "todoread": "allow",
+  },
+  "skills": {
+    "paths": [".claude\\rules"],
+  },
+  "instructions": [".claude\\rules"],
+  "watcher": {
+    "ignore": ["**/node_modules/**"],
+  },
+  "indexing": {
+    "enabled": false,
+  },
+  "snapshot": false,
+}
