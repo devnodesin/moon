@@ -1551,7 +1551,7 @@ func TestCollectionMutate_Update_ModifyColumns_IDRejected(t *testing.T) {
 // Helper function coverage
 // ---------------------------------------------------------------------------
 
-func TestDefaultForType(t *testing.T) {
+func TestDefaultLiteralForType(t *testing.T) {
 	tests := []struct {
 		fieldType string
 		want      string
@@ -1566,9 +1566,9 @@ func TestDefaultForType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.fieldType, func(t *testing.T) {
-			got := defaultForType(tt.fieldType)
+			got := defaultLiteralForType(tt.fieldType, DBConnectionSQLite)
 			if got != tt.want {
-				t.Errorf("defaultForType(%q) = %q, want %q", tt.fieldType, got, tt.want)
+				t.Errorf("defaultLiteralForType(%q, sqlite) = %q, want %q", tt.fieldType, got, tt.want)
 			}
 		})
 	}

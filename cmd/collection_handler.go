@@ -309,7 +309,7 @@ func (h *CollectionHandler) buildCreateDDL(item collectionCreateItem) string {
 		sb.WriteString(", ")
 		sb.WriteString(quoteIdent(col.Name))
 		sb.WriteString(" ")
-		sb.WriteString(moonTypeToSQLite(col.Type))
+		sb.WriteString(moonTypeToSQL(col.Type, h.cfg.Database.Connection))
 		if !boolVal(col.Nullable, false) {
 			sb.WriteString(" NOT NULL")
 		}
@@ -469,13 +469,13 @@ func (h *CollectionHandler) executeAddColumns(ctx context.Context, table string,
 func (h *CollectionHandler) buildAddColumnDDL(table string, c collectionColumn) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s",
-		quoteIdent(table), quoteIdent(c.Name), moonTypeToSQLite(c.Type)))
+		quoteIdent(table), quoteIdent(c.Name), moonTypeToSQL(c.Type, h.cfg.Database.Connection)))
 
 	nullable := boolVal(c.Nullable, false)
 	if !nullable {
 		// SQLite requires a DEFAULT for NOT NULL columns added via ALTER TABLE
 		// to satisfy existing rows. This is a safety/compatibility choice.
-		sb.WriteString(fmt.Sprintf(" NOT NULL DEFAULT %s", defaultForType(c.Type)))
+		sb.WriteString(fmt.Sprintf(" NOT NULL DEFAULT %s", defaultLiteralForType(c.Type, h.cfg.Database.Connection)))
 	}
 	if boolVal(c.Unique, false) {
 		sb.WriteString(" UNIQUE")
@@ -569,7 +569,7 @@ func (h *CollectionHandler) recreateTableWithModifications(ctx context.Context, 
 			unique = boolVal(mod.Unique, false)
 		}
 
-		def := fmt.Sprintf("%s %s", quoteIdent(f.Name), moonTypeToSQLite(fieldType))
+		def := fmt.Sprintf("%s %s", quoteIdent(f.Name), moonTypeToSQL(fieldType, h.cfg.Database.Connection))
 		if !nullable {
 			def += " NOT NULL"
 		}
@@ -698,35 +698,7 @@ func isValidMoonType(t string) bool {
 	return false
 }
 
-// moonTypeToSQLite maps a Moon field type to the corresponding SQLite column type.
-func moonTypeToSQLite(t string) string {
-	switch t {
-	case MoonFieldTypeString:
-		return SQLiteTypeString
-	case MoonFieldTypeInteger:
-		return SQLiteTypeInteger
-	case MoonFieldTypeDecimal:
-		return SQLiteTypeDecimal
-	case MoonFieldTypeBoolean:
-		return SQLiteTypeBoolean
-	case MoonFieldTypeDatetime:
-		return SQLiteTypeDatetime
-	case MoonFieldTypeJSON:
-		return SQLiteTypeJSON
-	default:
-		return SQLiteTypeString
-	}
-}
-
-// defaultForType returns a SQL default literal for ADD COLUMN NOT NULL in SQLite.
-func defaultForType(t string) string {
-	switch t {
-	case MoonFieldTypeInteger, MoonFieldTypeDecimal, MoonFieldTypeBoolean:
-		return "0"
-	default:
-		return "''"
-	}
-}
+// moonTypeToSQLite is defined in adapter_types.go (backend-aware mapping).
 
 // boolVal returns the value pointed to by p, or the fallback if p is nil.
 func boolVal(p *bool, fallback bool) bool {

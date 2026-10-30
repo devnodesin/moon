@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ResourceMutateHandler implements POST /data/{resource}:mutate.
@@ -1248,6 +1250,13 @@ func errorMessages(err error) []string {
 	var messages []string
 	for current := err; current != nil; current = errors.Unwrap(current) {
 		messages = append(messages, current.Error())
+		// PostgreSQL reports the conflicting key in the PgError.Detail field
+		// (e.g. "Key (id)=(001) already exists."), which is not part of
+		// Error(). Surface it so unique-violation parsing works on PostgreSQL.
+		var pgErr *pgconn.PgError
+		if errors.As(current, &pgErr) && pgErr.Detail != "" {
+			messages = append(messages, pgErr.Detail)
+		}
 	}
 	return messages
 }

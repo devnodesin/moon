@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -83,12 +84,20 @@ var systemDDL = []string{
 
 // ---------------------------------------------------------------------------
 // EnsureSystemTables creates the required system tables if they do not exist.
-// All DDL uses IF NOT EXISTS so calls are idempotent.
+// All DDL uses IF NOT EXISTS so calls are idempotent. The DDL is written in
+// SQLite-compatible form; for the PostgreSQL backend a few defaults are
+// normalized (e.g. BOOLEAN DEFAULT 0 is invalid in PostgreSQL, which requires
+// DEFAULT false).
 // ---------------------------------------------------------------------------
 
 func EnsureSystemTables(ctx context.Context, db DatabaseAdapter) error {
+	_, isPostgres := db.(*PostgresAdapter)
 	for _, ddl := range systemDDL {
-		if err := db.ExecDDL(ctx, ddl); err != nil {
+		normalized := ddl
+		if isPostgres {
+			normalized = normalizeDDLForPostgres(ddl)
+		}
+		if err := db.ExecDDL(ctx, normalized); err != nil {
 			return fmt.Errorf("ensure system tables: %w", err)
 		}
 	}
@@ -166,4 +175,19 @@ func HashPassword(password string) (string, error) {
 		return "", fmt.Errorf("hash password: %w", err)
 	}
 	return string(hash), nil
+}
+
+// ---------------------------------------------------------------------------
+// Backend DDL normalization
+// ---------------------------------------------------------------------------
+
+// normalizeDDLForPostgres rewrites SQLite-oriented DDL fragments that are
+// invalid in PostgreSQL. PostgreSQL requires boolean literals (true/false)
+// rather than integer literals (0/1) for BOOLEAN columns.
+func normalizeDDLForPostgres(ddl string) string {
+	replacer := strings.NewReplacer(
+		"BOOLEAN NOT NULL DEFAULT 0", "BOOLEAN NOT NULL DEFAULT false",
+		"BOOLEAN NOT NULL DEFAULT 1", "BOOLEAN NOT NULL DEFAULT true",
+	)
+	return replacer.Replace(ddl)
 }
