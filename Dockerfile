@@ -1,6 +1,6 @@
 # Multi-stage build for Moon - Dynamic Headless Engine
 # Stage 1: Builder
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install build tools: gcc and musl-dev are required for CGO (go-sqlite3)
 RUN apk add --no-cache ca-certificates gcc musl-dev shadow
