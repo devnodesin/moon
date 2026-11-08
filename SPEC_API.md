@@ -203,7 +203,7 @@ Response `200 OK`:
 
 | Endpoint        | Method | Description                                           |
 | --------------- | ------ | ----------------------------------------------------- |
-| `/auth:session` | POST   | Unified session actions: `login`, `refresh`, `logout` |
+| `/auth:session` | POST   | Unified session actions: `login`, `refresh`, `logout`, `otp_request`, `otp_verify` |
 | `/auth:me`      | GET    | Get the current authenticated user                    |
 | `/auth:me`      | POST   | Update the current authenticated user                 |
 

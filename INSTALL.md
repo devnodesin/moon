@@ -52,6 +52,22 @@ database:
 Moon validates that `user`, `password`, and `host` are present when the backend
 is `postgres` or `mysql`. Startup fails if they are missing.
 
+### Email / OTP login (optional)
+
+OTP login is disabled unless `email.smtp_host` is configured. Required when enabled:
+`email.smtp_host`, `email.smtp_port`, `email.email_sender`.
+
+```yaml
+email:
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  use_tls: true
+  skip_tls_verify: false
+  email_sender: "noreply@example.com"
+  smtp_user: "user"
+  smtp_password: "pass"
+```
+
 ## 4. PostgreSQL driver & behavior notes
 
 - The PostgreSQL adapter uses the [`pgx/v5`](https://github.com/jackc/pgx)

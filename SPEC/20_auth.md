@@ -29,7 +29,7 @@ Additional rules:
 
 ```json
 {
-  "op": "login | refresh | logout",
+  "op": "login | refresh | logout | otp_request | otp_verify",
   "data": {}
 }
 ```
@@ -37,7 +37,7 @@ Additional rules:
 Rules:
 
 - `op` is required.
-- `op` must be exactly one of `login`, `refresh`, or `logout`.
+- `op` must be exactly one of `login`, `refresh`, `logout`, `otp_request`, or `otp_verify`.
 - `data` is required and must be an object.
 
 ### Validation by Operation
@@ -60,6 +60,23 @@ Required fields in `data`:
 Required fields in `data`:
 
 - `refresh_token`
+
+#### `op=otp_request`
+
+Required fields in `data`:
+
+- `email`
+
+On success returns a message-only response: "OTP sent".
+
+#### `op=otp_verify`
+
+Required fields in `data`:
+
+- `email`
+- `code`
+
+On success returns a session payload inside `data`.
 
 ### Session Response Payload
 

@@ -275,6 +275,13 @@ Configuration validation rules are mandatory:
 | `bootstrap_admin_password`      | conditional                                     | none                                                    | first-run only, must satisfy the password policy              |
 | `cors.enabled`                  | no                                              | `true`                                                  | boolean                                                       |
 | `cors.allowed_origins`          | no                                              | `["*"]`                                                 | list of allowed origins                                       |
+| `email.smtp_host`               | conditional                                     | none                                                    | required when email/OTP login is configured                    |
+| `email.smtp_port`               | conditional                                     | none                                                    | integer 1-65535, required when email is configured            |
+| `email.use_tls`                 | no                                              | `false`                                                 | use TLS for SMTP connection                                   |
+| `email.skip_tls_verify`         | no                                              | `false`                                                 | skip TLS certificate verification                             |
+| `email.email_sender`            | conditional                                     | none                                                    | valid sender email, required when email is configured          |
+| `email.smtp_user`               | no                                              | `""`                                                    | SMTP username                                                 |
+| `email.smtp_password`           | no                                              | `""`                                                    | SMTP password                                                 |
 
 ### 8.4 Configuration Behavior
 
@@ -496,6 +503,12 @@ Additional rules:
 - `enabled` defaults to `true`.
 - Disabled API keys must be rejected during authentication.
 - Website API keys must enforce `allowed_origins` on authenticated requests and should use stricter `rate_limit` values than device keys.
+
+#### Email / OTP Login
+
+- Email/OTP login is optional. If `email.smtp_host` is empty and no email settings are provided, OTP login is disabled.
+- When configured, `email.smtp_host`, `email.smtp_port`, and `email.email_sender` are required and validated.
+- OTP login uses the `auth:session` endpoint with `op=otp_request` and `op=otp_verify`.
 
 ### 9.10 `moon_auth_refresh_tokens` Internal Table
 
