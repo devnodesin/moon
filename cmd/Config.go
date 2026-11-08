@@ -134,6 +134,15 @@ const (
 )
 
 // ---------------------------------------------------------------------------
+// OTP constants
+// ---------------------------------------------------------------------------
+
+const (
+	OTPCodeLength = 6
+	OTPTTLMinutes = 5
+)
+
+// ---------------------------------------------------------------------------
 // API key constants
 // ---------------------------------------------------------------------------
 
@@ -158,6 +167,10 @@ const (
 const (
 	RateLoginFailureLimit   = 5
 	RateLoginFailureWindow  = 900 // 15 minutes in seconds
+	RateOTPRequestLimit     = 3
+	RateOTPRequestWindow    = 900 // 15 minutes in seconds
+	RateOTPVerifyLimit      = 5
+	RateOTPVerifyWindow     = 900 // 15 minutes in seconds
 	RateJWTRequestLimit     = 100
 	RateJWTRequestWindow    = 60 // 1 minute
 	RateAPIKeyRequestLimit  = DefaultAPIKeyRateLimit

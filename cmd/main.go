@@ -48,6 +48,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	_ = CleanupExpiredOTPs(ctx, adapter)
+
 	if err := CreateBootstrapAdmin(ctx, adapter, cfg, logger); err != nil {
 		logger.Error("bootstrap admin init failed", "error", err)
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)

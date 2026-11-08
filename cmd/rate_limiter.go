@@ -101,8 +101,13 @@ type RateLimiter struct {
 	loginFailure  *slidingWindowLimiter
 	jwtRequest    *slidingWindowLimiter
 	apikeyRequest *slidingWindowLimiter
+	otpRequest    *slidingWindowLimiter
+	otpVerify     *slidingWindowLimiter
 }
 
+// RateLimiter uses in-memory sliding windows.
+// NOT safe for multi-instance deployments — use a Redis-backed limiter for production.
+//
 // NewRateLimiter creates a RateLimiter with limits taken from the constants in
 // Config.go.
 func NewRateLimiter() *RateLimiter {
@@ -110,6 +115,8 @@ func NewRateLimiter() *RateLimiter {
 		loginFailure:  newSlidingWindowLimiter(RateLoginFailureLimit, time.Duration(RateLoginFailureWindow)*time.Second),
 		jwtRequest:    newSlidingWindowLimiter(RateJWTRequestLimit, time.Duration(RateJWTRequestWindow)*time.Second),
 		apikeyRequest: newSlidingWindowLimiter(RateAPIKeyRequestLimit, time.Duration(RateAPIKeyRequestWindow)*time.Second),
+		otpRequest:    newSlidingWindowLimiter(RateOTPRequestLimit, time.Duration(RateOTPRequestWindow)*time.Second),
+		otpVerify:     newSlidingWindowLimiter(RateOTPVerifyLimit, time.Duration(RateOTPVerifyWindow)*time.Second),
 	}
 }
 
@@ -143,6 +150,48 @@ func (r *RateLimiter) AllowAPIKey(keyID string) bool {
 // provided per-minute limit.
 func (r *RateLimiter) AllowAPIKeyWithLimit(keyID string, limit int) bool {
 	return r.apikeyRequest.AllowWithLimit(keyID, limit)
+}
+
+// OTPRequestExceeded returns true if the OTP request limit for the given email
+// has been reached.
+func (r *RateLimiter) OTPRequestExceeded(email string) bool {
+	if r == nil || r.otpRequest == nil {
+		return false
+	}
+	return r.otpRequest.IsExceeded(strings.ToLower(email))
+}
+
+// RecordOTPRequest records one OTP request for the given email.
+func (r *RateLimiter) RecordOTPRequest(email string) {
+	if r == nil || r.otpRequest == nil {
+		return
+	}
+	r.otpRequest.RecordHit(strings.ToLower(email))
+}
+
+// OTPVerifyExceeded returns true if the OTP verify limit for the given email
+// has been reached.
+func (r *RateLimiter) OTPVerifyExceeded(email string) bool {
+	if r == nil || r.otpVerify == nil {
+		return false
+	}
+	return r.otpVerify.IsExceeded(strings.ToLower(email))
+}
+
+// RecordOTPVerify records one failed OTP verification attempt for the given email.
+func (r *RateLimiter) RecordOTPVerify(email string) {
+	if r == nil || r.otpVerify == nil {
+		return
+	}
+	r.otpVerify.RecordHit(strings.ToLower(email))
+}
+
+// ResetOTPVerify clears recorded OTP verify attempts for the given email.
+func (r *RateLimiter) ResetOTPVerify(email string) {
+	if r == nil || r.otpVerify == nil {
+		return
+	}
+	r.otpVerify.Reset(strings.ToLower(email))
 }
 
 // loginFailureKey returns the composite rate-limit key for login failure tracking.

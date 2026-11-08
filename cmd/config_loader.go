@@ -37,6 +37,16 @@ type rawCORSConfig struct {
 	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
+type rawEmailConfig struct {
+	SMTPHost      *string `yaml:"smtp_host"`
+	SMTPPort      *int    `yaml:"smtp_port"`
+	UseTLS        *bool   `yaml:"use_tls"`
+	SkipTLSVerify *bool   `yaml:"skip_tls_verify"`
+	EmailSender   *string `yaml:"email_sender"`
+	SMTPUser      *string `yaml:"smtp_user"`
+	SMTPPassword  *string `yaml:"smtp_password"`
+}
+
 type rawConfig struct {
 	Server   *rawServerConfig   `yaml:"server"`
 	Database *rawDatabaseConfig `yaml:"database"`
@@ -49,7 +59,8 @@ type rawConfig struct {
 	BootstrapAdminEmail    *string `yaml:"bootstrap_admin_email"`
 	BootstrapAdminPassword *string `yaml:"bootstrap_admin_password"`
 
-	CORS *rawCORSConfig `yaml:"cors"`
+	CORS  *rawCORSConfig  `yaml:"cors"`
+	Email *rawEmailConfig `yaml:"email"`
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +92,17 @@ type CORSConfig struct {
 	AllowedOrigins []string
 }
 
+// EmailConfig holds resolved SMTP settings.
+type EmailConfig struct {
+	SMTPHost      string
+	SMTPPort      int
+	UseTLS        bool
+	SkipTLSVerify bool
+	EmailSender   string
+	SMTPUser      string
+	SMTPPassword  string
+}
+
 // AppConfig is the fully validated application configuration.
 type AppConfig struct {
 	Server   ServerConfig
@@ -94,7 +116,8 @@ type AppConfig struct {
 	BootstrapAdminEmail    string
 	BootstrapAdminPassword string
 
-	CORS CORSConfig
+	CORS  CORSConfig
+	Email EmailConfig
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +164,7 @@ var knownTopLevel = map[string]bool{
 	"bootstrap_admin_email":    true,
 	"bootstrap_admin_password": true,
 	"cors":                     true,
+	"email":                    true,
 }
 
 var knownServerKeys = map[string]bool{
@@ -155,6 +179,11 @@ var knownDatabaseKeys = map[string]bool{
 
 var knownCORSKeys = map[string]bool{
 	"enabled": true, "allowed_origins": true,
+}
+
+var knownEmailKeys = map[string]bool{
+	"smtp_host": true, "smtp_port": true, "use_tls": true,
+	"skip_tls_verify": true, "email_sender": true, "smtp_user": true, "smtp_password": true,
 }
 
 func rejectUnknownKeys(data []byte) error {
@@ -178,6 +207,10 @@ func rejectUnknownKeys(data []byte) error {
 			}
 		case "cors":
 			if err := checkSubKeys(val, knownCORSKeys, "cors"); err != nil {
+				return err
+			}
+		case "email":
+			if err := checkSubKeys(val, knownEmailKeys, "email"); err != nil {
 				return err
 			}
 		}
@@ -303,6 +336,31 @@ func applyDefaults(raw *rawConfig) *AppConfig {
 		}
 	}
 
+	if raw.Email != nil {
+		e := raw.Email
+		if e.SMTPHost != nil {
+			cfg.Email.SMTPHost = *e.SMTPHost
+		}
+		if e.SMTPPort != nil {
+			cfg.Email.SMTPPort = *e.SMTPPort
+		}
+		if e.UseTLS != nil {
+			cfg.Email.UseTLS = *e.UseTLS
+		}
+		if e.SkipTLSVerify != nil {
+			cfg.Email.SkipTLSVerify = *e.SkipTLSVerify
+		}
+		if e.EmailSender != nil {
+			cfg.Email.EmailSender = *e.EmailSender
+		}
+		if e.SMTPUser != nil {
+			cfg.Email.SMTPUser = *e.SMTPUser
+		}
+		if e.SMTPPassword != nil {
+			cfg.Email.SMTPPassword = *e.SMTPPassword
+		}
+	}
+
 	return cfg
 }
 
@@ -321,6 +379,9 @@ func validate(cfg *AppConfig) error {
 		return err
 	}
 	if err := validateBootstrapAdmin(cfg); err != nil {
+		return err
+	}
+	if err := validateEmail(cfg); err != nil {
 		return err
 	}
 	return nil
@@ -446,6 +507,26 @@ func validateBootstrapAdmin(cfg *AppConfig) error {
 		return fmt.Errorf("bootstrap_admin_password: %w", err)
 	}
 
+	return nil
+}
+
+func validateEmail(cfg *AppConfig) error {
+	// OTP/email features are optional; if nothing is configured, skip.
+	if cfg.Email.SMTPHost == "" && cfg.Email.EmailSender == "" && cfg.Email.SMTPPort == 0 {
+		return nil
+	}
+	if cfg.Email.SMTPHost == "" {
+		return fmt.Errorf("email.smtp_host is required when email is configured")
+	}
+	if cfg.Email.SMTPPort < 1 || cfg.Email.SMTPPort > 65535 {
+		return fmt.Errorf("email.smtp_port must be between 1 and 65535, got %d", cfg.Email.SMTPPort)
+	}
+	if cfg.Email.EmailSender == "" {
+		return fmt.Errorf("email.email_sender is required when email is configured")
+	}
+	if !isValidEmail(cfg.Email.EmailSender) {
+		return fmt.Errorf("email.email_sender %q is not a valid email address", cfg.Email.EmailSender)
+	}
 	return nil
 }
 

@@ -13,10 +13,12 @@ import (
 
 // AuthSessionHandler implements POST /auth:session with login, refresh, and logout operations.
 type AuthSessionHandler struct {
-	db          DatabaseAdapter
-	cfg         *AppConfig
-	logger      *Logger
-	rateLimiter *RateLimiter
+	db           DatabaseAdapter
+	cfg          *AppConfig
+	logger       *Logger
+	rateLimiter  *RateLimiter
+	emailSender  *EmailSender
+	otpExpiryMin int
 }
 
 type authSessionRequest struct {
@@ -68,6 +70,10 @@ func (h *AuthSessionHandler) HandleSession(w http.ResponseWriter, r *http.Reques
 		h.handleRefresh(w, r, req.Data)
 	case "logout":
 		h.handleLogout(w, r, req.Data)
+	case "otp_request":
+		h.handleOTPRequest(w, r, req.Data)
+	case "otp_verify":
+		h.handleOTPVerify(w, r, req.Data)
 	default:
 		WriteError(w, http.StatusBadRequest, fmt.Sprintf("Unknown op: %s", req.Op))
 	}
@@ -131,6 +137,15 @@ func (h *AuthSessionHandler) handleLogin(w http.ResponseWriter, r *http.Request,
 	}
 
 	user := rows[0]
+	loginMethod, _ := user["login_method"].(string)
+	if loginMethod == "" {
+		loginMethod = "password"
+	}
+	if loginMethod == "otp" {
+		WriteError(w, http.StatusUnauthorized, "This account uses OTP login. Use op=otp_request instead.")
+		return
+	}
+
 	storedHash, _ := user["password_hash"].(string)
 	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)); err != nil {
 		if h.rateLimiter != nil {
@@ -274,6 +289,196 @@ func (h *AuthSessionHandler) handleLogout(w http.ResponseWriter, r *http.Request
 	}
 
 	WriteMessage(w, http.StatusOK, "Logged out successfully")
+}
+
+func (h *AuthSessionHandler) handleOTPRequest(w http.ResponseWriter, r *http.Request, data map[string]any) {
+	emailRaw, ok := data["email"]
+	if !ok {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.email")
+		return
+	}
+	email, ok := emailRaw.(string)
+	if !ok || email == "" || !isValidEmail(email) {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.email")
+		return
+	}
+	email = strings.ToLower(email)
+
+	ctx := r.Context()
+
+	if h.rateLimiter != nil && h.rateLimiter.OTPRequestExceeded(email) {
+		if h.logger != nil {
+			h.logger.AuditEvent(AuditRateLimitViolation,
+				"limit_type", "otp_request",
+				"actor", email,
+				"timestamp", time.Now().UTC().Format(time.RFC3339),
+			)
+		}
+		WriteError(w, http.StatusTooManyRequests, "Too many requests")
+		return
+	}
+
+	rows, _, err := h.db.QueryRows(ctx, "users", QueryOptions{
+		Filters: []Filter{{Field: "email", Op: "eq", Value: email}},
+		Page:    1,
+		PerPage: 1,
+	})
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if len(rows) == 0 {
+		// Do not reveal whether the email exists.
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPRequest(email)
+		}
+		WriteMessage(w, http.StatusOK, "OTP sent")
+		return
+	}
+	user := rows[0]
+	loginMethod, _ := user["login_method"].(string)
+	if loginMethod == "" {
+		loginMethod = "password"
+	}
+	if loginMethod != "otp" {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPRequest(email)
+		}
+		WriteMessage(w, http.StatusOK, "OTP sent")
+		return
+	}
+
+	if h.emailSender == nil {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPRequest(email)
+		}
+		WriteError(w, http.StatusServiceUnavailable, "OTP login not configured")
+		return
+	}
+
+	userID, _ := user["id"].(string)
+	code, hash, err := GenerateOTP(OTPCodeLength)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	expiry := h.otpExpiryMin
+	if expiry <= 0 {
+		expiry = OTPTTLMinutes
+	}
+	if h.rateLimiter != nil {
+		h.rateLimiter.RecordOTPRequest(email)
+	}
+	if err := StoreOTP(ctx, h.db, userID, hash, "login", expiry); err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	if err := h.emailSender.SendOTPEmail(email, code); err != nil {
+		if h.logger != nil {
+			h.logger.Error("send OTP email failed", "error", err)
+		}
+	}
+
+	WriteMessage(w, http.StatusOK, "OTP sent")
+}
+
+func (h *AuthSessionHandler) handleOTPVerify(w http.ResponseWriter, r *http.Request, data map[string]any) {
+	emailRaw, ok := data["email"]
+	if !ok {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.email")
+		return
+	}
+	email, ok := emailRaw.(string)
+	if !ok || email == "" || !isValidEmail(email) {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.email")
+		return
+	}
+	email = strings.ToLower(email)
+
+	codeRaw, ok := data["code"]
+	if !ok {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.code")
+		return
+	}
+	code, ok := codeRaw.(string)
+	if !ok || code == "" {
+		WriteError(w, http.StatusBadRequest, "Missing required field: data.code")
+		return
+	}
+
+	ctx := r.Context()
+
+	if h.rateLimiter != nil && h.rateLimiter.OTPVerifyExceeded(email) {
+		WriteError(w, http.StatusTooManyRequests, "Too many requests")
+		return
+	}
+
+	rows, _, err := h.db.QueryRows(ctx, "users", QueryOptions{
+		Filters: []Filter{{Field: "email", Op: "eq", Value: email}},
+		Page:    1,
+		PerPage: 1,
+	})
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if len(rows) == 0 {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPVerify(email)
+		}
+		WriteError(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+	user := rows[0]
+	loginMethod, _ := user["login_method"].(string)
+	if loginMethod == "" {
+		loginMethod = "password"
+	}
+	if loginMethod != "otp" {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPVerify(email)
+		}
+		// Same generic error to avoid user enumeration.
+		WriteError(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	userID, _ := user["id"].(string)
+	ok2, err := VerifyOTP(ctx, h.db, userID, code, "login")
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if !ok2 {
+		if h.rateLimiter != nil {
+			h.rateLimiter.RecordOTPVerify(email)
+		}
+		WriteError(w, http.StatusUnauthorized, "Invalid or expired OTP")
+		return
+	}
+	if h.rateLimiter != nil {
+		h.rateLimiter.ResetOTPVerify(email)
+	}
+
+	role, _ := user["role"].(string)
+	canWrite := toBool(user["can_write"])
+
+	payload, err := h.issueSession(ctx, userID, role, canWrite, user)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	_ = h.db.UpdateRow(ctx, "users", userID, map[string]any{
+		"last_login_at": now,
+		"updated_at":    now,
+	})
+
+	payload.User.LastLoginAt = &now
+
+	WriteSuccess(w, http.StatusOK, "Login successful", []any{payload})
 }
 
 // issueSession creates a new JWT + refresh token pair and stores the refresh token.

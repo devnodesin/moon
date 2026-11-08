@@ -49,6 +49,10 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 
 	// Auth routes
 	authHandler := newAuthSessionHandler(db, cfg, logger, rl)
+	if cfg != nil && cfg.Email.SMTPHost != "" {
+		authHandler.emailSender = NewEmailSender(cfg.Email, logger)
+		authHandler.otpExpiryMin = OTPTTLMinutes
+	}
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), authHandler.HandleSession)
 
 	authMeHandler := NewAuthMeHandler(db, cfg)
