@@ -70,8 +70,8 @@ func doAuthRequest(t *testing.T, handler *AuthSessionHandler, body map[string]an
 func TestLogin_Success(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 
 	if w.Code != http.StatusOK {
@@ -121,8 +121,8 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_CaseInsensitiveUsername(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "TestUser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
@@ -132,8 +132,8 @@ func TestLogin_CaseInsensitiveUsername(t *testing.T) {
 func TestLogin_WrongPassword(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "WrongPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "WrongPass1"},
 	})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", w.Code)
@@ -143,8 +143,8 @@ func TestLogin_WrongPassword(t *testing.T) {
 func TestLogin_UnknownUser(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "nobody", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "nobody@example.com", "password": "TestPass1"},
 	})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", w.Code)
@@ -154,7 +154,7 @@ func TestLogin_UnknownUser(t *testing.T) {
 func TestLogin_MissingUsername(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
+		"op":   "smart_login",
 		"data": map[string]any{"password": "TestPass1"},
 	})
 	if w.Code != http.StatusBadRequest {
@@ -165,11 +165,11 @@ func TestLogin_MissingUsername(t *testing.T) {
 func TestLogin_MissingPassword(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com"},
 	})
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
 
@@ -178,7 +178,7 @@ func TestLogin_MissingPassword(t *testing.T) {
 func TestMissingOp(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"data": map[string]any{"username": "testuser"},
+		"data": map[string]any{"email": "test@example.com"},
 	})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
@@ -199,7 +199,7 @@ func TestUnknownOp(t *testing.T) {
 func TestMissingData(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op": "login",
+		"op": "smart_login",
 	})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
@@ -223,8 +223,8 @@ func TestRefresh_Success(t *testing.T) {
 
 	// Login first
 	loginW := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 	if loginW.Code != http.StatusOK {
 		t.Fatalf("login: expected 200, got %d", loginW.Code)
@@ -264,8 +264,8 @@ func TestRefresh_ReuseRevoked(t *testing.T) {
 
 	// Login
 	loginW := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 	var loginResp SuccessResponse
 	json.NewDecoder(loginW.Body).Decode(&loginResp)
@@ -316,8 +316,8 @@ func TestLogout_Success(t *testing.T) {
 
 	// Login
 	loginW := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 	var loginResp SuccessResponse
 	json.NewDecoder(loginW.Body).Decode(&loginResp)
@@ -386,11 +386,11 @@ func setupAuthTestWithRateLimiter(t *testing.T) *AuthSessionHandler {
 func TestLogin_RateLimit_BlocksAfterLimit(t *testing.T) {
 	handler := setupAuthTestWithRateLimiter(t)
 
-	// Make RateLoginFailureLimit failed attempts (each returns 401).
-	for i := range RateLoginFailureLimit {
+	// Make RateSmartLoginLimit failed attempts (each returns 401).
+	for i := range RateSmartLoginLimit {
 		w := doAuthRequest(t, handler, map[string]any{
-			"op":   "login",
-			"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+			"op":   "smart_login",
+			"data": map[string]any{"email": "test@example.com", "password": "WrongPass"},
 		})
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("attempt %d: expected 401, got %d", i+1, w.Code)
@@ -399,11 +399,11 @@ func TestLogin_RateLimit_BlocksAfterLimit(t *testing.T) {
 
 	// The next attempt must be rate-limited (429).
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "WrongPass"},
 	})
 	if w.Code != http.StatusTooManyRequests {
-		t.Fatalf("expected 429 after %d failures, got %d", RateLoginFailureLimit, w.Code)
+		t.Fatalf("expected 429 after %d failures, got %d", RateSmartLoginLimit, w.Code)
 	}
 }
 
@@ -411,17 +411,17 @@ func TestLogin_RateLimit_ResetOnSuccess(t *testing.T) {
 	handler := setupAuthTestWithRateLimiter(t)
 
 	// Exhaust failures (one less than the limit so the correct password still works).
-	for range RateLoginFailureLimit - 1 {
+	for range RateSmartLoginLimit - 1 {
 		doAuthRequest(t, handler, map[string]any{
-			"op":   "login",
-			"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+			"op":   "smart_login",
+			"data": map[string]any{"email": "test@example.com", "password": "WrongPass"},
 		})
 	}
 
 	// Successful login must reset the counter.
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
 	})
 	if w.Code != http.StatusOK {
 		t.Fatalf("successful login failed: %d %s", w.Code, w.Body.String())
@@ -429,8 +429,8 @@ func TestLogin_RateLimit_ResetOnSuccess(t *testing.T) {
 
 	// Another failed attempt should be allowed (counter was reset).
 	w = doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": "WrongPass"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "WrongPass"},
 	})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 after reset, got %d", w.Code)
@@ -480,8 +480,8 @@ func TestToBool(t *testing.T) {
 func TestLogin_InvalidUsernameType(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": 12345, "password": "TestPass1"},
+		"op":   "smart_login",
+		"data": map[string]any{"email": 12345, "password": "TestPass1"},
 	})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
@@ -491,8 +491,8 @@ func TestLogin_InvalidUsernameType(t *testing.T) {
 func TestLogin_InvalidPasswordType(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{
-		"op":   "login",
-		"data": map[string]any{"username": "testuser", "password": true},
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": true},
 	})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)

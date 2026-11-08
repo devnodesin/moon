@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -95,14 +94,12 @@ func keepAfter(ts []time.Time, cutoff time.Time) []time.Time {
 // Aggregate rate limiter
 // ---------------------------------------------------------------------------
 
-// RateLimiter aggregates rate limiters for the three distinct traffic types
-// defined in SPEC.md: login failures, JWT requests, and API key requests.
+// RateLimiter aggregates rate limiters for the traffic types defined in SPEC.md.
 type RateLimiter struct {
-	loginFailure  *slidingWindowLimiter
-	jwtRequest    *slidingWindowLimiter
-	apikeyRequest *slidingWindowLimiter
-	otpRequest    *slidingWindowLimiter
-	otpVerify     *slidingWindowLimiter
+	smartLogin         *slidingWindowLimiter
+	smartLoginInitiate *slidingWindowLimiter
+	jwtRequest         *slidingWindowLimiter
+	apikeyRequest      *slidingWindowLimiter
 }
 
 // RateLimiter uses in-memory sliding windows.
@@ -112,28 +109,59 @@ type RateLimiter struct {
 // Config.go.
 func NewRateLimiter() *RateLimiter {
 	return &RateLimiter{
-		loginFailure:  newSlidingWindowLimiter(RateLoginFailureLimit, time.Duration(RateLoginFailureWindow)*time.Second),
-		jwtRequest:    newSlidingWindowLimiter(RateJWTRequestLimit, time.Duration(RateJWTRequestWindow)*time.Second),
-		apikeyRequest: newSlidingWindowLimiter(RateAPIKeyRequestLimit, time.Duration(RateAPIKeyRequestWindow)*time.Second),
-		otpRequest:    newSlidingWindowLimiter(RateOTPRequestLimit, time.Duration(RateOTPRequestWindow)*time.Second),
-		otpVerify:     newSlidingWindowLimiter(RateOTPVerifyLimit, time.Duration(RateOTPVerifyWindow)*time.Second),
+		smartLogin:         newSlidingWindowLimiter(RateSmartLoginLimit, time.Duration(RateSmartLoginWindow)*time.Second),
+		smartLoginInitiate: newSlidingWindowLimiter(RateSmartLoginInitiateLimit, time.Duration(RateSmartLoginInitiateWindow)*time.Second),
+		jwtRequest:         newSlidingWindowLimiter(RateJWTRequestLimit, time.Duration(RateJWTRequestWindow)*time.Second),
+		apikeyRequest:      newSlidingWindowLimiter(RateAPIKeyRequestLimit, time.Duration(RateAPIKeyRequestWindow)*time.Second),
 	}
 }
 
-// LoginFailureExceeded returns true if the login failure limit for the given
-// IP and username combination has been reached.
-func (r *RateLimiter) LoginFailureExceeded(ip, username string) bool {
-	return r.loginFailure.IsExceeded(loginFailureKey(ip, username))
+// SmartLoginInitiateExceeded returns true if the initiate rate limit for the given key has been reached.
+func (r *RateLimiter) SmartLoginInitiateExceeded(key string) bool {
+	if r == nil || r.smartLoginInitiate == nil {
+		return false
+	}
+	return r.smartLoginInitiate.IsExceeded(strings.ToLower(key))
 }
 
-// RecordLoginFailure records one failed login attempt for the given IP and username.
-func (r *RateLimiter) RecordLoginFailure(ip, username string) {
-	r.loginFailure.RecordHit(loginFailureKey(ip, username))
+// RecordSmartLoginInitiate records one initiate attempt for the given key.
+func (r *RateLimiter) RecordSmartLoginInitiate(key string) {
+	if r == nil || r.smartLoginInitiate == nil {
+		return
+	}
+	r.smartLoginInitiate.RecordHit(strings.ToLower(key))
 }
 
-// ResetLoginFailures clears all recorded failures for the given IP and username.
-func (r *RateLimiter) ResetLoginFailures(ip, username string) {
-	r.loginFailure.Reset(loginFailureKey(ip, username))
+// ResetSmartLoginInitiate clears recorded initiate attempts for the given key.
+func (r *RateLimiter) ResetSmartLoginInitiate(key string) {
+	if r == nil || r.smartLoginInitiate == nil {
+		return
+	}
+	r.smartLoginInitiate.Reset(strings.ToLower(key))
+}
+
+// SmartLoginExceeded returns true if the smart login limit for the given key has been reached.
+func (r *RateLimiter) SmartLoginExceeded(key string) bool {
+	if r == nil || r.smartLogin == nil {
+		return false
+	}
+	return r.smartLogin.IsExceeded(strings.ToLower(key))
+}
+
+// RecordSmartLogin records one smart login attempt for the given key.
+func (r *RateLimiter) RecordSmartLogin(key string) {
+	if r == nil || r.smartLogin == nil {
+		return
+	}
+	r.smartLogin.RecordHit(strings.ToLower(key))
+}
+
+// ResetSmartLogin clears recorded smart login attempts for the given email.
+func (r *RateLimiter) ResetSmartLogin(email string) {
+	if r == nil || r.smartLogin == nil {
+		return
+	}
+	r.smartLogin.Reset(strings.ToLower(email))
 }
 
 // AllowJWT returns true if the JWT request is within the per-user limit.
@@ -152,54 +180,6 @@ func (r *RateLimiter) AllowAPIKeyWithLimit(keyID string, limit int) bool {
 	return r.apikeyRequest.AllowWithLimit(keyID, limit)
 }
 
-// OTPRequestExceeded returns true if the OTP request limit for the given email
-// has been reached.
-func (r *RateLimiter) OTPRequestExceeded(email string) bool {
-	if r == nil || r.otpRequest == nil {
-		return false
-	}
-	return r.otpRequest.IsExceeded(strings.ToLower(email))
-}
-
-// RecordOTPRequest records one OTP request for the given email.
-func (r *RateLimiter) RecordOTPRequest(email string) {
-	if r == nil || r.otpRequest == nil {
-		return
-	}
-	r.otpRequest.RecordHit(strings.ToLower(email))
-}
-
-// OTPVerifyExceeded returns true if the OTP verify limit for the given email
-// has been reached.
-func (r *RateLimiter) OTPVerifyExceeded(email string) bool {
-	if r == nil || r.otpVerify == nil {
-		return false
-	}
-	return r.otpVerify.IsExceeded(strings.ToLower(email))
-}
-
-// RecordOTPVerify records one failed OTP verification attempt for the given email.
-func (r *RateLimiter) RecordOTPVerify(email string) {
-	if r == nil || r.otpVerify == nil {
-		return
-	}
-	r.otpVerify.RecordHit(strings.ToLower(email))
-}
-
-// ResetOTPVerify clears recorded OTP verify attempts for the given email.
-func (r *RateLimiter) ResetOTPVerify(email string) {
-	if r == nil || r.otpVerify == nil {
-		return
-	}
-	r.otpVerify.Reset(strings.ToLower(email))
-}
-
-// loginFailureKey returns the composite rate-limit key for login failure tracking.
-func loginFailureKey(ip, username string) string {
-	return fmt.Sprintf("%s:%s", ip, strings.ToLower(username))
-}
-
-// ---------------------------------------------------------------------------
 // Client IP extraction
 // ---------------------------------------------------------------------------
 

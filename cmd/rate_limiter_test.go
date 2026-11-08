@@ -113,57 +113,49 @@ func TestSlidingWindowLimiter_ConcurrencySafe(t *testing.T) {
 // RateLimiter tests
 // ---------------------------------------------------------------------------
 
-func TestRateLimiter_LoginFailure(t *testing.T) {
+func TestRateLimiter_SmartLogin(t *testing.T) {
 	rl := NewRateLimiter()
 
-	const ip = "127.0.0.1"
-	const user = "testuser"
+	const email = "test@example.com"
 
-	// Should not be exceeded initially.
-	if rl.LoginFailureExceeded(ip, user) {
-		t.Fatal("should not be exceeded with zero failures")
+	if rl.SmartLoginExceeded(email) {
+		t.Fatal("should not be exceeded with zero hits")
 	}
 
-	// Record RateLoginFailureLimit failures.
-	for range RateLoginFailureLimit {
-		rl.RecordLoginFailure(ip, user)
+	for range RateSmartLoginLimit {
+		rl.RecordSmartLogin(email)
 	}
 
-	// Now must be exceeded.
-	if !rl.LoginFailureExceeded(ip, user) {
-		t.Fatal("should be exceeded after limit failures")
+	if !rl.SmartLoginExceeded(email) {
+		t.Fatal("should be exceeded after limit hits")
 	}
 }
 
-func TestRateLimiter_LoginFailureReset(t *testing.T) {
+func TestRateLimiter_SmartLoginReset(t *testing.T) {
 	rl := NewRateLimiter()
 
-	const ip = "10.0.0.1"
-	const user = "alice"
+	const email = "alice@example.com"
 
-	for range RateLoginFailureLimit {
-		rl.RecordLoginFailure(ip, user)
+	for range RateSmartLoginLimit {
+		rl.RecordSmartLogin(email)
 	}
 
-	rl.ResetLoginFailures(ip, user)
+	rl.ResetSmartLogin(email)
 
-	if rl.LoginFailureExceeded(ip, user) {
+	if rl.SmartLoginExceeded(email) {
 		t.Fatal("should not be exceeded after reset")
 	}
 }
 
-func TestRateLimiter_LoginFailure_CaseInsensitive(t *testing.T) {
+func TestRateLimiter_SmartLogin_CaseInsensitive(t *testing.T) {
 	rl := NewRateLimiter()
 
-	const ip = "192.168.1.1"
-
-	for range RateLoginFailureLimit {
-		rl.RecordLoginFailure(ip, "Admin")
+	for range RateSmartLoginLimit {
+		rl.RecordSmartLogin("Admin@Example.com")
 	}
 
-	// "admin" (lowercase) must share the same counter.
-	if !rl.LoginFailureExceeded(ip, "admin") {
-		t.Fatal("login failure key must be case-insensitive")
+	if !rl.SmartLoginExceeded("admin@example.com") {
+		t.Fatal("smart login key must be case-insensitive")
 	}
 }
 

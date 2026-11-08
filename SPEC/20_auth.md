@@ -29,7 +29,7 @@ Additional rules:
 
 ```json
 {
-  "op": "login | refresh | logout | otp_request | otp_verify",
+  "op": "smart_login | refresh | logout",
   "data": {}
 }
 ```
@@ -37,8 +37,27 @@ Additional rules:
 Rules:
 
 - `op` is required.
-- `op` must be exactly one of `login`, `refresh`, `logout`, `otp_request`, or `otp_verify`.
-- `data` is required and must be an object.
+- `op` must be exactly one of `smart_login`, `refresh`, `logout`.
+ - `data` is required and must be an object.
+
+### Smart Login Flow
+
+The `smart_login` operation uses a two-step challenge-response protocol that does not reveal whether an email exists or its login method.
+
+**Step 1: Initiate**
+- Request: `{"op": "smart_login", "data": {"email": "user@example.com"}}`
+- Optional: `{"op": "smart_login", "data": {"email": "user@example.com", "request_otp": true}}` to request an OTP email
+- Response: `{"challenge": "credentials", "message": "Enter your password or request an OTP"}`
+- Rate limited: 5 requests per 15 minutes per email
+
+**Step 2: Verify**
+- Password: `{"op": "smart_login", "data": {"email": "...", "password": "..."}}`
+- OTP: `{"op": "smart_login", "data": {"email": "...", "code": "123456"}}`
+- Response on success: Session payload with access/refresh tokens
+- Response on failure: 401 Unauthorized
+- Rate limited: 5 requests per 15 minutes per email
+
+Additional rules:
 
 ### Validation by Operation
 
