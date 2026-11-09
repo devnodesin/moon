@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -519,5 +522,356 @@ func TestLogin_Expired_Refresh(t *testing.T) {
 	})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for expired token, got %d", w.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// fakeEmailSender captures OTP emails without making SMTP connections.
+// ---------------------------------------------------------------------------
+
+type fakeEmailSender struct {
+	mu   sync.Mutex
+	sent []struct{ to, code string }
+}
+
+func (f *fakeEmailSender) SendOTPEmail(to, code string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, struct{ to, code string }{to, code})
+	return nil
+}
+
+func (f *fakeEmailSender) lastCode() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.sent) == 0 {
+		return ""
+	}
+	return f.sent[len(f.sent)-1].code
+}
+
+func (f *fakeEmailSender) sentCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.sent)
+}
+
+// setupAuthTestWithOTP builds on setupAuthTest and attaches a fake email
+// sender so the OTP request path can be exercised without SMTP.
+func setupAuthTestWithOTP(t *testing.T) (*AuthSessionHandler, DatabaseAdapter, *fakeEmailSender) {
+	t.Helper()
+	handler, db := setupAuthTest(t)
+	sender := &fakeEmailSender{}
+	handler.emailSender = sender
+	handler.otpExpiryMin = OTPTTLMinutes
+	return handler, db, sender
+}
+
+// insertOTPUser inserts a user with login_method="otp" and no password hash.
+func insertOTPUser(t *testing.T, db DatabaseAdapter, email, userID string) {
+	t.Helper()
+	ctx := context.Background()
+	now := time.Now().UTC().Format(time.RFC3339)
+	if err := db.InsertRow(ctx, "users", map[string]any{
+		"id":            userID,
+		"username":      "otpuser",
+		"email":         email,
+		"password_hash": nil,
+		"role":          "user",
+		"can_write":     int64(0),
+		"login_method":  "otp",
+		"created_at":    now,
+		"updated_at":    now,
+	}); err != nil {
+		t.Fatalf("insert otp user: %v", err)
+	}
+}
+
+// insertOTPRow manually inserts an OTP code row with a known plaintext code,
+// matching the hashing used by GenerateOTP/VerifyOTP.
+func insertOTPRow(t *testing.T, db DatabaseAdapter, userID, code, purpose string, expired bool) {
+	t.Helper()
+	ctx := context.Background()
+	hash := sha256.Sum256([]byte(code))
+	hashHex := hex.EncodeToString(hash[:])
+	now := time.Now().UTC()
+	expires := now.Add(5 * time.Minute)
+	if expired {
+		expires = now.Add(-time.Minute)
+	}
+	if err := db.InsertRow(ctx, "moon_auth_otp_codes", map[string]any{
+		"id":          GenerateULID(),
+		"user_id":     userID,
+		"code_hash":   hashHex,
+		"purpose":     purpose,
+		"expires_at":  expires.Format(time.RFC3339),
+		"created_at":  now.Format(time.RFC3339),
+		"consumed_at": nil,
+	}); err != nil {
+		t.Fatalf("insert otp row: %v", err)
+	}
+}
+
+// otpRowCount returns the number of OTP rows for a user/purpose.
+func otpRowCount(t *testing.T, db DatabaseAdapter, userID, purpose string) int {
+	t.Helper()
+	ctx := context.Background()
+	rows, _, err := db.QueryRows(ctx, "moon_auth_otp_codes", QueryOptions{
+		Filters: []Filter{
+			{Field: "user_id", Op: "eq", Value: userID},
+			{Field: "purpose", Op: "eq", Value: purpose},
+		},
+		Page:    1,
+		PerPage: 10,
+	})
+	if err != nil {
+		t.Fatalf("query otp rows: %v", err)
+	}
+	return len(rows)
+}
+
+// ---------------------------------------------------------------------------
+// OTP integration tests
+// ---------------------------------------------------------------------------
+
+func TestSmartLogin_Initiate_RequestOTP_Success(t *testing.T) {
+	handler, db, sender := setupAuthTestWithOTP(t)
+	insertOTPUser(t, db, "otp@example.com", "01TESTOTPUSER000000000000002")
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "request_otp": true},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// An OTP row must have been created for the OTP user.
+	if count := otpRowCount(t, db, "01TESTOTPUSER000000000000002", "login"); count != 1 {
+		t.Fatalf("expected 1 OTP row, got %d", count)
+	}
+	if sender.sentCount() != 1 {
+		t.Fatalf("expected 1 OTP email sent, got %d", sender.sentCount())
+	}
+}
+
+func TestSmartLogin_Initiate_RequestOTP_PasswordOnlyUser(t *testing.T) {
+	handler, db, sender := setupAuthTestWithOTP(t)
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "request_otp": true},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Password-only users must not receive an OTP row or email.
+	if count := otpRowCount(t, db, "01TESTUSER000000000000001", "login"); count != 0 {
+		t.Fatalf("expected 0 OTP rows for password-only user, got %d", count)
+	}
+	if sender.sentCount() != 0 {
+		t.Fatalf("expected 0 OTP emails sent, got %d", sender.sentCount())
+	}
+}
+
+func TestSmartLogin_Verify_OTP_Success(t *testing.T) {
+	handler, db, sender := setupAuthTestWithOTP(t)
+	insertOTPUser(t, db, "otp@example.com", "01TESTOTPUSER000000000000002")
+
+	// Step 1: request OTP.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "request_otp": true},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("step 1: expected 200, got %d", w.Code)
+	}
+	code := sender.lastCode()
+	if code == "" {
+		t.Fatal("expected an OTP email to be sent")
+	}
+
+	// Step 2: verify with the code received by email.
+	w = doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "code": code},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("step 2: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp SuccessResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Message != "Login successful" {
+		t.Fatalf("expected 'Login successful', got %q", resp.Message)
+	}
+	payload, ok := resp.Data[0].(map[string]any)
+	if !ok {
+		t.Fatal("data[0] is not a map")
+	}
+	if payload["access_token"] == nil || payload["access_token"] == "" {
+		t.Fatal("missing access_token")
+	}
+	if payload["refresh_token"] == nil || payload["refresh_token"] == "" {
+		t.Fatal("missing refresh_token")
+	}
+}
+
+func TestSmartLogin_Verify_OTP_WrongCode(t *testing.T) {
+	handler, _, _ := setupAuthTestWithOTP(t)
+	insertOTPUser(t, handler.db, "otp@example.com", "01TESTOTPUSER000000000000002")
+	insertOTPRow(t, handler.db, "01TESTOTPUSER000000000000002", "123456", "login", false)
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "code": "000000"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for wrong code, got %d", w.Code)
+	}
+}
+
+func TestSmartLogin_Verify_OTP_Expired(t *testing.T) {
+	handler, _, _ := setupAuthTestWithOTP(t)
+	insertOTPUser(t, handler.db, "otp@example.com", "01TESTOTPUSER000000000000002")
+	insertOTPRow(t, handler.db, "01TESTOTPUSER000000000000002", "123456", "login", true)
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "code": "123456"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for expired code, got %d", w.Code)
+	}
+}
+
+func TestSmartLogin_Verify_OTP_AlreadyConsumed(t *testing.T) {
+	handler, _, _ := setupAuthTestWithOTP(t)
+	insertOTPUser(t, handler.db, "otp@example.com", "01TESTOTPUSER000000000000002")
+	insertOTPRow(t, handler.db, "01TESTOTPUSER000000000000002", "123456", "login", false)
+
+	// First verification succeeds and consumes the code.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "code": "123456"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("first verify: expected 200, got %d", w.Code)
+	}
+
+	// Second verification with the same code must fail (already consumed).
+	w = doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "code": "123456"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("second verify: expected 401, got %d", w.Code)
+	}
+}
+
+func TestSmartLogin_Verify_PasswordForOTPUser(t *testing.T) {
+	handler, _, _ := setupAuthTestWithOTP(t)
+	insertOTPUser(t, handler.db, "otp@example.com", "01TESTOTPUSER000000000000002")
+
+	// OTP-only users cannot log in with a password.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com", "password": "TestPass1"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for password on OTP user, got %d", w.Code)
+	}
+}
+
+func TestSmartLogin_Verify_OTPForPasswordUser(t *testing.T) {
+	handler, _, _ := setupAuthTestWithOTP(t)
+
+	// Password-only users cannot log in with an OTP code.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "code": "123456"},
+	})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for code on password user, got %d", w.Code)
+	}
+}
+
+func TestSmartLogin_BothPasswordAndCode_Rejected(t *testing.T) {
+	handler, _ := setupAuthTest(t)
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1", "code": "123456"},
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting tests for the initiate path
+// ---------------------------------------------------------------------------
+
+func TestSmartLogin_Initiate_RateLimit_BlocksAfterLimit(t *testing.T) {
+	handler := setupAuthTestWithRateLimiter(t)
+
+	// RateSmartLoginInitiateLimit step-1 requests succeed.
+	for i := range RateSmartLoginInitiateLimit {
+		w := doAuthRequest(t, handler, map[string]any{
+			"op":   "smart_login",
+			"data": map[string]any{"email": "test@example.com"},
+		})
+		if w.Code != http.StatusOK {
+			t.Fatalf("request %d: expected 200, got %d", i+1, w.Code)
+		}
+	}
+
+	// The next initiate request is rate-limited.
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com"},
+	})
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 after %d initiates, got %d", RateSmartLoginInitiateLimit, w.Code)
+	}
+}
+
+func TestSmartLogin_Initiate_RateLimit_ResetOnVerifySuccess(t *testing.T) {
+	handler := setupAuthTestWithRateLimiter(t)
+
+	// Exhaust the initiate limit.
+	for range RateSmartLoginInitiateLimit {
+		doAuthRequest(t, handler, map[string]any{
+			"op":   "smart_login",
+			"data": map[string]any{"email": "test@example.com"},
+		})
+	}
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com"},
+	})
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 after exhausting initiate limit, got %d", w.Code)
+	}
+
+	// A successful verify resets both the smart-login and initiate counters.
+	w = doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com", "password": "TestPass1"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("successful verify failed: %d %s", w.Code, w.Body.String())
+	}
+
+	// Initiate must work again after the counter was reset.
+	w = doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 after reset, got %d", w.Code)
 	}
 }

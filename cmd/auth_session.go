@@ -17,8 +17,15 @@ type AuthSessionHandler struct {
 	cfg          *AppConfig
 	logger       *Logger
 	rateLimiter  *RateLimiter
-	emailSender  *EmailSender
+	emailSender  otpSender
 	otpExpiryMin int
+}
+
+// otpSender is the interface used to deliver OTP codes. It is an interface
+// (rather than the concrete *EmailSender) so tests can inject a fake sender
+// without making real SMTP connections.
+type otpSender interface {
+	SendOTPEmail(to, code string) error
 }
 
 type authSessionRequest struct {

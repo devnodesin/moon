@@ -29,7 +29,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // newAuthSessionHandler creates the AuthSessionHandler with its dependencies.
 // logger and rl may be nil; rate limiting is skipped when rl is nil.
-func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig, logger *Logger, rl *RateLimiter, emailSenders ...*EmailSender) *AuthSessionHandler {
+func newAuthSessionHandler(db DatabaseAdapter, cfg *AppConfig, logger *Logger, rl *RateLimiter, emailSenders ...otpSender) *AuthSessionHandler {
 	h := &AuthSessionHandler{db: db, cfg: cfg, logger: logger, rateLimiter: rl, otpExpiryMin: OTPTTLMinutes}
 	if len(emailSenders) > 0 {
 		h.emailSender = emailSenders[0]
