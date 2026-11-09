@@ -15,17 +15,22 @@ type CollectionHandler struct {
 	db       DatabaseAdapter
 	registry *SchemaRegistry
 	cfg      *AppConfig
+	logger   *Logger
 	prefix   string
 }
 
 // NewCollectionHandler creates a CollectionHandler with the given dependencies.
-func NewCollectionHandler(db DatabaseAdapter, registry *SchemaRegistry, cfg *AppConfig) *CollectionHandler {
-	return &CollectionHandler{
+func NewCollectionHandler(db DatabaseAdapter, registry *SchemaRegistry, cfg *AppConfig, loggers ...*Logger) *CollectionHandler {
+	h := &CollectionHandler{
 		db:       db,
 		registry: registry,
 		cfg:      cfg,
 		prefix:   strings.TrimRight(cfg.Server.Prefix, "/"),
 	}
+	if len(loggers) > 0 && loggers[0] != nil {
+		h.logger = loggers[0]
+	}
+	return h
 }
 
 // ---------------------------------------------------------------------------
@@ -193,11 +198,11 @@ func (h *CollectionHandler) HandleMutate(w http.ResponseWriter, r *http.Request)
 
 	switch req.Op {
 	case "create":
-		h.handleCreate(w, req.Data)
+		h.handleCreate(w, r, req.Data)
 	case "update":
-		h.handleUpdate(w, req.Data)
+		h.handleUpdate(w, r, req.Data)
 	case "destroy":
-		h.handleDestroy(w, req.Data)
+		h.handleDestroy(w, r, req.Data)
 	default:
 		WriteError(w, http.StatusBadRequest, "Invalid operation")
 		return
@@ -208,13 +213,17 @@ func (h *CollectionHandler) HandleMutate(w http.ResponseWriter, r *http.Request)
 // op=create
 // ---------------------------------------------------------------------------
 
-func (h *CollectionHandler) handleCreate(w http.ResponseWriter, rawItems []json.RawMessage) {
+func (h *CollectionHandler) handleCreate(w http.ResponseWriter, r *http.Request, rawItems []json.RawMessage) {
 	if len(rawItems) == 0 {
 		WriteError(w, http.StatusBadRequest, "Data must not be empty")
 		return
 	}
 
 	var results []any
+	actor := "anonymous"
+	if id, ok := GetAuthIdentity(r.Context()); ok {
+		actor = id.CallerID
+	}
 	for _, raw := range rawItems {
 		var item collectionCreateItem
 		if err := json.Unmarshal(raw, &item); err != nil {
@@ -254,6 +263,20 @@ func (h *CollectionHandler) handleCreate(w http.ResponseWriter, rawItems []json.
 	}
 
 	meta := map[string]any{"success": len(results), "failed": 0}
+	if h.logger != nil {
+		for _, res := range results {
+			if m, ok := res.(map[string]any); ok {
+				if name, _ := m["name"].(string); name != "" {
+					h.logger.AuditEvent(AuditSchemaMutation,
+						"actor", actor,
+						"target", name,
+						"op", "create",
+						"outcome", "success",
+					)
+				}
+			}
+		}
+	}
 	WriteSuccessFull(w, http.StatusCreated, "Collection created successfully", results, meta, nil)
 }
 
@@ -325,13 +348,17 @@ func (h *CollectionHandler) buildCreateDDL(item collectionCreateItem) string {
 // op=update
 // ---------------------------------------------------------------------------
 
-func (h *CollectionHandler) handleUpdate(w http.ResponseWriter, rawItems []json.RawMessage) {
+func (h *CollectionHandler) handleUpdate(w http.ResponseWriter, r *http.Request, rawItems []json.RawMessage) {
 	if len(rawItems) == 0 {
 		WriteError(w, http.StatusBadRequest, "Data must not be empty")
 		return
 	}
 
 	var results []any
+	actor := "anonymous"
+	if id, ok := GetAuthIdentity(r.Context()); ok {
+		actor = id.CallerID
+	}
 	for _, raw := range rawItems {
 		var item collectionUpdateItem
 		if err := json.Unmarshal(raw, &item); err != nil {
@@ -380,6 +407,20 @@ func (h *CollectionHandler) handleUpdate(w http.ResponseWriter, rawItems []json.
 	}
 
 	meta := map[string]any{"success": len(results), "failed": 0}
+	if h.logger != nil {
+		for _, res := range results {
+			if m, ok := res.(map[string]any); ok {
+				if name, _ := m["name"].(string); name != "" {
+					h.logger.AuditEvent(AuditSchemaMutation,
+						"actor", actor,
+						"target", name,
+						"op", "update",
+						"outcome", "success",
+					)
+				}
+			}
+		}
+	}
 	WriteSuccessFull(w, http.StatusOK, "Collection updated successfully", results, meta, nil)
 }
 
@@ -625,13 +666,17 @@ func (h *CollectionHandler) executeRemoveColumns(ctx context.Context, table stri
 // op=destroy
 // ---------------------------------------------------------------------------
 
-func (h *CollectionHandler) handleDestroy(w http.ResponseWriter, rawItems []json.RawMessage) {
+func (h *CollectionHandler) handleDestroy(w http.ResponseWriter, r *http.Request, rawItems []json.RawMessage) {
 	if len(rawItems) == 0 {
 		WriteError(w, http.StatusBadRequest, "Data must not be empty")
 		return
 	}
 
 	var results []any
+	actor := "anonymous"
+	if id, ok := GetAuthIdentity(r.Context()); ok {
+		actor = id.CallerID
+	}
 	for _, raw := range rawItems {
 		var item collectionDestroyItem
 		if err := json.Unmarshal(raw, &item); err != nil {
@@ -671,6 +716,20 @@ func (h *CollectionHandler) handleDestroy(w http.ResponseWriter, rawItems []json
 	}
 
 	meta := map[string]any{"success": len(results), "failed": 0}
+	if h.logger != nil {
+		for _, res := range results {
+			if m, ok := res.(map[string]any); ok {
+				if name, _ := m["name"].(string); name != "" {
+					h.logger.AuditEvent(AuditSchemaMutation,
+						"actor", actor,
+						"target", name,
+						"op", "destroy",
+						"outcome", "success",
+					)
+				}
+			}
+		}
+	}
 	WriteSuccessFull(w, http.StatusOK, "Collection destroyed successfully", results, meta, nil)
 }
 

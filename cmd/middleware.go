@@ -55,6 +55,26 @@ func matchOrigin(origin string, allowed []string) string {
 	return ""
 }
 
+// statusRecorder wraps an http.ResponseWriter to capture the HTTP status code
+// actually written by the downstream handler so the http.request audit entry
+// can report it instead of relying on an unset header.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *statusRecorder) Write(b []byte) (int, error) {
+	if s.status == 0 {
+		s.status = http.StatusOK
+	}
+	return s.ResponseWriter.Write(b)
+}
+
 // auditContextMiddleware injects a request ID and start time into audit logs.
 func auditContextMiddleware(logger *Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,14 +83,19 @@ func auditContextMiddleware(logger *Logger, next http.Handler) http.Handler {
 
 		w.Header().Set("X-Request-ID", requestID)
 
-		next.ServeHTTP(w, r)
+		rec := &statusRecorder{ResponseWriter: w}
+		next.ServeHTTP(rec, r)
+
+		if rec.status == 0 {
+			rec.status = http.StatusOK
+		}
 
 		duration := time.Since(start)
 		logger.AuditEvent("http.request",
 			"request_id", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
-			"status", w.Header().Get("X-Status-Code"),
+			"status", rec.status,
 			"duration_ms", duration.Milliseconds(),
 		)
 	})

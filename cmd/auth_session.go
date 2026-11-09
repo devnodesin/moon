@@ -99,6 +99,12 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 	codeRaw, hasCode := data["code"]
 	password, _ := passwordRaw.(string)
 	code, _ := codeRaw.(string)
+
+	authMethod := "password"
+	if hasCode {
+		authMethod = "otp"
+	}
+
 	if hasPassword && password == "" {
 		WriteError(w, http.StatusBadRequest, "Missing required field: data.password")
 		return
@@ -121,7 +127,7 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 			if h.logger != nil {
 				h.logger.AuditEvent(AuditRateLimitViolation,
 					"limit_type", "smart_login",
-					"actor", email,
+					"actor", RedactEmail(email),
 					"timestamp", time.Now().UTC().Format(time.RFC3339),
 				)
 			}
@@ -149,6 +155,14 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 			if h.rateLimiter != nil {
 				// Already recorded above; no additional action needed.
 			}
+			if h.logger != nil {
+				h.logger.AuditEvent(AuditAuthFailure,
+					"actor", RedactEmail(email),
+					"method", authMethod,
+					"outcome", "failure",
+					"reason", "user_not_found",
+				)
+			}
 			WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 			return
 		}
@@ -162,25 +176,65 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 
 		if hasPassword {
 			if loginMethod == "otp" {
+				if h.logger != nil {
+					h.logger.AuditEvent(AuditAuthFailure,
+						"actor", RedactEmail(email),
+						"method", authMethod,
+						"outcome", "failure",
+						"reason", "method_mismatch",
+					)
+				}
 				WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 				return
 			}
 			storedHash, _ := user["password_hash"].(string)
 			if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)); err != nil {
+				if h.logger != nil {
+					h.logger.AuditEvent(AuditAuthFailure,
+						"actor", RedactEmail(email),
+						"method", authMethod,
+						"outcome", "failure",
+						"reason", "invalid_password",
+					)
+				}
 				WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 				return
 			}
 		} else {
 			if loginMethod != "otp" {
+				if h.logger != nil {
+					h.logger.AuditEvent(AuditAuthFailure,
+						"actor", RedactEmail(email),
+						"method", authMethod,
+						"outcome", "failure",
+						"reason", "method_mismatch",
+					)
+				}
 				WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 				return
 			}
 			ok2, err := VerifyOTP(ctx, h.db, userID, code, "login")
 			if err != nil {
+				if h.logger != nil {
+					h.logger.AuditEvent(AuditAuthFailure,
+						"actor", RedactEmail(email),
+						"method", authMethod,
+						"outcome", "error",
+						"reason", "verify_error",
+					)
+				}
 				WriteError(w, http.StatusInternalServerError, "Internal server error")
 				return
 			}
 			if !ok2 {
+				if h.logger != nil {
+					h.logger.AuditEvent(AuditAuthFailure,
+						"actor", RedactEmail(email),
+						"method", authMethod,
+						"outcome", "failure",
+						"reason", "invalid_otp",
+					)
+				}
 				WriteError(w, http.StatusUnauthorized, "Invalid credentials")
 				return
 			}
@@ -207,6 +261,14 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 		})
 
 		payload.User.LastLoginAt = &now
+
+		if h.logger != nil {
+			h.logger.AuditEvent(AuditAuthSuccess,
+				"actor", RedactEmail(email),
+				"login_method", authMethod,
+				"outcome", "success",
+			)
+		}
 
 		WriteSuccess(w, http.StatusOK, "Login successful", []any{payload})
 		return
@@ -272,9 +334,16 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 					h.logger.Error("store OTP failed", "error", err)
 				}
 			} else {
+				if h.logger != nil {
+					h.logger.Info("otp email delivery attempt", "recipient", RedactEmail(email))
+				}
 				if err := h.emailSender.SendOTPEmail(email, code2); err != nil {
 					if h.logger != nil {
-						h.logger.Error("send OTP email failed", "error", err)
+						h.logger.Error("send OTP email failed", "recipient", RedactEmail(email), "error", err)
+					}
+				} else {
+					if h.logger != nil {
+						h.logger.Info("otp email delivered", "recipient", RedactEmail(email), "outcome", "success")
 					}
 				}
 			}
@@ -371,6 +440,17 @@ func (h *AuthSessionHandler) handleRefresh(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if h.logger != nil {
+		actor := "anonymous"
+		if e, ok := user["email"].(string); ok && e != "" {
+			actor = RedactEmail(e)
+		}
+		h.logger.AuditEvent(AuditTokenRefresh,
+			"actor", actor,
+			"outcome", "success",
+		)
+	}
+
 	WriteSuccess(w, http.StatusOK, "Token refreshed successfully", []any{payload})
 }
 
@@ -394,8 +474,22 @@ func (h *AuthSessionHandler) handleLogout(w http.ResponseWriter, r *http.Request
 		Page:    1,
 		PerPage: 1,
 	})
+	actor := "anonymous"
 	if err == nil && len(tokenRows) > 0 {
 		tokenRow := tokenRows[0]
+		userID, _ := tokenRow["user_id"].(string)
+		if userID != "" {
+			userRows, _, _ := h.db.QueryRows(ctx, "users", QueryOptions{
+				Filters: []Filter{{Field: "id", Op: "eq", Value: userID}},
+				Page:    1,
+				PerPage: 1,
+			})
+			if len(userRows) > 0 {
+				if e, ok := userRows[0]["email"].(string); ok && e != "" {
+					actor = RedactEmail(e)
+				}
+			}
+		}
 		if tokenRow["revoked_at"] == nil {
 			tokenID, _ := tokenRow["id"].(string)
 			now := time.Now().UTC().Format(time.RFC3339)
@@ -404,6 +498,13 @@ func (h *AuthSessionHandler) handleLogout(w http.ResponseWriter, r *http.Request
 				"revocation_reason": "logout",
 			})
 		}
+	}
+
+	if h.logger != nil {
+		h.logger.AuditEvent(AuditLogout,
+			"actor", actor,
+			"outcome", "success",
+		)
 	}
 
 	WriteMessage(w, http.StatusOK, "Logged out successfully")

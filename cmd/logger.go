@@ -55,6 +55,30 @@ func NewTestLogger(w io.Writer) *Logger {
 	}
 }
 
+// RedactEmail returns a redacted form of an email address suitable for audit
+// logs: the local part is masked while the domain is preserved. Empty or
+// malformed inputs return RedactedPlaceholder.
+func RedactEmail(email string) string {
+	email = strings.TrimSpace(email)
+	parts := strings.SplitN(email, "@", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		if email == "" {
+			return RedactedPlaceholder
+		}
+		return RedactedPlaceholder
+	}
+	local := parts[0]
+	if len(local) <= 1 {
+		local = "*"
+	} else {
+		local = string(local[0]) + "***"
+	}
+	return local + "@" + parts[1]
+}
+
+// redactEmail is an unexported alias used internally.
+func redactEmail(email string) string { return RedactEmail(email) }
+
 // Close releases the underlying log file handle. After Close, file writes
 // will fail but console output may continue (runtime file failure tolerance).
 func (l *Logger) Close() error {

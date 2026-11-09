@@ -55,7 +55,7 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 	}
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:session", p), authHandler.HandleSession)
 
-	authMeHandler := NewAuthMeHandler(db, cfg)
+	authMeHandler := NewAuthMeHandler(db, cfg, logger)
 	mux.HandleFunc(fmt.Sprintf("GET %s/auth:me", p), authMeHandler.GetMe)
 	mux.HandleFunc(fmt.Sprintf("POST %s/auth:me", p), authMeHandler.UpdateMe)
 
@@ -65,7 +65,7 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 		reg = registry[0]
 	}
 	if reg != nil && db != nil {
-		ch := NewCollectionHandler(db, reg, cfg)
+		ch := NewCollectionHandler(db, reg, cfg, logger)
 		mux.HandleFunc(fmt.Sprintf("GET %s/collections:query", p), ch.HandleQuery)
 		mux.HandleFunc(fmt.Sprintf("POST %s/collections:mutate", p), ch.HandleMutate)
 	} else {
@@ -74,8 +74,8 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 	}
 
 	// Resource routes — use a catch-all pattern for /data/ paths
-	rqh := newResourceQueryHandlerOrNil(db, reg, cfg)
-	rmh := newResourceMutateHandlerOrNil(db, reg, cfg, jtiStore)
+	rqh := newResourceQueryHandlerOrNil(db, reg, cfg, logger)
+	rmh := newResourceMutateHandlerOrNil(db, reg, cfg, jtiStore, logger)
 	rsh := newResourceSchemaHandlerOrNil(reg, p)
 	mux.HandleFunc(fmt.Sprintf("GET %s/data/", p), func(w http.ResponseWriter, r *http.Request) {
 		routeDataRequest(w, r, p, http.MethodGet, rqh, rmh, rsh)
@@ -89,20 +89,28 @@ func NewRouterWithJTI(prefix string, logger *Logger, db DatabaseAdapter, cfg *Ap
 
 // newResourceQueryHandlerOrNil creates a ResourceQueryHandler if dependencies
 // are available, otherwise returns nil.
-func newResourceQueryHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig) *ResourceQueryHandler {
+func newResourceQueryHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig, logger ...*Logger) *ResourceQueryHandler {
 	if db == nil || reg == nil || cfg == nil {
 		return nil
 	}
-	return NewResourceQueryHandler(db, reg, cfg)
+	h := NewResourceQueryHandler(db, reg, cfg)
+	if len(logger) > 0 && logger[0] != nil {
+		h.logger = logger[0]
+	}
+	return h
 }
 
 // newResourceMutateHandlerOrNil creates a ResourceMutateHandler if dependencies
 // are available, otherwise returns nil.
-func newResourceMutateHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig, jtiStore *JTIRevocationStore) *ResourceMutateHandler {
+func newResourceMutateHandlerOrNil(db DatabaseAdapter, reg *SchemaRegistry, cfg *AppConfig, jtiStore *JTIRevocationStore, logger ...*Logger) *ResourceMutateHandler {
 	if db == nil || reg == nil || cfg == nil {
 		return nil
 	}
-	return NewResourceMutateHandler(db, reg, cfg, jtiStore)
+	h := NewResourceMutateHandler(db, reg, cfg, jtiStore)
+	if len(logger) > 0 && logger[0] != nil {
+		h.logger = logger[0]
+	}
+	return h
 }
 
 // newResourceSchemaHandlerOrNil creates a ResourceSchemaHandler if the
@@ -259,6 +267,9 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 		var err error
 		reg, err = NewSchemaRegistry(adapter)
 		if err != nil {
+			if logger != nil {
+				logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
+			}
 			return fmt.Errorf("create schema registry: %w", err)
 		}
 	}
@@ -278,8 +289,13 @@ func StartServer(cfg *AppConfig, logger *Logger, db ...DatabaseAdapter) error {
 	errCh := make(chan error, 1)
 	go func() {
 		logger.Info("server starting", "addr", addr, "prefix", cfg.Server.Prefix)
-		logger.AuditEvent(AuditStartupSuccess, "addr", addr)
+		if logger != nil {
+			logger.AuditEvent(AuditStartupSuccess, "addr", addr, "outcome", "success")
+		}
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			if logger != nil {
+				logger.AuditEvent(AuditStartupFailure, "addr", addr, "error", err.Error(), "outcome", "failure")
+			}
 			errCh <- err
 		}
 		close(errCh)

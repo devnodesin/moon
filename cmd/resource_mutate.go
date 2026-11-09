@@ -22,18 +22,23 @@ type ResourceMutateHandler struct {
 	registry *SchemaRegistry
 	cfg      *AppConfig
 	jtiStore *JTIRevocationStore
+	logger   *Logger
 	prefix   string
 }
 
 // NewResourceMutateHandler creates a ResourceMutateHandler with the given dependencies.
-func NewResourceMutateHandler(db DatabaseAdapter, registry *SchemaRegistry, cfg *AppConfig, jtiStore *JTIRevocationStore) *ResourceMutateHandler {
-	return &ResourceMutateHandler{
+func NewResourceMutateHandler(db DatabaseAdapter, registry *SchemaRegistry, cfg *AppConfig, jtiStore *JTIRevocationStore, loggers ...*Logger) *ResourceMutateHandler {
+	h := &ResourceMutateHandler{
 		db:       db,
 		registry: registry,
 		cfg:      cfg,
 		jtiStore: jtiStore,
 		prefix:   strings.TrimRight(cfg.Server.Prefix, "/"),
 	}
+	if len(loggers) > 0 && loggers[0] != nil {
+		h.logger = loggers[0]
+	}
+	return h
 }
 
 // resourceMutateRequest is the JSON body for POST /data/{resource}:mutate.
@@ -89,17 +94,47 @@ func (h *ResourceMutateHandler) HandleMutate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	rec := &statusRecorder{ResponseWriter: w}
 	switch req.Op {
 	case "create":
-		h.handleCreate(w, r, resource, col, req.Data)
+		h.handleCreate(rec, r, resource, col, req.Data)
 	case "update":
-		h.handleUpdate(w, r, resource, col, req.Data)
+		h.handleUpdate(rec, r, resource, col, req.Data)
 	case "destroy":
-		h.handleDestroy(w, r, resource, col, req.Data)
+		h.handleDestroy(rec, r, resource, col, req.Data)
 	case "action":
-		h.handleAction(w, r, resource, col, req)
+		h.handleAction(rec, r, resource, col, req)
 	default:
-		WriteError(w, http.StatusBadRequest, fmt.Sprintf("Unknown op: %s", req.Op))
+		WriteError(rec, http.StatusBadRequest, fmt.Sprintf("Unknown op: %s", req.Op))
+	}
+
+	// statusRecorder captures code via WriteHeader/Write; if still zero, default.
+	if rec.status == 0 {
+		rec.status = http.StatusOK
+	}
+	if rec.status >= 200 && rec.status < 300 && h.logger != nil {
+		event := AuditPrivilegedMutation
+		op := req.Op
+		if resource == "users" {
+			event = AuditAdminUserManagement
+		}
+		if resource == "apikeys" {
+			switch req.Op {
+			case "create":
+				event = AuditAPIKeyCreate
+			case "action":
+				if req.Action == "rotate" {
+					event = AuditAPIKeyRotation
+				}
+			}
+		}
+		h.logger.AuditEvent(event,
+			"actor", identity.CallerID,
+			"target", resource,
+			"op", op,
+			"outcome", "success",
+			"action", req.Action,
+		)
 	}
 }
 

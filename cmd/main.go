@@ -14,6 +14,10 @@ func main() {
 
 	cfg, err := LoadConfig(*configPath)
 	if err != nil {
+		if l, lerr := InitLogger(DefaultServerLogpath); lerr == nil {
+			l.AuditEvent(AuditConfigValidation, "error", err.Error(), "outcome", "failure")
+			l.Close()
+		}
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)
 		os.Exit(1)
 	}
@@ -28,6 +32,7 @@ func main() {
 	adapter, err := NewDatabaseAdapter(cfg.Database, logger)
 	if err != nil {
 		logger.Error("database init failed", "error", err)
+		logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)
 		os.Exit(1)
 	}
@@ -38,12 +43,14 @@ func main() {
 
 	if err := adapter.Ping(ctx); err != nil {
 		logger.Error("database ping failed", "error", err)
+		logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := EnsureSystemTables(ctx, adapter); err != nil {
 		logger.Error("system tables init failed", "error", err)
+		logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)
 		os.Exit(1)
 	}
@@ -52,6 +59,7 @@ func main() {
 
 	if err := CreateBootstrapAdmin(ctx, adapter, cfg, logger); err != nil {
 		logger.Error("bootstrap admin init failed", "error", err)
+		logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
 		fmt.Fprintf(os.Stderr, "startup error: %v\n", err)
 		os.Exit(1)
 	}
@@ -60,6 +68,7 @@ func main() {
 
 	if err := StartServer(cfg, logger, adapter); err != nil {
 		logger.Error("server error", "error", err)
+		logger.AuditEvent(AuditStartupFailure, "error", err.Error(), "outcome", "failure")
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
 		os.Exit(1)
 	}

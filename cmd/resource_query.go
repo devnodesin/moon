@@ -17,6 +17,7 @@ type ResourceQueryHandler struct {
 	db       DatabaseAdapter
 	registry *SchemaRegistry
 	cfg      *AppConfig
+	logger   *Logger
 	prefix   string
 }
 

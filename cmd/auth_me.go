@@ -13,13 +13,18 @@ import (
 
 // AuthMeHandler implements GET /auth:me and POST /auth:me.
 type AuthMeHandler struct {
-	db  DatabaseAdapter
-	cfg *AppConfig
+	db     DatabaseAdapter
+	cfg    *AppConfig
+	logger *Logger
 }
 
 // NewAuthMeHandler creates a new AuthMeHandler with its dependencies.
-func NewAuthMeHandler(db DatabaseAdapter, cfg *AppConfig) *AuthMeHandler {
-	return &AuthMeHandler{db: db, cfg: cfg}
+func NewAuthMeHandler(db DatabaseAdapter, cfg *AppConfig, loggers ...*Logger) *AuthMeHandler {
+	h := &AuthMeHandler{db: db, cfg: cfg}
+	if len(loggers) > 0 && loggers[0] != nil {
+		h.logger = loggers[0]
+	}
+	return h
 }
 
 // nonWritableFields lists fields that cannot be set via POST /auth:me.
@@ -166,6 +171,14 @@ func (h *AuthMeHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if h.logger != nil {
+			h.logger.AuditEvent(AuditAdminUserManagement,
+				"actor", identity.CallerID,
+				"target", "users",
+				"op", "password_update",
+				"outcome", "success",
+			)
+		}
 		WriteSuccess(w, http.StatusOK, "Password updated successfully. Sign in again.", []any{buildUserResponse(user)})
 		return
 	}
@@ -218,6 +231,14 @@ func (h *AuthMeHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.logger != nil {
+		h.logger.AuditEvent(AuditAdminUserManagement,
+			"actor", identity.CallerID,
+			"target", "users",
+			"op", "email_update",
+			"outcome", "success",
+		)
+	}
 	WriteSuccess(w, http.StatusOK, "Current user updated successfully", []any{buildUserResponse(user)})
 }
 
