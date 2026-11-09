@@ -510,6 +510,14 @@ Additional rules:
 - When configured, `email.smtp_host`, `email.smtp_port`, and `email.email_sender` are required and validated.
 - OTP login uses the `auth:session` endpoint with `op=otp_request` and `op=otp_verify`.
 
+- Login-method disclosure (accepted exception): The `smart_login` initiate step
+  (email only) returns the account's `login_method` (`password` or `otp`) along
+  with a matching `message` so the client can render only the credential field
+  the server dictates. This intentionally reveals whether a queried email is
+  registered as an OTP account and is an accepted trade-off for a fully
+  backend-driven UI; the client must not implement any manual
+  "password vs OTP" selector.
+
 ### 9.10 `moon_auth_refresh_tokens` Internal Table
 
 `moon_auth_refresh_tokens` stores stateful refresh-session data for interactive user sessions.

@@ -281,6 +281,12 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 		}
 	}
 
+	// Accepted exception (documented in SPEC.md "Email / OTP Login"): this
+	// response deliberately reveals the account's login_method and therefore
+	// whether a queried email is registered as an OTP account. This is an
+	// accepted trade-off so the UI can be fully backend-driven (the client
+	// renders only the credential kind the server dictates) and does not
+	// implement any manual "password vs OTP" selector.
 	msg := "Enter your password"
 	if loginMethod == "otp" {
 		msg = "Enter your OTP"

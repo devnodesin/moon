@@ -209,6 +209,10 @@ Response `200 OK`:
 
 See [Authentication API](./SPEC/20_auth.md)
 
+Accepted exception: the `smart_login` initiate step (email only) returns
+`login_method` and a matching `message` so the client renders only the credential
+kind the backend dictates; this discloses whether an email is an OTP account.
+
 ### Collection Managment Endpoints
 
 | Endpoint              | Method | Description                            |

@@ -268,6 +268,10 @@ Response:
 (message: "Enter your OTP"). The client uses `login_method` to decide which
 credential field to display. An unknown email defaults to `password`.
 
+Accepted exception (documented in SPEC.md "Email / OTP Login"): the initiate
+step deliberately reveals `login_method` to keep the UI fully backend-driven.
+This allows probing whether an email is registered as an OTP account.
+
 #### Step 2 — Request an OTP (optional)
 
 Trigger an OTP email for accounts that use OTP login:
