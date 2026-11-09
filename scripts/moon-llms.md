@@ -355,6 +355,124 @@ curl -s -X POST "http://localhost:6000/auth:session" \
 }
 ```
 
+### Integration Clarifications — Verify Against Live Server
+
+The following items are not confirmed against your local server at `http://localhost:6000`. Treat them as open questions, not documented behavior.
+
+- **Smart login (password) success shape — documented.** `POST /auth:session` with `op=smart_login` and `email`+`password` returns `200 OK` with `data[0]` containing `access_token`, `refresh_token`, `expires_at`, `token_type`, and `user`. See the "Login" section above.
+- **Smart login (OTP) steps 3 & 4 response shape — NOT documented.** It is unconfirmed whether steps 3 and 4 return the same token envelope (`data[0]` with `access_token`/`refresh_token`/`user`) as the password flow. Confirm against the live server before coding the client.
+- **`challenge` field semantics — NOT documented.** It is unconfirmed whether the client should branch on `password` vs `code` presence in the request rather than parsing `challenge` strings. Confirm against live behavior.
+- **Remember-me / session persistence — conditional.** If smart login returns the same tokens as login, the existing `authStore.setSession(tokens, rememberMe)` storage logic can be reused unchanged. This is conditional on the token envelope matching the password flow (see above).
+- **Rate-limit UX (429) — documented.** `auth:session` returns `429` when rate limited (5 requests / 15 min per email). A `retry-after` header is not documented; confirm against the live server whether one is sent.
+
+### Smart Login Client Guide
+
+Authenticate via `POST /auth:session` with `op=smart_login`.
+
+#### Step 1 — Initiate
+
+Request a smart login challenge for an email address:
+
+```bash
+curl -s -X POST "http://localhost:6000/auth:session" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "smart_login",
+        "data": {
+          "email": "user@example.com"
+        }
+      }
+    ' | jq .
+```
+
+Response:
+
+```json
+{
+  "challenge": "credentials",
+  "message": "Enter your password or request an OTP"
+}
+```
+
+#### Step 2 — Request an OTP (optional)
+
+Trigger an OTP email for accounts that use OTP login:
+
+```bash
+curl -s -X POST "http://localhost:6000/auth:session" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "smart_login",
+        "data": {
+          "email": "user@example.com",
+          "request_otp": true
+        }
+      }
+    ' | jq .
+```
+
+Response:
+
+```json
+{
+  "challenge": "credentials",
+  "message": "Enter your password or request an OTP"
+}
+```
+
+OTP email is sent if the account uses OTP login.
+
+#### Step 3 — Verify password
+
+Complete login with the user's password:
+
+```bash
+curl -s -X POST "http://localhost:6000/auth:session" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "smart_login",
+        "data": {
+          "email": "user@example.com",
+          "password": "..."
+        }
+      }
+    ' | jq .
+```
+
+#### Step 4 — Verify OTP
+
+Complete login with the OTP code:
+
+```bash
+curl -s -X POST "http://localhost:6000/auth:session" \
+    -H "Content-Type: application/json" \
+    -d '
+      {
+        "op": "smart_login",
+        "data": {
+          "email": "user@example.com",
+          "code": "123456"
+        }
+      }
+    ' | jq .
+```
+
+#### Errors
+
+| Status | Meaning |
+|--------|---------|
+| 400 | Missing or invalid fields |
+| 401 | Invalid credentials or OTP |
+| 429 | Rate limited (5 requests / 15 min per email) |
+| 503 | OTP not configured |
+
+#### Migration
+
+Replace `login`, `otp_request`, and `otp_verify` ops with `smart_login`.
+
 
 ## User Managment API
 
