@@ -211,9 +211,9 @@ curl -s -X POST "http://localhost:6000/data/typed_items:mutate" \
   "data": [
     {
       "boolean_test": true,
-      "date_test": "2024-01-01 00:00:00 +0000 UTC",
+      "date_test": "2024-01-01T00:00:00Z",
       "decimal_test": "9.99",
-      "id": "01KPR8T9042J5DXVH4DW5K17HT",
+      "id": "01M6Z8R6R30WWZRYSGDQ69A4WK",
       "integer_test": 42,
       "json_test": {
         "key": "value"
@@ -245,9 +245,9 @@ curl -s -X GET "http://localhost:6000/data/typed_items:query" \
   "data": [
     {
       "boolean_test": true,
-      "date_test": "2024-01-01 00:00:00 +0000 UTC",
+      "date_test": "2024-01-01T00:00:00Z",
       "decimal_test": "9.99",
-      "id": "01KPR8T9042J5DXVH4DW5K17HT",
+      "id": "01M6Z8R6R30WWZRYSGDQ69A4WK",
       "integer_test": 42,
       "json_test": {
         "key": "value"

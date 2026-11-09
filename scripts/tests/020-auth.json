@@ -2,7 +2,7 @@
   "docURL": "http://localhost:6000",
   "serverURL": "https://moon.devnodes.in/api",
   "prefix": "",
-  "username": "admin",
+  "username": "admin@example.com",
   "password": "MoonAdmin12#",
   "health": "/health",
   "tests": [
@@ -53,9 +53,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "op": "login",
+        "op": "smart_login",
         "data": {
-          "username": "moonuser",
+          "email": "moonuser@example.com",
           "password": "UserPass123#"
         }
       }
@@ -109,9 +109,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "op": "login",
+        "op": "smart_login",
         "data": {
-          "username": "moonuser",
+          "email": "moonuser@example.com",
           "password": "UserPass456#"
         }
       }
@@ -156,9 +156,9 @@
         "Content-Type": "application/json"
       },
       "data": {
-        "op": "login",
+        "op": "smart_login",
         "data": {
-          "username": "admin",
+          "email": "admin@example.com",
           "password": "MoonAdmin12#"
         }
       }

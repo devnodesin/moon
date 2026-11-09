@@ -40,15 +40,15 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
       "collections": [
         "apikey_usage_devices"
       ],
-      "created_at": "2026-04-22T00:55:37Z",
+      "created_at": "2026-11-09T04:23:33Z",
       "enabled": true,
-      "id": "01KPSAYYC4QHKMC6B47313B9W1",
+      "id": "01M6Z8R4NVWPAA1K68WCQ97X44",
       "is_website": false,
       "key": "$API_KEY",
       "name": "Moon Usage Key",
       "rate_limit": 15,
       "role": "user",
-      "updated_at": "2026-04-22T00:55:37Z"
+      "updated_at": "2026-11-09T04:23:33Z"
     }
   ],
   "meta": {
@@ -172,7 +172,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KPSAYYC4QHKMC6B47313B9W1",
+            "id": "01M6Z8R4NVWPAA1K68WCQ97X44",
             "name": "Moon Usage Key",
             "role": "user",
             "can_write": false,
@@ -207,15 +207,15 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
       "collections": [
         "apikey_usage_pages"
       ],
-      "created_at": "2026-04-22T00:55:37Z",
+      "created_at": "2026-11-09T04:23:33Z",
       "enabled": true,
-      "id": "01KPSAYYC4QHKMC6B47313B9W1",
+      "id": "01M6Z8R4NVWPAA1K68WCQ97X44",
       "is_website": true,
-      "last_used_at": "2026-04-22T00:55:38Z",
+      "last_used_at": "2026-11-09T04:23:33Z",
       "name": "Moon Usage Key",
       "rate_limit": 10,
       "role": "user",
-      "updated_at": "2026-04-22T00:55:38Z"
+      "updated_at": "2026-11-09T04:23:33Z"
     }
   ],
   "meta": {
@@ -239,7 +239,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "action": "rotate",
         "data": [
           {
-            "id": "01KPSAYYC4QHKMC6B47313B9W1"
+            "id": "01M6Z8R4NVWPAA1K68WCQ97X44"
           }
         ]
       }
@@ -262,7 +262,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "apikey_usage_pages"
       ],
       "enabled": true,
-      "id": "01KPSAYYC4QHKMC6B47313B9W1",
+      "id": "01M6Z8R4NVWPAA1K68WCQ97X44",
       "is_website": true,
       "key": "$API_KEY",
       "name": "Moon Usage Key",

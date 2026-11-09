@@ -7,9 +7,9 @@ curl -s -X POST "http://localhost:6000/auth:session" \
     -H "Content-Type: application/json" \
     -d '
       {
-        "op": "login",
+        "op": "smart_login",
         "data": {
-          "username": "",
+          "email": "",
           "password": ""
         }
       }
@@ -20,7 +20,7 @@ curl -s -X POST "http://localhost:6000/auth:session" \
 
 ```json
 {
-  "message": "Missing required field: data.username"
+  "message": "Missing required field: data.email"
 }
 ```
 

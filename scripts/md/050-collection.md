@@ -179,16 +179,21 @@ curl -s -X GET "http://localhost:6000/collections:query" \
       "system": false
     },
     {
+      "count": 0,
+      "name": "schema_migrations",
+      "system": false
+    },
+    {
       "count": 1,
       "name": "users",
       "system": true
     }
   ],
   "meta": {
-    "count": 4,
+    "count": 5,
     "current_page": 1,
     "per_page": 15,
-    "total": 4,
+    "total": 5,
     "total_pages": 1
   },
   "links": {

@@ -47,15 +47,15 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "products",
         "orders"
       ],
-      "created_at": "2026-04-21T14:58:39Z",
+      "created_at": "2026-11-09T04:23:32Z",
       "enabled": true,
-      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
       "is_website": true,
-      "key": "moon_live_YQh3eBJNm0AWUr8L9LXDbTX7Y3wP3qGZJ4f5h3MG2mfICMBVpHgQwbC4QwYH0RL0",
+      "key": "$API_KEY",
       "name": "Integration Service",
       "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-04-21T14:58:39Z"
+      "updated_at": "2026-11-09T04:23:32Z"
     }
   ],
   "meta": {
@@ -90,15 +90,15 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
         "products",
         "orders"
       ],
-      "created_at": "2026-04-21T14:58:39Z",
+      "created_at": "2026-11-09T04:23:32Z",
       "enabled": true,
-      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
       "is_website": true,
       "last_used_at": null,
       "name": "Integration Service",
       "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-04-21T14:58:39Z"
+      "updated_at": "2026-11-09T04:23:32Z"
     }
   ],
   "meta": {
@@ -122,7 +122,7 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query" \
 Retrieve a specific API key by its ULID.
 
 ```bash
-curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KPR8SVKNGXSCC3EY1DB6RSRZ" \
+curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01M6Z8R48VA6WFGECGHCB7EGTY" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
 ```
 
@@ -142,15 +142,15 @@ curl -s -X GET "http://localhost:6000/data/apikeys:query?id=01KPR8SVKNGXSCC3EY1D
         "products",
         "orders"
       ],
-      "created_at": "2026-04-21T14:58:39Z",
+      "created_at": "2026-11-09T04:23:32Z",
       "enabled": true,
-      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
       "is_website": true,
       "last_used_at": null,
       "name": "Integration Service",
       "rate_limit": 5,
       "role": "user",
-      "updated_at": "2026-04-21T14:58:39Z"
+      "updated_at": "2026-11-09T04:23:32Z"
     }
   ]
 }
@@ -169,7 +169,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "update",
         "data": [
           {
-            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+            "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
             "name": "Updated Integration Service",
             "collections": [
               "products"
@@ -203,15 +203,15 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
       "collections": [
         "products"
       ],
-      "created_at": "2026-04-21T14:58:39Z",
+      "created_at": "2026-11-09T04:23:32Z",
       "enabled": true,
-      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
       "is_website": true,
       "last_used_at": null,
       "name": "Updated Integration Service",
       "rate_limit": 10,
       "role": "user",
-      "updated_at": "2026-04-21T14:58:40Z"
+      "updated_at": "2026-11-09T04:23:32Z"
     }
   ],
   "meta": {
@@ -235,7 +235,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "action": "rotate",
         "data": [
           {
-            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
+            "id": "01M6Z8R48VA6WFGECGHCB7EGTY"
           }
         ]
       }
@@ -259,9 +259,9 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "products"
       ],
       "enabled": true,
-      "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ",
+      "id": "01M6Z8R48VA6WFGECGHCB7EGTY",
       "is_website": true,
-      "key": "moon_live_FcxzPdRuR3l31Fd6Kh9OUtaJ9NAZ2kYl9XdwGk2AOvEDLKl8NnXI8QmDLlvoNzTD",
+      "key": "$API_KEY",
       "name": "Updated Integration Service",
       "rate_limit": 10,
       "role": "user"
@@ -287,7 +287,7 @@ curl -s -X POST "http://localhost:6000/data/apikeys:mutate" \
         "op": "destroy",
         "data": [
           {
-            "id": "01KPR8SVKNGXSCC3EY1DB6RSRZ"
+            "id": "01M6Z8R48VA6WFGECGHCB7EGTY"
           }
         ]
       }

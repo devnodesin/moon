@@ -32,11 +32,11 @@ def perform_login(
     timeout: int = 10
 ) -> Optional[AuthState]:
     """
-    Perform login via POST /auth:session (op=login) and return authentication state.
+    Perform login via POST /auth:session (op=smart_login) and return authentication state.
 
     Args:
         server_url: Base server URL
-        username: Username for login
+        username: Email address for login (used as the smart_login email identifier)
         password: Password for login
         prefix: URL prefix (e.g. "/api")
         timeout: Request timeout in seconds
@@ -46,9 +46,9 @@ def perform_login(
     """
     login_url = f"{server_url}{prefix}/auth:session"
     login_data = {
-        "op": "login",
+        "op": "smart_login",
         "data": {
-            "username": username,
+            "email": username,
             "password": password,
         },
     }
@@ -131,7 +131,7 @@ def detect_token_refresh(test: TestDefinition) -> bool:
 
 def detect_login(test: TestDefinition) -> bool:
     """
-    Detect if a test performs a login operation via POST /auth:session op=login.
+    Detect if a test performs a login operation via POST /auth:session op=smart_login.
 
     Args:
         test: Test definition to check
@@ -147,7 +147,7 @@ def detect_login(test: TestDefinition) -> bool:
         return False
 
     if isinstance(data, dict):
-        return data.get("op") == "login"
+        return data.get("op") == "smart_login"
 
     return False
 
