@@ -259,9 +259,14 @@ Response:
 ```json
 {
   "challenge": "credentials",
-  "message": "Enter your password or request an OTP"
+  "message": "Enter your password",
+  "login_method": "password"
 }
 ```
+
+`login_method` is either `password` (message: "Enter your password") or `otp`
+(message: "Enter your OTP"). The client uses `login_method` to decide which
+credential field to display. An unknown email defaults to `password`.
 
 #### Step 2 — Request an OTP (optional)
 
@@ -286,11 +291,13 @@ Response:
 ```json
 {
   "challenge": "credentials",
-  "message": "Enter your password or request an OTP"
+  "message": "Enter your password",
+  "login_method": "password"
 }
 ```
 
-OTP email is sent if the account uses OTP login.
+OTP email is sent if the account uses OTP login. The response `message` /
+`login_method` reflect the account's configured login method (see Step 1).
 
 #### Step 3 — Verify password
 

@@ -165,6 +165,53 @@ func TestLogin_MissingUsername(t *testing.T) {
 	}
 }
 
+func TestSmartLogin_Initiate_LoginMethod_PasswordUser(t *testing.T) {
+	handler, _ := setupAuthTest(t)
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "test@example.com"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp["login_method"] != "password" {
+		t.Fatalf("expected login_method password, got %v", resp["login_method"])
+	}
+	if resp["message"] != "Enter your password" {
+		t.Fatalf("expected 'Enter your password', got %q", resp["message"])
+	}
+}
+
+func TestSmartLogin_Initiate_LoginMethod_OTPUser(t *testing.T) {
+	handler, db, _ := setupAuthTestWithOTP(t)
+	insertOTPUser(t, db, "otp@example.com", "01TESTOTPUSER000000000000002")
+
+	w := doAuthRequest(t, handler, map[string]any{
+		"op":   "smart_login",
+		"data": map[string]any{"email": "otp@example.com"},
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp["login_method"] != "otp" {
+		t.Fatalf("expected login_method otp, got %v", resp["login_method"])
+	}
+	if resp["message"] != "Enter your OTP" {
+		t.Fatalf("expected 'Enter your OTP', got %q", resp["message"])
+	}
+}
+
 func TestLogin_MissingPassword(t *testing.T) {
 	handler, _ := setupAuthTest(t)
 	w := doAuthRequest(t, handler, map[string]any{

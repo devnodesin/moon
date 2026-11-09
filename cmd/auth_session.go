@@ -226,9 +226,7 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Optionally send OTP if explicitly requested. We look up the user
-	// silently and only send if they exist and use OTP login. The response
-	// is identical regardless, preventing user enumeration.
+	// Optionally send OTP if explicitly requested.
 	requestOTP, _ := data["request_otp"].(bool)
 	if requestOTP && h.emailSender == nil {
 		WriteError(w, http.StatusServiceUnavailable, "OTP login not configured")
@@ -238,51 +236,60 @@ func (h *AuthSessionHandler) handleSmartLogin(w http.ResponseWriter, r *http.Req
 	if h.rateLimiter != nil {
 		h.rateLimiter.RecordSmartLoginInitiate(rateLimitKey)
 	}
-	if requestOTP && h.emailSender != nil {
-		rows, _, err := h.db.QueryRows(ctx, "users", QueryOptions{
-			Filters: []Filter{{Field: "email", Op: "eq", Value: email}},
-			Page:    1,
-			PerPage: 1,
-		})
-		if err == nil && len(rows) > 0 {
-			user := rows[0]
-			loginMethod, _ := user["login_method"].(string)
-			if loginMethod == "" {
-				loginMethod = "password"
+
+	// Look up the user silently to determine the login method and, when
+	// requested, to send an OTP email for OTP accounts.
+	loginMethod := "password"
+	userID := ""
+	rows, _, err := h.db.QueryRows(ctx, "users", QueryOptions{
+		Filters: []Filter{{Field: "email", Op: "eq", Value: email}},
+		Page:    1,
+		PerPage: 1,
+	})
+	if err == nil && len(rows) > 0 {
+		user := rows[0]
+		lm, _ := user["login_method"].(string)
+		if lm == "" {
+			lm = "password"
+		}
+		loginMethod = lm
+		userID, _ = user["id"].(string)
+	}
+
+	if requestOTP && h.emailSender != nil && loginMethod == "otp" {
+		code2, hash, err := GenerateOTP(OTPCodeLength)
+		if err != nil {
+			if h.logger != nil {
+				h.logger.Error("generate OTP failed", "error", err)
 			}
-			if loginMethod == "otp" {
-				userID, _ := user["id"].(string)
-				code2, hash, err := GenerateOTP(OTPCodeLength)
-				if err != nil {
+		} else {
+			expiry := h.otpExpiryMin
+			if expiry <= 0 {
+				expiry = OTPTTLMinutes
+			}
+			if err := StoreOTP(ctx, h.db, userID, hash, "login", expiry); err != nil {
+				if h.logger != nil {
+					h.logger.Error("store OTP failed", "error", err)
+				}
+			} else {
+				if err := h.emailSender.SendOTPEmail(email, code2); err != nil {
 					if h.logger != nil {
-						h.logger.Error("generate OTP failed", "error", err)
-					}
-				} else {
-					expiry := h.otpExpiryMin
-					if expiry <= 0 {
-						expiry = OTPTTLMinutes
-					}
-					if err := StoreOTP(ctx, h.db, userID, hash, "login", expiry); err != nil {
-						if h.logger != nil {
-							h.logger.Error("store OTP failed", "error", err)
-						}
-					} else {
-						if err := h.emailSender.SendOTPEmail(email, code2); err != nil {
-							if h.logger != nil {
-								h.logger.Error("send OTP email failed", "error", err)
-							}
-						}
+						h.logger.Error("send OTP email failed", "error", err)
 					}
 				}
 			}
 		}
 	}
 
-	// Generic challenge response - identical for all emails to prevent
-	// user enumeration.
+	msg := "Enter your password"
+	if loginMethod == "otp" {
+		msg = "Enter your OTP"
+	}
+
 	WriteJSON(w, http.StatusOK, map[string]string{
-		"challenge": "credentials",
-		"message":   "Enter your password or request an OTP",
+		"challenge":    "credentials",
+		"message":      msg,
+		"login_method": loginMethod,
 	})
 }
 
