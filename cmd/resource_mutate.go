@@ -299,7 +299,7 @@ func (h *ResourceMutateHandler) createUser(ctx context.Context, item map[string]
 		"email":         strings.ToLower(email),
 		"password_hash": hash,
 		"role":          role,
-		"can_write":     boolToInt(canWrite),
+		"can_write":     canWrite,
 		"created_at":    now,
 		"updated_at":    now,
 	}
@@ -382,13 +382,13 @@ func (h *ResourceMutateHandler) createAPIKey(ctx context.Context, item map[strin
 		"id":               id,
 		"name":             name,
 		"role":             role,
-		"can_write":        boolToInt(canWrite),
+		"can_write":        canWrite,
 		"collections":      prepareValueForDB(collections, MoonFieldTypeJSON),
-		"is_website":       boolToInt(isWebsite),
+		"is_website":       isWebsite,
 		"allowed_origins":  prepareValueForDB(allowedOrigins, MoonFieldTypeJSON),
 		"rate_limit":       int64(rateLimit),
-		"captcha_required": boolToInt(captchaRequired),
-		"enabled":          boolToInt(enabled),
+		"captcha_required": captchaRequired,
+		"enabled":          enabled,
 		"key_hash":         keyHash,
 		"created_at":       now,
 		"updated_at":       now,
@@ -1223,10 +1223,7 @@ func prepareValueForDB(value any, fieldType string) any {
 	}
 	switch fieldType {
 	case MoonFieldTypeBoolean:
-		if toBool(value) {
-			return int64(1)
-		}
-		return int64(0)
+		return toBool(value)
 	case MoonFieldTypeJSON:
 		b, err := json.Marshal(value)
 		if err != nil {
