@@ -155,15 +155,25 @@ func (h *ResourceMutateHandler) authorize(resource string, identity *AuthIdentit
 // logWriteError records the underlying adapter error for a failed write
 // operation. The client-facing message stays generic; the real cause is
 // written to the server log so operators can diagnose write failures.
+// AdapterError is unwrapped to surface the actual backend error detail.
 func (h *ResourceMutateHandler) logWriteError(op, resource string, err error) {
 	if h.logger == nil || err == nil {
 		return
 	}
-	h.logger.Error("write failed",
-		"op", op,
-		"resource", resource,
-		"error", err,
-	)
+	underlying := err
+	for {
+		var ae *AdapterError
+		if errors.As(underlying, &ae) && ae.Err != nil {
+			underlying = ae.Err
+			continue
+		}
+		break
+	}
+	fields := []any{"op", op, "resource", resource, "error", underlying}
+	if underlying != err {
+		fields = append(fields, "wrapped", err)
+	}
+	h.logger.Error("write failed", fields...)
 }
 
 // ---------------------------------------------------------------------------
