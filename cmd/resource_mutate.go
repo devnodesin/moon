@@ -152,6 +152,20 @@ func (h *ResourceMutateHandler) authorize(resource string, identity *AuthIdentit
 	return nil
 }
 
+// logWriteError records the underlying adapter error for a failed write
+// operation. The client-facing message stays generic; the real cause is
+// written to the server log so operators can diagnose write failures.
+func (h *ResourceMutateHandler) logWriteError(op, resource string, err error) {
+	if h.logger == nil || err == nil {
+		return
+	}
+	h.logger.Error("write failed",
+		"op", op,
+		"resource", resource,
+		"error", err,
+	)
+}
+
 // ---------------------------------------------------------------------------
 // op=create
 // ---------------------------------------------------------------------------
@@ -211,6 +225,7 @@ func (h *ResourceMutateHandler) handleCreate(w http.ResponseWriter, _ *http.Requ
 				WriteError(w, http.StatusConflict, uniqueViolationMessage(insertErr))
 				return
 			}
+			h.logWriteError("create", resource, insertErr)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -415,7 +430,11 @@ func (h *ResourceMutateHandler) createDynamic(ctx context.Context, resource stri
 		Page:    1,
 		PerPage: 1,
 	})
-	if err != nil || len(rows) == 0 {
+	if err != nil {
+		h.logWriteError("create", resource, err)
+		return row, nil
+	}
+	if len(rows) == 0 {
 		return row, nil
 	}
 
@@ -490,6 +509,7 @@ func (h *ResourceMutateHandler) handleUpdate(w http.ResponseWriter, _ *http.Requ
 			PerPage: 1,
 		})
 		if err != nil {
+			h.logWriteError("update", resource, err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -517,6 +537,7 @@ func (h *ResourceMutateHandler) handleUpdate(w http.ResponseWriter, _ *http.Requ
 				failed++
 				continue
 			}
+			h.logWriteError("update", resource, err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -575,6 +596,7 @@ func (h *ResourceMutateHandler) handleDestroy(w http.ResponseWriter, _ *http.Req
 			PerPage: 1,
 		})
 		if err != nil {
+			h.logWriteError("destroy", resource, err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -589,6 +611,7 @@ func (h *ResourceMutateHandler) handleDestroy(w http.ResponseWriter, _ *http.Req
 			if userRole == "admin" {
 				adminCount, err := h.countAdmins(ctx)
 				if err != nil {
+					h.logWriteError("destroy", "users", err)
 					WriteError(w, http.StatusInternalServerError, "Internal server error")
 					return
 				}
@@ -602,12 +625,14 @@ func (h *ResourceMutateHandler) handleDestroy(w http.ResponseWriter, _ *http.Req
 		// For users, cascade-delete refresh tokens
 		if resource == "users" {
 			if err := h.cascadeDeleteRefreshTokens(ctx, id); err != nil {
+				h.logWriteError("destroy", "users", err)
 				WriteError(w, http.StatusInternalServerError, "Internal server error")
 				return
 			}
 		}
 
 		if err := h.db.DeleteRow(ctx, resource, id); err != nil {
+			h.logWriteError("destroy", resource, err)
 			failed++
 			continue
 		}
@@ -721,6 +746,7 @@ func (h *ResourceMutateHandler) actionResetPassword(w http.ResponseWriter, rawIt
 			PerPage: 1,
 		})
 		if err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -731,6 +757,7 @@ func (h *ResourceMutateHandler) actionResetPassword(w http.ResponseWriter, rawIt
 
 		hash, err := HashPassword(password)
 		if err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -740,12 +767,14 @@ func (h *ResourceMutateHandler) actionResetPassword(w http.ResponseWriter, rawIt
 			"password_hash": hash,
 			"updated_at":    now,
 		}); err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
 
 		// Invalidate all refresh tokens
 		if err := h.revokeAllRefreshTokens(ctx, id, "password_reset"); err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -787,6 +816,7 @@ func (h *ResourceMutateHandler) actionRevokeSessions(w http.ResponseWriter, rawI
 			PerPage: 1,
 		})
 		if err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -796,6 +826,7 @@ func (h *ResourceMutateHandler) actionRevokeSessions(w http.ResponseWriter, rawI
 		}
 
 		if err := h.revokeAllRefreshTokens(ctx, id, "admin_revoked"); err != nil {
+			h.logWriteError("action", "users", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -836,6 +867,7 @@ func (h *ResourceMutateHandler) actionRotateAPIKey(w http.ResponseWriter, rawIte
 			PerPage: 1,
 		})
 		if err != nil {
+			h.logWriteError("action", "apikeys", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
@@ -851,6 +883,7 @@ func (h *ResourceMutateHandler) actionRotateAPIKey(w http.ResponseWriter, rawIte
 			"key_hash":   keyHash,
 			"updated_at": now,
 		}); err != nil {
+			h.logWriteError("action", "apikeys", err)
 			WriteError(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
