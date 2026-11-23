@@ -2,6 +2,8 @@
 
 Create a new user account.
 
+`login_method` cannot be set through this endpoint. New users are created with `login_method` set to `password` by default. It is returned in the response for informational display only.
+
 ```bash
 curl -s -X POST "http://localhost:6000/data/users:mutate" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -48,6 +50,8 @@ curl -s -X POST "http://localhost:6000/data/users:mutate" \
 ### List All Users
 
 Retrieve all users.
+
+The `login_method` field (`password` or `otp`) is returned per user and is useful for a read-only "Login Method" column on a Users management page. It cannot be changed through the user create/update endpoints.
 
 ```bash
 curl -s -X GET "http://localhost:6000/data/users:query" \
@@ -103,6 +107,8 @@ curl -s -X GET "http://localhost:6000/data/users:query" \
 
 Retrieve a specific user by their ULID.
 
+The `login_method` field is returned and is read-only — it cannot be changed through the user update endpoint.
+
 ```bash
 curl -s -X GET "http://localhost:6000/data/users:query?id=01M6Z8R3GFH5ZC0J4SK6TRBQH6" \
     -H "Authorization: Bearer $ACCESS_TOKEN" | jq .
@@ -132,6 +138,8 @@ curl -s -X GET "http://localhost:6000/data/users:query?id=01M6Z8R3GFH5ZC0J4SK6TR
 ### Update User
 
 Update an existing user's fields: email, role and can_write permissions.
+
+`login_method` is read-only and cannot be changed through this endpoint. New users are created with `login_method` set to `password` by default, and it is only informational on user responses.
 
 ```bash
 curl -s -X POST "http://localhost:6000/data/users:mutate" \
